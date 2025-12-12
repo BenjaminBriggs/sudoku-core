@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# Xcode
+*.xcodeproj
+!Package.swift
+*.xcworkspace
+xcuserdata/
+DerivedData/
+.swiftpm/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+/.build
+/Packages
+Package.resolved
+
+# Documentation
+.docc-build/
+
+# Benchmark results
+*.json
+!Tests/**/Fixtures/*.json
