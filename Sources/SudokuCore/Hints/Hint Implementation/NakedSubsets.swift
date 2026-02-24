@@ -9,7 +9,15 @@ import Foundation
 
 // MARK: - Naked Subset Technique (Generic for Pairs, Triples, Quads)
 extension HintFinder {
-    /// Find naked subsets of size n (2 for pairs, 3 for triples, 4 for quads)
+    /// Finds a naked subset of size `n` across all units (rows, columns, and boxes).
+    ///
+    /// A naked subset occurs when `n` cells in a unit collectively contain exactly `n` candidates,
+    /// meaning those digits can be eliminated from all other cells in the unit.
+    /// - Parameters:
+    ///   - n: The subset size (2 = naked pair, 3 = naked triple, 4 = naked quad).
+    ///   - technique: The `HintTechnique` to label the result with.
+    ///   - state: The current immutable board snapshot to analyse.
+    /// - Returns: A `HintStep` with candidate removal actions, or `nil` if no naked subset is found.
     static func findNakedSubsets(n: Int, technique: HintTechnique, in state: BoardState)
         -> HintStep?
     {
@@ -24,6 +32,17 @@ extension HintFinder {
         return nil
     }
 
+    /// Searches a single unit (row, column, or box) for a naked subset of size `n`.
+    ///
+    /// Collects empty cells whose candidate count is at most `n`, then checks every combination
+    /// of `n` such cells. If the union of their candidates contains exactly `n` digits, those
+    /// digits can be removed from all other cells in the unit. Uses a bitset for fast union counting.
+    /// - Parameters:
+    ///   - n: The subset size (2 = pair, 3 = triple, 4 = quad).
+    ///   - unit: The row, column, or box to search.
+    ///   - technique: The `HintTechnique` to label the result with.
+    ///   - state: The current board state.
+    /// - Returns: A `HintStep` with candidate removal actions, or `nil` if no naked subset is found.
     private static func findNakedSubsetsInUnit(
         n: Int,
         unit: SudokuUnit,
@@ -102,11 +121,6 @@ extension HintFinder {
                 }
 
                 if removals.isEmpty == false {
-                    if ProcessInfo.processInfo.environment["SUDOKU_DEBUG_NAKED"] != nil {
-                        print(
-                            "[NakedSubsetDebug] n=\(n) unit=\(unit) positions=\(subsetPositions) digits=\(Array(allCandidates).sorted()) removals=\(removals.map { $0.debugDescription })"
-                        )
-                    }
                     return HintStep(
                         actions: removals,
                         technique: technique,
@@ -126,6 +140,19 @@ extension HintFinder {
         return nil
     }
 
+    /// Builds the explanation steps for a naked subset hint.
+    ///
+    /// Generates three steps: (1) highlight the subset cells with `.primary`, (2) show their
+    /// shared candidates with `.action` to explain the constraint, and (3) highlight affected
+    /// cells with `.warning` to show which candidates will be removed.
+    /// - Parameters:
+    ///   - indices: The positions of the cells forming the naked subset.
+    ///   - digits: The sorted list of shared candidate digits.
+    ///   - orientation: Whether this is a row, column, or box.
+    ///   - excludeIndices: Other cells in the unit that have candidates to remove.
+    ///   - n: The subset size (2, 3, or 4).
+    ///   - state: The current board state for pencil mark lookups.
+    /// - Returns: An array of `HintExplanationStep` describing the naked subset deduction.
     private static func nakedSubsetExplanation(
         indices: Set<Puzzle.Index>,
         digits: [Int],
@@ -136,18 +163,7 @@ extension HintFinder {
     ) -> [HintExplanationStep] {
         var steps: [HintExplanationStep] = []
 
-        // Determine the name of the subset
-        let subsetName: LocalizedStringResource
-        switch n {
-        case 2:
-            subsetName = LocalizedStringResource("two", bundle: .module)
-        case 3:
-            subsetName = LocalizedStringResource("three", bundle: .module)
-        case 4:
-            subsetName = LocalizedStringResource("four", bundle: .module)
-        default:
-            subsetName = LocalizedStringResource("\(n)", bundle: .module)
-        }
+        let subsetName = localisedCountName(n)
 
         // Step 1: Identify the naked subset
         steps.append(

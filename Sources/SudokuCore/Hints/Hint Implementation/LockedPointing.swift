@@ -8,6 +8,12 @@ import Foundation
 
 // MARK: - Locked Candidates Pointing Technique - Updated
 extension HintFinder {
+    /// Searches for a Locked Candidates Pointing elimination in the given board state.
+    ///
+    /// For each box, checks whether any candidate digit is confined to a single row or column.
+    /// When found, that digit can be eliminated from the rest of that row or column outside the box.
+    /// - Parameter state: An immutable snapshot of the current board.
+    /// - Returns: A `HintStep` describing the first pointing elimination found, or `nil` if none exists.
     static func findLockedCandidatesPointing(in state: BoardState) -> HintStep? {
         let grid = state.grid
         let pencilMarks = state.pencilMarks
@@ -127,6 +133,21 @@ extension HintFinder {
         return nil
     }
     
+    /// Builds a multi-step explanation for a Locked Candidates Pointing hint.
+    ///
+    /// Generates five explanation steps that walk the user through the logic:
+    /// 1. The digit is confined to one row/column within the box (primary highlight).
+    /// 2. The box must contain the digit, so it must be in one of those cells (primary + secondary on box).
+    /// 3. The digit cannot appear elsewhere in that row/column (primary + warning on row/column).
+    /// 4. Identifies affected candidates outside the box (primary + warning on candidates).
+    /// 5. Concludes with the candidates to remove (warning highlight).
+    /// - Parameters:
+    ///   - digit: The candidate digit that is locked within the box.
+    ///   - cellsInHouse: The cells within the box where the digit appears as a candidate.
+    ///   - orientation: Whether the digit is confined to a row or column.
+    ///   - cellsOutsideBoxToRemoveDigit: The cells outside the box that will have the digit eliminated.
+    ///   - state: An immutable snapshot of the current board.
+    /// - Returns: An array of `HintExplanationStep` values for progressive disclosure in the UI.
     private static func lockedCandidatesPointingExplanation(
         digit: Int,
         cellsInHouse: Set<Puzzle.Index>,
@@ -152,7 +173,7 @@ extension HintFinder {
         // Step 2: Explain the implication
         steps.append(
             HintExplanationStep(
-                text: LocalizedStringResource("Because this house must contain a \(digit), we know that it has to be on of these cells.", bundle: .module),
+                text: LocalizedStringResource("Because this house must contain a \(digit), we know that it has to be one of these cells.", bundle: .module),
                 highlightedCells: cellsInHouse.map { index in
                     HintExplanationStepHighlight(
                         cell: index,
@@ -167,10 +188,10 @@ extension HintFinder {
             )
         )
 
-        // Step 2: Explain the implication
+        // Step 3: Show the row/column constraint
         steps.append(
             HintExplanationStep(
-                text: LocalizedStringResource("Since \(digit) must be in one of these cells, it can't appear elsewhere else in this \(orientation.displayName).", bundle: .module),
+                text: LocalizedStringResource("Since \(digit) must be in one of these cells, it can't appear anywhere else in this \(orientation.displayName).", bundle: .module),
                 highlightedCells: cellsInHouse.map { index in
                     HintExplanationStepHighlight(
                         cell: index,
@@ -186,7 +207,7 @@ extension HintFinder {
             )
         )
 
-        // Step 2: Explain the implication
+        // Step 4: Show affected candidates
         steps.append(
             HintExplanationStep(
                 text: LocalizedStringResource("In this \(orientation.displayName), only these cells contain a \(digit) as a candidate", bundle: .module),
@@ -206,7 +227,7 @@ extension HintFinder {
             )
         )
         
-        // Step 3: Show the candidates to remove
+        // Step 5: Show the candidates to remove
         steps.append(
             HintExplanationStep(
                 text: LocalizedStringResource("Therefore we can rule out \(digit) as a candidate from these cells.", bundle: .module),

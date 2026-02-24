@@ -8,9 +8,14 @@ import Foundation
 
 // MARK: - Naked Single Technique
 extension HintFinder {
+    /// Finds a naked single: a cell whose pencil marks contain exactly one candidate.
+    ///
+    /// Iterates all empty cells in row-major order and returns a `HintStep` for the first cell
+    /// that has only one remaining candidate, or `nil` if no naked single exists.
+    /// - Parameter state: The current immutable board snapshot to analyse.
+    /// - Returns: A `HintStep` that places the sole candidate, or `nil` if none is found.
     static func findNakedSingle(in state: BoardState) -> HintStep? {
         let grid = state.grid
-        _ = state.pencilMarks
 
         // Use pre-computed cell list for better cache locality
         for position in LookupTables.allCells {
@@ -46,6 +51,17 @@ extension HintFinder {
         return nil
     }
     
+    /// Builds the explanation steps for a naked single hint.
+    ///
+    /// Generates up to three steps: (1) highlight the cell with `.primary`, (2) show the
+    /// neighbouring constraints with `.secondary` to explain why all other digits are eliminated,
+    /// and (3) place the digit with `.success`.
+    /// - Parameters:
+    ///   - index: The position of the naked single cell.
+    ///   - digit: The sole remaining candidate to place.
+    ///   - influence: The set of neighbouring cells that constrain this cell.
+    ///   - state: The current board state for context.
+    /// - Returns: An array of `HintExplanationStep` describing the naked single deduction.
     private static func nakedSingleExplanation(
         index: Puzzle.Index,
         digit: Int,

@@ -9,7 +9,15 @@ import Foundation
 
 // MARK: - Hidden Subset Technique (Generic for Pairs, Triples, Quads)
 extension HintFinder {
-    /// Find hidden subsets of size n (2 for pairs, 3 for triples, 4 for quads)
+    /// Finds a hidden subset of size `n` across all units (rows, columns, and boxes).
+    ///
+    /// A hidden subset occurs when `n` digits within a unit can only appear in exactly `n` cells,
+    /// meaning all other candidates in those cells can be eliminated.
+    /// - Parameters:
+    ///   - n: The subset size (2 = hidden pair, 3 = hidden triple, 4 = hidden quad).
+    ///   - technique: The `HintTechnique` to label the result with.
+    ///   - state: The current immutable board snapshot to analyse.
+    /// - Returns: A `HintStep` with candidate removal actions, or `nil` if no hidden subset is found.
     static func findHiddenSubsets(n: Int, technique: HintTechnique, in state: BoardState) -> HintStep? {
         // Check all units (rows, columns, houses)
         for unit in SudokuUnit.allUnits {
@@ -20,6 +28,17 @@ extension HintFinder {
         return nil
     }
 
+    /// Searches a single unit (row, column, or box) for a hidden subset of size `n`.
+    ///
+    /// Maps each unplaced digit to the cells where it appears as a candidate. Then checks every
+    /// combination of `n` available digits. If those `n` digits are confined to exactly `n` cells,
+    /// all other candidates can be removed from those cells. Uses a bitset to track placed digits.
+    /// - Parameters:
+    ///   - n: The subset size (2 = pair, 3 = triple, 4 = quad).
+    ///   - unit: The row, column, or box to search.
+    ///   - technique: The `HintTechnique` to label the result with.
+    ///   - state: The current board state.
+    /// - Returns: A `HintStep` with candidate removal actions, or `nil` if no hidden subset is found.
     private static func findHiddenSubsetsInUnit(
         n: Int,
         unit: SudokuUnit,
@@ -119,6 +138,19 @@ extension HintFinder {
         return nil
     }
 
+    /// Builds the explanation steps for a hidden subset hint.
+    ///
+    /// Generates three steps: (1) highlight the entire unit with `.primary` to focus attention,
+    /// (2) show the subset cells with `.action` to identify where the hidden digits appear,
+    /// and (3) mark non-subset candidates in those cells with `.warning` to show what will be removed.
+    /// - Parameters:
+    ///   - indices: The positions of the cells forming the hidden subset.
+    ///   - digits: The sorted list of hidden subset digits.
+    ///   - orientation: Whether this is a row, column, or box.
+    ///   - unitCells: All cells in the unit, used for the initial highlight.
+    ///   - n: The subset size (2, 3, or 4).
+    ///   - state: The current board state for pencil mark lookups.
+    /// - Returns: An array of `HintExplanationStep` describing the hidden subset deduction.
     private static func hiddenSubsetExplanation(
         indices: Set<Puzzle.Index>,
         digits: [Int],
@@ -129,18 +161,7 @@ extension HintFinder {
     ) -> [HintExplanationStep] {
         var steps: [HintExplanationStep] = []
 
-        // Determine the name of the subset
-        let subsetName: LocalizedStringResource
-        switch n {
-        case 2:
-            subsetName = LocalizedStringResource("two", bundle: .module)
-        case 3:
-            subsetName = LocalizedStringResource("three", bundle: .module)
-        case 4:
-            subsetName = LocalizedStringResource("four", bundle: .module)
-        default:
-            subsetName = LocalizedStringResource("\(n)", bundle: .module)
-        }
+        let subsetName = localisedCountName(n)
 
         // Step 1: Focus on the unit
         steps.append(

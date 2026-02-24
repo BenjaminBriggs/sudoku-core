@@ -18,20 +18,43 @@ extension HintFinder {
 
     // MARK: - Public API
 
+    /// Finds an XY-Wing pattern where a bi-value pivot shares one distinct candidate with each
+    /// of two bi-value wings, and both wings share a common elimination digit.
+    /// - Parameter state: The current board state snapshot.
+    /// - Returns: A `HintStep` with eliminations, or `nil` if no XY-Wing exists.
     static func findXYWing(in state: BoardState) -> HintStep? {
         findWingPattern(type: .xy, technique: .xyWing, in: state)
     }
 
+    /// Finds a Y-Wing pattern, a relaxed variant of XY-Wing where the pivot's candidates
+    /// overlap with the wings but without strict 1:1 sharing requirements.
+    /// - Parameter state: The current board state snapshot.
+    /// - Returns: A `HintStep` with eliminations, or `nil` if no Y-Wing exists.
     static func findYWing(in state: BoardState) -> HintStep? {
         findWingPattern(type: .y, technique: .yWing, in: state)
     }
 
+    /// Finds an XYZ-Wing pattern where a tri-value pivot and two bi-value wing cells share
+    /// a common elimination digit. Wings must be neighbours of the pivot.
+    /// - Parameter state: The current board state snapshot.
+    /// - Returns: A `HintStep` with eliminations, or `nil` if no XYZ-Wing exists.
     static func findXYZWing(in state: BoardState) -> HintStep? {
         findWingPattern(type: .xyz, technique: .xyzWing, in: state)
     }
 
     // MARK: - Generic Wing Finder
 
+    /// Generic wing pattern search that handles XY-Wing, Y-Wing, and XYZ-Wing.
+    ///
+    /// Collects bi-value (2 candidates) and tri-value (3 candidates) cells from the board,
+    /// selects pivot candidates based on the wing type, then delegates to `findWingWithPivot`
+    /// for each candidate pivot cell.
+    ///
+    /// - Parameters:
+    ///   - type: The specific wing pattern variant to search for.
+    ///   - technique: The `HintTechnique` to tag the result with.
+    ///   - state: The current board state snapshot.
+    /// - Returns: A `HintStep` for the first valid wing pattern found, or `nil`.
     private static func findWingPattern(
         type: WingType,
         technique: HintTechnique,
@@ -91,6 +114,19 @@ extension HintFinder {
         return nil
     }
 
+    /// Attempts to form a valid wing pattern using a specific pivot cell.
+    ///
+    /// Filters candidate wing cells (for XYZ-Wing, wings must be neighbours of the pivot),
+    /// then tries all pairs. For each pair, validates the pattern via `validateWingPattern`
+    /// and searches for elimination cells. Returns the first valid result.
+    ///
+    /// - Parameters:
+    ///   - type: The wing pattern variant.
+    ///   - technique: The `HintTechnique` to tag the result with.
+    ///   - pivot: The pivot cell position and its candidates.
+    ///   - biValueCells: All bi-value cells on the board (potential wings).
+    ///   - state: The current board state snapshot.
+    /// - Returns: A `HintStep` if a valid wing with eliminations is found, or `nil`.
     private static func findWingWithPivot(
         type: WingType,
         technique: HintTechnique,
@@ -165,6 +201,13 @@ extension HintFinder {
 
     // MARK: - Pattern Validation
 
+    /// Dispatches to the type-specific validation for the given wing pattern.
+    /// - Parameters:
+    ///   - type: The wing pattern variant to validate.
+    ///   - pivot: The pivot cell position and its candidates.
+    ///   - wingA: The first wing cell position and its candidates.
+    ///   - wingB: The second wing cell position and its candidates.
+    /// - Returns: The elimination digit if the pattern is valid, or `nil` if it fails validation.
     private static func validateWingPattern(
         type: WingType,
         pivot: (pos: Puzzle.Index, candidates: Set<Int>),
@@ -187,6 +230,17 @@ extension HintFinder {
         }
     }
 
+    /// Validates an XY-Wing pattern.
+    ///
+    /// Requires the pivot to share exactly one (distinct) candidate with each wing.
+    /// If pivot is {X, Y}, wing A must be {X, Z} and wing B must be {Y, Z} for some digit Z.
+    /// The shared non-pivot digit Z is the elimination digit.
+    ///
+    /// - Parameters:
+    ///   - pivot: The pivot cell's candidate set.
+    ///   - wingA: The first wing cell's candidate set.
+    ///   - wingB: The second wing cell's candidate set.
+    /// - Returns: The elimination digit Z, or `nil` if the pattern is invalid.
     private static func validateXYWing(
         pivot: Set<Int>,
         wingA: Set<Int>,
@@ -211,6 +265,17 @@ extension HintFinder {
         return z1 == z2 ? z1 : nil
     }
 
+    /// Validates a Y-Wing pattern (relaxed variant of XY-Wing).
+    ///
+    /// Each wing must contain at least one of the pivot's candidates, and both wings must share
+    /// the same non-pivot candidate as the elimination digit. Unlike XY-Wing, the sharing
+    /// constraint is not strictly one-to-one.
+    ///
+    /// - Parameters:
+    ///   - pivot: The pivot cell's candidate set.
+    ///   - wingA: The first wing cell's candidate set.
+    ///   - wingB: The second wing cell's candidate set.
+    /// - Returns: The elimination digit, or `nil` if the pattern is invalid.
     private static func validateYWing(
         pivot: Set<Int>,
         wingA: Set<Int>,
@@ -234,6 +299,17 @@ extension HintFinder {
         return (z1 == z2 && z1 != 0) ? z1 : nil
     }
 
+    /// Validates an XYZ-Wing pattern.
+    ///
+    /// The tri-value pivot must share at least one candidate with each wing. The two wings must
+    /// share exactly one common candidate (Z), and Z must also appear in the pivot's candidates.
+    /// Z is the elimination digit.
+    ///
+    /// - Parameters:
+    ///   - pivot: The pivot cell's candidate set.
+    ///   - wingA: The first wing cell's candidate set.
+    ///   - wingB: The second wing cell's candidate set.
+    /// - Returns: The elimination digit Z, or `nil` if the pattern is invalid.
     private static func validateXYZWing(
         pivot: Set<Int>,
         wingA: Set<Int>,
@@ -258,6 +334,20 @@ extension HintFinder {
 
     // MARK: - Elimination Cell Finding
 
+    /// Finds cells that can have the elimination digit removed based on the wing pattern.
+    ///
+    /// For XY-Wing and Y-Wing, a cell must see both wing cells (intersection of their neighbours).
+    /// For XYZ-Wing, a cell must see all three cells (pivot and both wings). Only unsolved cells
+    /// that contain the elimination digit as a pencil mark are included.
+    ///
+    /// - Parameters:
+    ///   - type: The wing pattern variant.
+    ///   - pivot: The pivot cell position and its candidates.
+    ///   - wingA: The first wing cell position and its candidates.
+    ///   - wingB: The second wing cell position and its candidates.
+    ///   - digit: The elimination digit to search for.
+    ///   - state: The current board state snapshot.
+    /// - Returns: The set of cell positions from which the digit can be eliminated.
     private static func findEliminationCells(
         type: WingType,
         pivot: (pos: Puzzle.Index, candidates: Set<Int>),
@@ -304,6 +394,24 @@ extension HintFinder {
 
     // MARK: - Explanation Generation
 
+    /// Generates a multi-step explanation for a wing pattern elimination.
+    ///
+    /// Produces four explanation steps:
+    /// 1. Identifies the three-cell pattern with labelled highlights (Pivot, Wing A, Wing B).
+    /// 2. Explains the candidate-sharing logic, varying by wing type.
+    /// 3. Describes why the elimination digit must appear in at least one wing.
+    /// 4. Shows the elimination cells highlighted with `.warning`.
+    ///
+    /// - Parameters:
+    ///   - type: The wing pattern variant.
+    ///   - technique: The `HintTechnique` to reference in the explanation.
+    ///   - pivot: The pivot cell position and its candidates.
+    ///   - wingA: The first wing cell position and its candidates.
+    ///   - wingB: The second wing cell position and its candidates.
+    ///   - eliminationDigit: The digit to be eliminated from affected cells.
+    ///   - eliminationCells: The set of cell positions where the digit can be removed.
+    ///   - state: The current board state snapshot.
+    /// - Returns: An array of `HintExplanationStep` values describing the wing pattern.
     private static func wingExplanation(
         type: WingType,
         technique: HintTechnique,

@@ -8,6 +8,17 @@ import Foundation
 
 // MARK: - Validation Technique
 extension HintFinder {
+    /// Checks the board for conflicts and incorrect placements, returning a hint if any are found.
+    ///
+    /// The check proceeds in priority order:
+    /// 1. Duplicate digits within a **row** (returns immediately on first conflict).
+    /// 2. Duplicate digits within a **column**.
+    /// 3. Duplicate digits within a **3x3 box (house)**.
+    /// 4. If a solution is available, cells whose value differs from the solution.
+    ///
+    /// - Parameter state: The current board state snapshot to validate.
+    /// - Returns: A `HintStep` with a `clearPosition` action for the offending cell(s),
+    ///   or `nil` if the board is valid.
     static func checkValidity(in state: BoardState) -> HintStep? {
         if checkNoConflicts(in: state.grid) == false {
             // Find the conflict
@@ -164,6 +175,16 @@ extension HintFinder {
         return nil
     }
 
+    /// Creates a validation `HintStep` from the detected conflict, deduplicating actions.
+    ///
+    /// - Parameters:
+    ///   - actions: The hint actions identifying conflicting cells.
+    ///   - orientation: The unit type (row, column, or house) where the conflict was found.
+    ///   - digit: The duplicated digit causing the conflict.
+    ///   - conflictCells: The set of cell positions involved in the conflict.
+    ///   - solution: The puzzle solution, if available, for identifying the correct placement.
+    ///   - state: The current board state snapshot.
+    /// - Returns: A `HintStep` describing the conflict with deduplicated actions and explanation.
     private static func createValidationHintStep(
         actions: [HintAction],
         orientation: Puzzle.Index.Orientation,
@@ -186,6 +207,21 @@ extension HintFinder {
         )
     }
 
+    /// Builds localised explanation steps for a validation conflict.
+    ///
+    /// Generates 2-3 steps:
+    /// 1. Identifies the conflicting digit and orientation (default highlights).
+    /// 2. Explains the violated Sudoku rule (default highlights).
+    /// 3. If a solution is available and there are exactly 2 conflicting cells,
+    ///    indicates which placement is correct; otherwise suggests removing one.
+    ///
+    /// - Parameters:
+    ///   - orientation: The unit type (row, column, or house) where the conflict was found.
+    ///   - digit: The duplicated digit causing the conflict.
+    ///   - conflictCells: The set of cell positions involved in the conflict.
+    ///   - solution: The puzzle solution, if available, for identifying the correct placement.
+    ///   - state: The current board state snapshot.
+    /// - Returns: An array of `HintExplanationStep` values describing the conflict.
     private static func validationExplanation(
         orientation: Puzzle.Index.Orientation,
         digit: Int,

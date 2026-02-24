@@ -25,5 +25,8 @@ Package.resolved
 *.json
 !Tests/**/Fixtures/*.json
 
+# Module cache
+.modulecache/
+
 # Worktrees
 .worktrees/
