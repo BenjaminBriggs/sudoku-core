@@ -499,14 +499,13 @@ struct HintTests {
     @Test("Hints never create conflicts", arguments: testGrids)
     func testHintsNeverCreateConflicts(technique: HintTechnique, gridStrings: [String]) async {
         for gridString in gridStrings {
-            let grid = Solution.cells(from: gridString)
-            let pencilMarks = Validator.validOptions(for: grid)
-
-            let state = BoardState(
-                grid: grid,
-                pencilMarks: pencilMarks,
-                validOptions: pencilMarks
-            )
+            let state: BoardState
+            do {
+                state = try BoardStateParser.parse(gridString)
+            } catch {
+                Issue.record("Failed to parse grid string for \(technique.rawValue): \(error)")
+                continue
+            }
 
             let hint = HintFinder.findHint(for: technique, in: state)
 
@@ -523,14 +522,13 @@ struct HintTests {
     @Test("Hints always reduce candidates", arguments: testGrids)
     func testHintsAlwaysReduceCandidates(technique: HintTechnique, gridStrings: [String]) async {
         for gridString in gridStrings {
-            let grid = Solution.cells(from: gridString)
-            let pencilMarks = Validator.validOptions(for: grid)
-
-            let state = BoardState(
-                grid: grid,
-                pencilMarks: pencilMarks,
-                validOptions: pencilMarks
-            )
+            let state: BoardState
+            do {
+                state = try BoardStateParser.parse(gridString)
+            } catch {
+                Issue.record("Failed to parse grid string for \(technique.rawValue): \(error)")
+                continue
+            }
 
             let hint = HintFinder.findHint(for: technique, in: state)
 
@@ -550,14 +548,13 @@ struct HintTests {
     @Test("Hints are deterministic", arguments: testGrids)
     func testHintsAreDeterministic(technique: HintTechnique, gridStrings: [String]) async {
         for gridString in gridStrings {
-            let grid = Solution.cells(from: gridString)
-            let pencilMarks = Validator.validOptions(for: grid)
-
-            let state = BoardState(
-                grid: grid,
-                pencilMarks: pencilMarks,
-                validOptions: pencilMarks
-            )
+            let state: BoardState
+            do {
+                state = try BoardStateParser.parse(gridString)
+            } catch {
+                Issue.record("Failed to parse grid string for \(technique.rawValue): \(error)")
+                continue
+            }
 
             let hint1 = HintFinder.findHint(for: technique, in: state)
 
