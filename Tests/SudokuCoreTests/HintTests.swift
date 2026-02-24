@@ -79,7 +79,9 @@ struct HintTests {
         ),
         (
             .nakedQuad,
-            []
+            [
+                "SCv7_32_f2eaajeb1b14037sisurn46ncq9ltt8fvi1455ti40fdlqi1u7ftqqi5u1l2cj68ci3dpgpoqnglgrp5eiv0mottirpq33jlj51hfg20bko6ak20c8bk7sb4b6cpod976g9cni22l7sg0j5tdn80l0djmp4gpolb00csg87co9iitktujh7fnvhsqiglvinq10kk4v6h2uk5vvgvlhlvua295gp5gj349kgb7jrbkv415mf4tmi2q88h85dak9bl1esmt9vgf019c8i7a4"
+            ]
         ),
         (
             .hiddenSingle,
@@ -130,10 +132,6 @@ struct HintTests {
                 "008400765000000401040070098060054912004910650519020840386542179900000584450089006",
                 "512008347389745216060312859005407621000021593020509478200000100000276980008150702",
                 "307000068856007020092608070063009847908076135570083692730804256000360789680702413",
-                "SCv7_32_f2e5qjubdo13237siue8jp64lu22nv83no06j8qlkjaht07mq257vbotc02s9ka4ups3pjivj37nqenmrsbfct8nsrvd7llf7rrum9fc0cka0l5g4c40jd22paarb450g0ah0m7dalhe65dpg808228a4r9vhb8ack661htg1ffpethumhijj76ml57qeqrj4c28k45jcp1oun19pb05piltm80mpdefm32mp1jogu6focef6eanf3bebr7usb3p8cl33kajg09163le8hv5j0ush5ukbdt593hh70v6tgd8l30kdrvpnfac68",
-                "SCv7_32_f2e7qjqb1813235t9fbhd4hk9mdtjqgd7j0s155140n6chgnh9rjfbdoa18b4ucfutluuriut9qapdv20rerjeaupfsl1ptqlln70agh020o0sgaa6a920s2e608gmc804qb3p5024kp0okaoog0d0jc3p4ecr01a279re4tnem6bmcnqdkjv7l77a6lmqa3s3di3ct78i34he7h40f7t71gv0idj44df4acm43v71dfknu3avftm65l9slvb2fstbng4p8jl5hvn7a74j9ugcuv3qfcgfcuv2l4j4o",
-                "SCv7_32_f2e5aja91r13037s9f7586lrm69n518vu214l3da92407mo1ojfr3mqi83hthcb7opv8dsasgt1nr55gtkr63b7nebddfcau5tghm4i405225is21jlipb0j94r04ackmaidgtgc610p7ib20s96bc54ljj4dau426912dn1eokuen9p3prvqqd88dviqvg89n56g72uvk4micqfghhm788qll8m3iukt92e9hf6rju77muc7b62dv6t766h4bv45tu9aap7olqegnvrbnsvvhvavba1i6mn39f6vbor9g9g",
-                "SCv7_32_f2e7aji1d81j237shf7h3335b6b76jbvq0bg9lhcgq8474nmq39bulvagoj3rl0339tj86np6empfedspq7p3tjtivbfifme5tpprdrbr8jg25t0bf9ig05o2nlm0a3aatjk085d8o3mpe0vgnacdndcann2b2rm2qblmbb9ivfatori32jt7obobrj75f4db022kgjgl19df7qrs0n85h48gkpeh0bcjfve9ih559bjfatr9c2frjgk6pl6ljnhl9shnsjmtp16cl4tfhqm8l6hdnncvgnvs6fotl62ng4ujqorr044j1o",
             ]
         ),
         (
@@ -144,10 +142,6 @@ struct HintTests {
                 "194082005000190082872530190049061508085240901701859000908420617410078259007910843",
                 "682943517000701026170602400006075001010060700700810602061407985507108264408506173",
                 "000014265604020310201603040729386154305149072410572003100400720002001030000200001",
-                "SCv7_32_f2e6ajmrl81i237s2ufhn66432qqufbve2v60ob52551uujrd3kru7rliup71529jh695sfdiplpqvvbles66flokkvcnpd75rqnssq74s4o1lsc3hum1d94a3i52rb89s2f94rokjm86d72g6qpehaj0qm7fi58na1nnn6aulactpujeicumf6t9crg50ds29jhi03d0nubnmbq90du7m70dli51r0rnaveso7da4g29mgoih2d4ttvgnjda45pt5469tnlc3foelvnq0pdnvg72pisfem6ipk8q8iagqqd7djeuvsg6k4b9ks0",
-                "SCv7_32_f2e5ajib1o12235t1fli2q8bijh5crv014j1ich164nfob9krrehctbkt0lubta13s7jf7uqmhnvfqhmclo77eulsencrrbieodle010clgo0340226l70cg6a59qccjdar4l25pauaa9ergaaoinh7m5hhoj4641nn7lbl7dkuhpdn3e5ld6u59co29te03vgrp0v5k9a2jr2ou08mo4a0brgcmbsng2u4gq53vee07k5nhkjmi1cicm8k3kj8c4h5oulgcrs323qink0jqkdruvgmj46umuvev61fkhd564",
-                "SCv7_32_f2e5qji91q1j037s9f748sjc2ceatt07fk0h44caggs01rd1anvtt640nb28k4uff337t6jh971jafd2d51mbhjkhvpib3b9bd6mma1o0hk1g605u9opke1o282dsap4l0ki0poe3m42eflq00187p56g3a08kkjpidsln6mn1q736lqfofd5k3fa43o2bc14ab6ln7vo4fq00tmhqucqllmcr78g1thh2u27jkvs89896nb8raslq8l5abcpsmnl47absnsc5a569h9hskfm3n875lvgn7cuvsh5gr1503mmnjf1bjkoo8",
-                "SCv7_32_f2e6qjmbd81j237s2ufi764ldn4ssdftgdv42o6dc843jp3l93kbulqqmeip0m38di6j86lvo9pejsrnfurb1btrm3q4eervumitvbj13ugcgo248cg0kd619vh94e9297b6l730gbbjahvmdbatg51a434nlqh2bcon3m45veqlq3ndegt1pjrjju7rfpi6kohp05jhihh9gtd06cm4oqgjl8g8uf55ukr4l11i6d4v476t5ks9f3ulr0vv0vbecdhf8ltctpaal65na1chrdhvf7ver47hkec14h864ma5b1bv7a29untvi5780",
             ]
         ),
         (
@@ -208,7 +202,9 @@ struct HintTests {
         ),
         (
             .skyscraper,
-            []
+            [
+                "SCv7_32_f2e7aji91r13037s9f78rp1dhr1havm01cl3bah24476o1ogfsjgckdo6hbcdtkc4voi7j576rmtnfc69kcs5n3eums6mstrjj1id00v9h820ue5g20092a56d86vd343vk9f72idscahkp8ioc76on88ch6pia9191rh7nbd5dgv1vdf2edkd2ul9vs8p4h692ko52dka049q21t9k4o7ahoiio46mpdg8r6mnspufq18kevo5digjmjdu2e7ch6mhfsn6pro32vuhqgkb1fb465t0rlak7ss5tge2bk4"
+            ]
         ),
         (
             .finnedXWing,
@@ -308,25 +304,11 @@ struct HintTests {
         for gridString in gridStrings {
             let state: BoardState
 
-            // Check if this is a sudoku.coach encoded string or a simple grid string
-            if gridString.hasPrefix("SCv7_32_") {
-                // Sudoku.coach format with pencil marks
-                do {
-                    state = try BoardState(sudokuCoachString: gridString)
-                } catch {
-                    Issue.record("Failed to decode sudoku.coach string: \(error)")
-                    continue
-                }
-            } else {
-                // Simple 81-character grid string
-                let grid = Solution.cells(from: gridString)
-                let pencilMarks = Validator.validOptions(for: grid)
-
-                state = BoardState(
-                    grid: grid,
-                    pencilMarks: pencilMarks,
-                    validOptions: pencilMarks
-                )
+            do {
+                state = try BoardStateParser.parse(gridString)
+            } catch {
+                Issue.record("Failed to parse grid string: \(error)")
+                continue
             }
 
             let hint = HintFinder.findHint(for: technique, in: state)
