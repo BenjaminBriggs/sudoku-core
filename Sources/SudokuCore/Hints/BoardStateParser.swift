@@ -13,6 +13,8 @@ import Foundation
 public enum BoardStringFormat: Sendable {
     /// Sudoku.coach encoded format (prefix "SCv7_32_")
     case sudokuCoach
+    /// Sudoku.coach whole-progress format (prefix "32_")
+    case sudokuCoachProgress
     /// 81-digit grid string (digits 0-9)
     case gridString81
 }
@@ -40,6 +42,8 @@ public enum BoardStateParser {
         switch format {
         case .sudokuCoach:
             return try parseSudokuCoach(input)
+        case .sudokuCoachProgress:
+            return try parseSudokuCoachProgress(input)
         case .gridString81:
             return try parseGridString(input)
         }
@@ -51,8 +55,14 @@ public enum BoardStateParser {
             return .sudokuCoach
         }
 
-        if input.count == 81, input.allSatisfy({ $0.isWholeNumber }) {
+        // Check grid string before progress format to avoid mis-detecting
+        // 81-character grids that happen to start with "32_"
+        if input.count == 81, input.allSatisfy({ $0.isASCII }), input.contains(where: { ("1"..."9").contains($0) }) {
             return .gridString81
+        }
+
+        if input.hasPrefix("32_") {
+            return .sudokuCoachProgress
         }
 
         return nil
@@ -60,9 +70,10 @@ public enum BoardStateParser {
 
     // MARK: - Grid String
 
-    /// Parse an 81-digit grid string into a `BoardState`.
+    /// Parse an 81-character grid string into a `BoardState`.
+    /// Digits 1-9 are treated as cell values; any other character is treated as an empty cell.
     public static func parseGridString(_ input: String) throws -> BoardState {
-        guard input.count == 81, input.allSatisfy({ $0.isWholeNumber }) else {
+        guard input.count == 81, input.allSatisfy({ $0.isASCII }), input.contains(where: { ("1"..."9").contains($0) }) else {
             throw BoardStateParseError.invalidGridString
         }
 
@@ -79,13 +90,56 @@ public enum BoardStateParser {
         }
 
         let payload = String(encoded.dropFirst("SCv7_32_".count))
+        let jsonData = try decompressBase32Payload(payload)
 
-        // Base32 decode -> zlib decompress -> JSON parse
+        guard let json = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            throw BoardStateParseError.invalidJSON
+        }
+
+        return try boardState(from: json)
+    }
+
+    /// Parse a sudoku.coach whole-progress encoded string into a `BoardState`.
+    /// The progress format wraps state snapshots in `{"i": index, "a": [...], "b": [...]}`.
+    public static func parseSudokuCoachProgress(_ encoded: String) throws -> BoardState {
+        guard encoded.hasPrefix("32_") else {
+            throw BoardStateParseError.unrecognizedFormat
+        }
+
+        let payload = String(encoded.dropFirst("32_".count))
+        let jsonData = try decompressBase32Payload(payload)
+
+        guard let wrapper = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+              let index = wrapper["i"] as? Int,
+              let actions = wrapper["a"] as? [String],
+              index >= 0, index < actions.count
+        else {
+            throw BoardStateParseError.invalidJSON
+        }
+
+        let stateString = actions[index]
+
+        guard let stateData = stateString.data(using: .utf8),
+              let json = try JSONSerialization.jsonObject(with: stateData) as? [String: Any]
+        else {
+            throw BoardStateParseError.invalidJSON
+        }
+
+        return try boardState(from: json)
+    }
+
+    // MARK: - Helpers
+
+    /// Base32 decode and zlib decompress a payload string.
+    static func decompressBase32Payload(_ payload: String) throws -> Data {
         let compressedData = try decodeBase32(payload)
-        let jsonData = try zlibDecompress(compressedData)
+        return try zlibDecompress(compressedData)
+    }
 
-        guard let json = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
-              let givenDigits = json["givenDigits"] as? String,
+    /// Build a `BoardState` from a sudoku.coach JSON dictionary containing
+    /// `givenDigits` and `userCellCandidates` keys.
+    static func boardState(from json: [String: Any]) throws -> BoardState {
+        guard let givenDigits = json["givenDigits"] as? String,
               let candidatesString = json["userCellCandidates"] as? String
         else {
             throw BoardStateParseError.invalidJSON
@@ -131,10 +185,8 @@ public enum BoardStateParser {
         )
     }
 
-    // MARK: - Private Helpers
-
     /// Decompress zlib-compressed data.
-    private static func zlibDecompress(_ data: Data) throws -> Data {
+    static func zlibDecompress(_ data: Data) throws -> Data {
         // Strip 2-byte zlib header (e.g. 78 9C) — Apple's COMPRESSION_ZLIB expects raw deflate
         guard data.count > 2 else {
             throw BoardStateParseError.zlibDecompressionFailed
@@ -165,7 +217,7 @@ public enum BoardStateParser {
 
     /// Base32hex decoder (RFC4648 Extended Hex Alphabet).
     /// Used by sudoku.coach: 0-9 a-v
-    private static func decodeBase32(_ input: String) throws -> Data {
+    static func decodeBase32(_ input: String) throws -> Data {
         let alphabet = Array("0123456789abcdefghijklmnopqrstuv")
         var lookup = [Character: Int]()
         for (i, ch) in alphabet.enumerated() {

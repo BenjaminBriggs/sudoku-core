@@ -1,14 +1,19 @@
 //
-//  BoardStateTests.swift
+//  BoardStateParserTests.swift
 //  SudokuCore
 //
 //  Created by Benjamin Briggs on 02/10/2025.
 //
 
+import Compression
+import Foundation
 import Testing
 @testable import SudokuCore
 
-struct BoardStateTests {
+struct BoardStateParserTests {
+
+    // MARK: - Sudoku.coach Decoding Tests
+
     @Test("Decode sudoku.coach format - structural validity")
     func testSudokuCoachDecoder() throws {
         let encoded = "SCv7_32_f2e9qjq91q1j037s9f720eaedg9att07fk0h44caggsd1pegl9vqu1sgf9nqp31shouptf6tnjauimivonqrisbjfmbfakn7favrjnghf4hacg1165ii6giphn3c8a88vemb2ouvgmk944s84jr42aah8vtmpc79ggm16jjkhlttpihmihihjhjllb9ngbqosgtmqsd96ncjcc2pko8iguoli403shj0cqg1s3r15skpuvfvgp040tjta5hid36l7tlskg215tpjp7bpok01posqcntvukbkjsnmvfaaig"
@@ -98,27 +103,27 @@ struct BoardStateTests {
             state.validOptions[1][7] == Set([2, 3]),
             "Cell (0,7) should have pencil marks {2, 3}"
         )
-        
-        
+
+
         #expect(
             state.validOptions[6][2] == Set([2, 4]),
             "Cell (6,2) should have pencil marks {2, 4}"
         )
-        
+
         #expect(
             state.validOptions[6][3] == Set([4, 9]),
             "Cell (6,2) should have pencil marks {4, 9}"
         )
     }
-    
+
     @Test("Decode sudoku.coach format - second puzzle grid verification")
     func testSudokuCoachDecoderThridPuzzle() throws {
         let encoded = "SCv7_32_f2e6aji1hr1j027shf7ka0kc67nbbus3nqg55b68aba47mutoenflts5kguk81brm23m3r5v6jfsct0unsuhrmp1pnhqentvoou1ttrk9i21s9805ep7iobch0d494sd5p65ashjunphll686h5uakhjotqcg2qrpnad48btrvturl4nslqbijj3n8u7kf44i2pk4p98bpa1173ghidq100p20og8o8g9kh838g65igs8g2mk2u0t8jqpvjgocjfe9r06tb3e0vhvpklrjjidt8vgir59dp0rse4t7v2esb945ri1n9k1gqond6cuvs9pl6c0"
-        
+
         let state = try BoardStateParser.parseSudokuCoach(encoded)
-        
+
         let expectedGrid = "100005000007028000209006000094000070521743986070000001918634725732050060005287319"
-        
+
         for (i, ch) in expectedGrid.enumerated() {
             let digit = Int(String(ch))!
             let row = i / 9
@@ -128,18 +133,85 @@ struct BoardStateTests {
                 "Cell (\(row),\(col)) should be \(digit), got \(state.grid[row][col])"
             )
         }
-        
+
         // Verify filled cell count matches
         let expectedFilled = expectedGrid.filter { $0 != "0" }.count
         let actualFilled = state.grid.flatMap { $0 }.filter { $0 > 0 }.count
         #expect(actualFilled == expectedFilled, "Filled cell count should match")
-        
+
         // Verify known pencil marks
         #expect(
             state.pencilMarks[3][3] == Set([5, 8]),
             "Cell (3,3) should have pencil marks {2, 3}"
         )
     }
+
+    // MARK: - Sudoku.coach Progress Format Tests
+
+    @Test("Decode sudoku.coach progress format - grid matches base puzzle")
+    func testSudokuCoachProgressDecoder() throws {
+        let wholeProgress = "32_f2e5b461db1j0346rt2ue634p6beqn5r6vc73rh14ej1gig697ds6imvnlp55lmcg9fvsvo9fvg3ml78m61g3uhfn1jrh5bpl4vl71huegckssot7vlmukcrjamrecjtqh9rqb4qch0f4c910s8kcf99r9j127bphr4i41m1s18lg9rd051v9718k13p852l2chbj80qi2mee32an4n6afkkufsj0j333m3knmb06od7plfelb33igr8b260rcmfn6kmh76s5pnaberefe171nvuhg125698vs3umk1mnpukf2n0in2k89lsb58h6rnbjen9bo81os7bttdnhu7ifb90an30"
+
+        let state = try BoardStateParser.parseSudokuCoachProgress(wholeProgress)
+
+        let expectedGrid = "025890376630000981890300425389100760750639810000078539270500698500900247900702153"
+
+        for (i, ch) in expectedGrid.enumerated() {
+            let digit = Int(String(ch))!
+            let row = i / 9
+            let col = i % 9
+            #expect(
+                state.grid[row][col] == digit,
+                "Cell (\(row),\(col)) should be \(digit), got \(state.grid[row][col])"
+            )
+        }
+    }
+
+    @Test("Decode sudoku.coach progress format - pencil marks present")
+    func testSudokuCoachProgressDecoderPencilMarks() throws {
+        let wholeProgress = "32_f2e5b461db1j0346rt2ue634p6beqn5r6vc73rh14ej1gig697ds6imvnlp55lmcg9fvsvo9fvg3ml78m61g3uhfn1jrh5bpl4vl71huegckssot7vlmukcrjamrecjtqh9rqb4qch0f4c910s8kcf99r9j127bphr4i41m1s18lg9rd051v9718k13p852l2chbj80qi2mee32an4n6afkkufsj0j333m3knmb06od7plfelb33igr8b260rcmfn6kmh76s5pnaberefe171nvuhg125698vs3umk1mnpukf2n0in2k89lsb58h6rnbjen9bo81os7bttdnhu7ifb90an30"
+
+        let state = try BoardStateParser.parseSudokuCoachProgress(wholeProgress)
+
+        // Cell (0,0) is given digit 0 (empty) — should have pencil marks
+        #expect(state.grid[0][0] == 0, "Cell (0,0) should be empty")
+        #expect(state.pencilMarks[0][0].isEmpty == false, "Empty cell should have pencil marks")
+
+        // Cell (0,1) is given digit 2 — should have no pencil marks
+        #expect(state.grid[0][1] == 2, "Cell (0,1) should be 2")
+        #expect(state.pencilMarks[0][1].isEmpty, "Filled cell should have no pencil marks")
+    }
+
+    @Test("Decode sudoku.coach progress format - produces same result as SCv7 for same puzzle")
+    func testSudokuCoachProgressMatchesSCv7() throws {
+        let scv7 = "SCv7_32_f2e5ajebdb1j047s2uei667d9atqmn6j7vk1e61chgge94547kie9ntrm95u6qj0khsq0uc6sndefjvud3glg3r1t7fursmhitvbv1b300aqmo0lc7saj5k60gp1bdkq00amh0dg4uhg1de2ika0b43apoaq1b6e1958bgp1fjetltekprjt6t4pvcudrmoo98bf32utqd2st48gb5h55mfr7hcdpbjpcs7ngdrfbs8fdlsvu00q6q7i7tc47mfmqfdv42aumuc2hqjrpfee2kevf12nhv808fgkfd8"
+        let wholeProgress = "32_f2e5b461db1j0346rt2ue634p6beqn5r6vc73rh14ej1gig697ds6imvnlp55lmcg9fvsvo9fvg3ml78m61g3uhfn1jrh5bpl4vl71huegckssot7vlmukcrjamrecjtqh9rqb4qch0f4c910s8kcf99r9j127bphr4i41m1s18lg9rd051v9718k13p852l2chbj80qi2mee32an4n6afkkufsj0j333m3knmb06od7plfelb33igr8b260rcmfn6kmh76s5pnaberefe171nvuhg125698vs3umk1mnpukf2n0in2k89lsb58h6rnbjen9bo81os7bttdnhu7ifb90an30"
+
+        let scv7State = try BoardStateParser.parseSudokuCoach(scv7)
+        let progressState = try BoardStateParser.parseSudokuCoachProgress(wholeProgress)
+
+        // Both should decode the same grid
+        #expect(scv7State.grid == progressState.grid, "Grid should match between SCv7 and progress format")
+
+        // Both should compute the same validOptions from the same grid
+        #expect(scv7State.validOptions == progressState.validOptions, "validOptions should match")
+    }
+
+    @Test("parseSudokuCoachProgress rejects strings without 32_ prefix")
+    func testSudokuCoachProgressRejectsInvalidPrefix() {
+        #expect(throws: BoardStateParseError.unrecognizedFormat) {
+            try BoardStateParser.parseSudokuCoachProgress("INVALID_PREFIX_abc123")
+        }
+    }
+
+    @Test("parse auto-detects sudoku.coach progress format")
+    func testParseAutoDetectsProgress() throws {
+        let wholeProgress = "32_f2e5b461db1j0346rt2ue634p6beqn5r6vc73rh14ej1gig697ds6imvnlp55lmcg9fvsvo9fvg3ml78m61g3uhfn1jrh5bpl4vl71huegckssot7vlmukcrjamrecjtqh9rqb4qch0f4c910s8kcf99r9j127bphr4i41m1s18lg9rd051v9718k13p852l2chbj80qi2mee32an4n6afkkufsj0j333m3knmb06od7plfelb33igr8b260rcmfn6kmh76s5pnaberefe171nvuhg125698vs3umk1mnpukf2n0in2k89lsb58h6rnbjen9bo81os7bttdnhu7ifb90an30"
+
+        let state = try BoardStateParser.parse(wholeProgress)
+        #expect(state.grid[0][1] == 2, "Should parse correctly via auto-detect")
+    }
+
     // MARK: - Format Detection Tests
 
     @Test("detectFormat identifies sudoku.coach strings")
@@ -148,11 +220,25 @@ struct BoardStateTests {
         #expect(format == .sudokuCoach)
     }
 
-    @Test("detectFormat identifies 81-digit grid strings")
+    @Test("detectFormat identifies sudoku.coach progress strings")
+    func testDetectFormatSudokuCoachProgress() {
+        let format = BoardStateParser.detectFormat("32_abc123")
+        #expect(format == .sudokuCoachProgress)
+    }
+
+    @Test("detectFormat identifies 81-character grid strings with various empty markers")
     func testDetectFormatGridString() {
-        let gridString = "000000000000000000000000000000000000000000283000000154000000000000000070000000090"
-        let format = BoardStateParser.detectFormat(gridString)
-        #expect(format == .gridString81)
+        // Zeros for empties
+        let zeros = "000000000000000000000000000000000000000000283000000154000000000000000070000000090"
+        #expect(BoardStateParser.detectFormat(zeros) == .gridString81)
+
+        // Dots for empties
+        let dots = "..........................................283......154................7.......9.."
+        #expect(BoardStateParser.detectFormat(dots) == .gridString81)
+
+        // Asterisks for empties
+        let stars = "******************************************283******154****************7*******9**"
+        #expect(BoardStateParser.detectFormat(stars) == .gridString81)
     }
 
     @Test("detectFormat returns nil for unrecognised input")
@@ -160,8 +246,21 @@ struct BoardStateTests {
         #expect(BoardStateParser.detectFormat("") == nil)
         #expect(BoardStateParser.detectFormat("too short") == nil)
         #expect(BoardStateParser.detectFormat("not a valid format at all and definitely not 81 digits") == nil)
-        // 81 characters but not all digits
+        // 81 characters but no digits 1-9
         #expect(BoardStateParser.detectFormat("abcdefghiabcdefghiabcdefghiabcdefghiabcdefghiabcdefghiabcdefghiabcdefghiabcdefghi") == nil)
+        #expect(BoardStateParser.detectFormat("000000000000000000000000000000000000000000000000000000000000000000000000000000000") == nil)
+    }
+
+    @Test("detectFormat prefers gridString81 over progress format for 81-char strings starting with 32_")
+    func testDetectFormatGridStringStartingWith32() throws {
+        // 81-char grid that happens to start with "32_" (underscore as empty marker)
+        let grid = "32_...6.8..7..95..1.83..4.5389100760750639810...078539270500698500900247900702153"
+
+        #expect(BoardStateParser.detectFormat(grid) == .gridString81)
+
+        let state = try BoardStateParser.parse(grid)
+        #expect(state.grid[0][0] == 3)
+        #expect(state.grid[0][1] == 2)
     }
 
     // MARK: - Grid String Parsing Tests
@@ -184,11 +283,46 @@ struct BoardStateTests {
         #expect(state.pencilMarks[0][0].isEmpty == false, "Empty cell should have pencil marks")
     }
 
+    @Test("parseGridString handles dots as empty cells")
+    func testParseGridStringDots() throws {
+        let dotGrid = "..........................................283......154................7.......9.."
+
+        let state = try BoardStateParser.parseGridString(dotGrid)
+
+        #expect(state.grid[4][6] == 2)
+        #expect(state.grid[4][7] == 8)
+        #expect(state.grid[4][8] == 3)
+        #expect(state.grid[0][0] == 0, "Dot should be treated as empty")
+    }
+
+    @Test("parseGridString handles mixed empty markers")
+    func testParseGridStringMixedMarkers() throws {
+        // Build from the zero-based string, replacing 0s with alternating . and *
+        let zeroGrid = "000000000000000000000000000000000000000000283000000154000000000000000070000000090"
+        let markers: [Character] = [".", "*"]
+        var markerIndex = 0
+        let mixed = String(zeroGrid.map { ch -> Character in
+            if ch == "0" {
+                let marker = markers[markerIndex % markers.count]
+                markerIndex += 1
+                return marker
+            }
+            return ch
+        })
+
+        let state = try BoardStateParser.parseGridString(mixed)
+
+        #expect(state.grid[4][6] == 2)
+        #expect(state.grid[4][7] == 8)
+        #expect(state.grid[4][8] == 3)
+    }
+
     @Test("parseGridString rejects invalid input")
     func testParseGridStringInvalid() {
         #expect(throws: BoardStateParseError.invalidGridString) {
             try BoardStateParser.parseGridString("123")
         }
+        // 81 characters but no digits 1-9
         #expect(throws: BoardStateParseError.invalidGridString) {
             try BoardStateParser.parseGridString("abcdefghiabcdefghiabcdefghiabcdefghiabcdefghiabcdefghiabcdefghiabcdefghiabcdefghi")
         }
@@ -269,5 +403,56 @@ struct BoardStateTests {
 
         // Both should produce identical validOptions since they share the same grid
         #expect(gridState.validOptions == coachState.validOptions, "Same grid should yield same validOptions regardless of parse format")
+    }
+
+    // MARK: - zlibDecompress Tests
+
+    @Test("zlibDecompress decompresses valid zlib data")
+    func testZlibDecompressValidData() throws {
+        let original = Array("Hello, World!".utf8)
+
+        // Compress with raw deflate
+        let compressedBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 4096)
+        defer { compressedBuffer.deallocate() }
+
+        let compressedSize = original.withUnsafeBufferPointer { inputPointer in
+            compression_encode_buffer(
+                compressedBuffer, 4096,
+                inputPointer.baseAddress!, original.count,
+                nil,
+                COMPRESSION_ZLIB
+            )
+        }
+        #expect(compressedSize > 0, "Compression should succeed")
+
+        // Prepend the 2-byte zlib header that zlibDecompress expects to strip
+        var zlibData = Data([0x78, 0x9C])
+        zlibData.append(Data(bytes: compressedBuffer, count: compressedSize))
+
+        let decompressed = try BoardStateParser.zlibDecompress(zlibData)
+        let result = String(data: decompressed, encoding: .utf8)
+        #expect(result == "Hello, World!", "Decompressed data should match original")
+    }
+
+    @Test("zlibDecompress throws for data too short to contain zlib header")
+    func testZlibDecompressTooShort() {
+        #expect(throws: BoardStateParseError.zlibDecompressionFailed) {
+            try BoardStateParser.zlibDecompress(Data([0x78]))
+        }
+        #expect(throws: BoardStateParseError.zlibDecompressionFailed) {
+            try BoardStateParser.zlibDecompress(Data([0x78, 0x9C]))
+        }
+        #expect(throws: BoardStateParseError.zlibDecompressionFailed) {
+            try BoardStateParser.zlibDecompress(Data())
+        }
+    }
+
+    @Test("zlibDecompress throws for invalid compressed payload")
+    func testZlibDecompressInvalidPayload() {
+        // Valid 2-byte header followed by garbage data
+        let invalidData = Data([0x78, 0x9C, 0xFF, 0xFF, 0xFF, 0xFF])
+        #expect(throws: BoardStateParseError.zlibDecompressionFailed) {
+            try BoardStateParser.zlibDecompress(invalidData)
+        }
     }
 }
