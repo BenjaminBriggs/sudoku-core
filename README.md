@@ -43,11 +43,18 @@ dependencies: [
 ```swift
 import SudokuCore
 
-// Generate a puzzle
-let generator = SudokuGenerator()
-let puzzle = await generator.generatePuzzle(
-    difficulty: .medium,
-    emptyCells: 45...55
+// Generate starting state (targetsEmptyCells controls rough difficulty)
+let (solution, startingState) = await SudokuGenerator.generatePuzzle(
+    targetsEmptyCells: 45...55
+)
+
+// Compute difficulty and assemble a Puzzle
+let difficulty = try await SudokuDifficultyCalculator
+    .calculateDifficulty(for: startingState)
+let puzzle = Puzzle(
+    solution: solution,
+    startingState: startingState,
+    difficulty: difficulty.puzzleDifficulty
 )
 
 // Create a board for gameplay
@@ -57,9 +64,10 @@ let board = Board(puzzle: puzzle)
 let position = Puzzle.Index(row: 0, column: 0)
 board.mark(positions: [position], as: 5)
 
-// Get a hint
-if let hint = HintFinder.findHint(for: board, in: [.nakedSingle, .hiddenSingle]) {
-    os_log("\(hint.title): \(hint.description)")
+// Get a hint (prefer simple techniques first)
+let techniques: [HintTechnique] = [.nakedSingle, .hiddenSingle]
+if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.state) }).first {
+    print("\(hint.title): \(hint.description)")
     board.apply(hint: hint)
 }
 
@@ -68,7 +76,7 @@ try board.undo()
 
 // Check completion
 if board.isSolved {
-    os_log("Puzzle solved! Errors: \(board.incorrectMoves), Hints: \(board.hintsUsed)")
+    print("Puzzle solved! Errors: \(board.incorrectMoves), Hints: \(board.hintsUsed)")
 }
 ```
 
@@ -167,7 +175,9 @@ let techniques: [HintTechnique] = [
     .xWing
 ]
 
-if let hint = HintFinder.findHint(for: board, in: techniques) {
+if let hint = techniques
+    .compactMap({ HintFinder.findHint(for: $0, in: board.state) })
+    .first {
     // Show hint UI
     showHint(hint)
 
@@ -179,21 +189,6 @@ if let hint = HintFinder.findHint(for: board, in: techniques) {
 ### Difficulty-Based Generation
 
 ```swift
-func generatePuzzleSet(difficulty: PuzzleDifficulty.Level, count: Int) async -> [Puzzle] {
-    let generator = SudokuGenerator()
-    var puzzles: [Puzzle] = []
-
-    for _ in 0..<count {
-        let puzzle = await generator.generatePuzzle(
-            difficulty: difficulty,
-            emptyCells: emptyCellRange(for: difficulty)
-        )
-        puzzles.append(puzzle)
-    }
-
-    return puzzles
-}
-
 func emptyCellRange(for difficulty: PuzzleDifficulty.Level) -> ClosedRange<Int> {
     switch difficulty {
     case .easy: return 35...45
@@ -203,6 +198,25 @@ func emptyCellRange(for difficulty: PuzzleDifficulty.Level) -> ClosedRange<Int> 
     case .professional: return 60...65
     case .custom: return 40...50
     }
+}
+
+func generatePuzzleSet(difficulty: PuzzleDifficulty.Level, count: Int) async throws -> [Puzzle] {
+    var puzzles: [Puzzle] = []
+
+    for _ in 0..<count {
+        let (solution, starting) = await SudokuGenerator.generatePuzzle(
+            targetsEmptyCells: emptyCellRange(for: difficulty)
+        )
+        let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+        let puzzle = Puzzle(
+            solution: solution,
+            startingState: starting,
+            difficulty: info.puzzleDifficulty
+        )
+        puzzles.append(puzzle)
+    }
+
+    return puzzles
 }
 ```
 
@@ -230,8 +244,8 @@ Run tests in Xcode:
 # Run all tests
 swift test
 
-# Run specific test
-swift test --filter BoardTests
+# Run specific tests by name pattern
+swift test --filter Board
 ```
 
 ## License

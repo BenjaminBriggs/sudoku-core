@@ -20,7 +20,7 @@ let techniques: [HintTechnique] = [
     .xWing
 ]
 
-if let hint = HintFinder.findHint(for: board, in: techniques) {
+if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.state) }).first {
     print(hint.title)
     print(hint.description)
 }
@@ -31,7 +31,7 @@ if let hint = HintFinder.findHint(for: board, in: techniques) {
 Once you have a hint, apply it to the board:
 
 ```swift
-if let hint = HintFinder.findHint(for: board, in: techniques) {
+if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.state) }).first {
     // Show the hint to the player first...
 
     // Then apply it
@@ -142,7 +142,10 @@ class HintProvider {
 
     func findHint(for board: Board, maxLevel: Int) -> HintStep? {
         for level in 0..<min(maxLevel, techniques.count) {
-            if let hint = HintFinder.findHint(for: board, in: techniques[level]) {
+            let state = board.state
+            if let hint = techniques[level]
+                .compactMap({ HintFinder.findHint(for: $0, in: state) })
+                .first {
                 return hint
             }
         }
@@ -156,7 +159,7 @@ class HintProvider {
 Use cell coloring to highlight hint components:
 
 ```swift
-if let hint = HintFinder.findHint(for: board, in: techniques) {
+if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.state) }).first {
     // Color cells mentioned in the hint
     for action in hint.actions {
         switch action.action {
@@ -178,7 +181,7 @@ if let hint = HintFinder.findHint(for: board, in: techniques) {
 Hints include detailed explanations:
 
 ```swift
-let hint = HintFinder.findHint(for: board, in: [.nakedSingle])!
+let hint = HintFinder.findHint(for: .nakedSingle, in: board.state)!
 
 print(hint.title)
 // "Naked Single"
@@ -197,16 +200,14 @@ Finding complex hints (like fish patterns) is more expensive than basic singles:
 
 ```swift
 // Fast: Check only basic techniques
-let basicHint = HintFinder.findHint(
-    for: board,
-    in: [.nakedSingle, .hiddenSingle]
-)
+let basicHint = [.nakedSingle, .hiddenSingle]
+    .compactMap({ HintFinder.findHint(for: $0, in: board.state) })
+    .first
 
 // Slower: Check all advanced techniques
-let advancedHint = HintFinder.findHint(
-    for: board,
-    in: HintTechnique.allCases
-)
+let advancedHint = HintTechnique.orderedCases
+    .compactMap({ HintFinder.findHint(for: $0, in: board.state) })
+    .first
 ```
 
 ### Caching
@@ -225,7 +226,8 @@ class HintCache {
             return cached
         }
 
-        cachedHint = HintFinder.findHint(for: board, in: techniques)
+        let state = board.state
+        cachedHint = techniques.compactMap { HintFinder.findHint(for: $0, in: state) }.first
         cachedBoardState = currentState
         return cachedHint
     }

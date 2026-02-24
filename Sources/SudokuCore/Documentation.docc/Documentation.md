@@ -56,4 +56,4 @@ SudokuCore provides everything needed to build a complete Sudoku application, fr
 
 - <doc:DifficultyRating>
 - <doc:ValidationSystem>
-- ``SudokuValidator``
+- ``Validator``

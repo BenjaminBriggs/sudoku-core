@@ -13,8 +13,9 @@ SudokuCore uses industry-standard rating systems to measure puzzle difficulty ob
 The HoDoKu rating is a cumulative score that sums the points for every solving technique used:
 
 ```swift
-let puzzle = await generator.generatePuzzle(difficulty: .medium)
-print("HoDoKu score: \(puzzle.difficulty.score)")
+let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 45...55)
+let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+print("HoDoKu score: \(info.hodokuRating ?? 0)")
 // Example output: "HoDoKu score: 450"
 ```
 
@@ -67,10 +68,12 @@ if let seRating = puzzle.difficulty.seRating {
 
 ### For Generated Puzzles
 
-Puzzles from ``SudokuGenerator`` include difficulty information:
+Rate a generated starting grid and assemble a ``Puzzle``:
 
 ```swift
-let puzzle = await generator.generatePuzzle(difficulty: .hard)
+let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 50...55)
+let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+let puzzle = Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
 
 print("Level: \(puzzle.difficulty.level)")
 print("HoDoKu: \(puzzle.difficulty.score)")
@@ -83,17 +86,12 @@ print("Hardest technique: \(puzzle.difficulty.hardestTechnique)")
 Calculate difficulty for any puzzle:
 
 ```swift
-let calculator = SudokuDifficultyCalculator()
-
 let startingState: [[Int]] = [
     // Your 9x9 puzzle grid
 ]
 
-let difficulty = await calculator.calculateDifficulty(
-    for: startingState
-)
-
-print("Calculated difficulty: \(difficulty.score)")
+let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
+print("Calculated difficulty: \(info.score)")
 ```
 
 ## Hardest Technique
@@ -101,9 +99,11 @@ print("Calculated difficulty: \(difficulty.score)")
 The ``PuzzleDifficulty/hardestTechnique`` indicates the most advanced solving technique required:
 
 ```swift
-let puzzle = await generator.generatePuzzle(difficulty: .hard)
+let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 55...60)
+let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+let hardest = info.hardestTechnique ?? .hiddenSingle
 
-switch puzzle.difficulty.hardestTechnique {
+switch hardest {
 case .nakedSingle, .hiddenSingle:
     print("Beginner puzzle")
 case .nakedPair, .hiddenPair, .nakedTriple:
@@ -140,22 +140,16 @@ Create puzzles with specific difficulty characteristics:
 
 ```swift
 func generatePuzzleWithConstraints() async -> Puzzle? {
-    let generator = SudokuGenerator()
-
     for _ in 0..<50 {
-        let puzzle = await generator.generatePuzzle(
-            difficulty: .hard,
-            emptyCells: 48...52
-        )
+        let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 48...52)
+        guard let info = try? await SudokuDifficultyCalculator.calculateDifficulty(for: starting) else { continue }
+        let puzzle = Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
 
-        let score = puzzle.difficulty.score
-
-        // Want a puzzle in the 700-800 range
-        if score >= 700 && score <= 800 {
+        // Want a puzzle in the 700-800 HoDoKu range
+        if let hodoku = info.hodokuRating, (700...800).contains(hodoku) {
             return puzzle
         }
     }
-
     return nil
 }
 ```
@@ -270,10 +264,10 @@ func analyzeTechniques(for puzzle: Puzzle) async -> [HintTechnique: Int] {
     let board = Board(puzzle: puzzle)
 
     while !board.isSolved {
-        guard let hint = HintFinder.findHint(
-            for: board,
-            in: HintTechnique.allCases
-        ) else { break }
+        let state = board.state
+        guard let hint = HintTechnique.orderedCases
+            .compactMap({ HintFinder.findHint(for: $0, in: state) })
+            .first else { break }
 
         techniqueCounts[hint.technique, default: 0] += 1
         board.apply(hint: hint)

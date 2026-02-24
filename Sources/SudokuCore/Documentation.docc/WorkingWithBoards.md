@@ -13,7 +13,9 @@ The ``Board`` class provides a rich API for managing game state, handling player
 The most common way to create a board:
 
 ```swift
-let puzzle = await generator.generatePuzzle(difficulty: .medium)
+let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 45...55)
+let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+let puzzle = Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
 let board = Board(puzzle: puzzle)
 ```
 

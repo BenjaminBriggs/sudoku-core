@@ -17,7 +17,7 @@ let startingState: [[Int]] = [
     // Your 9x9 grid
 ]
 
-if SudokuValidator.isValid(startingState) {
+if Validator.hasNoConflicts(in: startingState) {
     print("Puzzle has no conflicts")
 } else {
     print("Puzzle contains invalid configuration")
@@ -29,7 +29,7 @@ if SudokuValidator.isValid(startingState) {
 Verify a puzzle has exactly one solution:
 
 ```swift
-if SudokuValidator.hasUniqueSolution(startingState) {
+if Validator.hasUniqueSolution(startingState) {
     print("Puzzle has a unique solution")
 } else {
     print("Puzzle has multiple solutions or no solution")
@@ -42,10 +42,10 @@ Check both validity and uniqueness:
 
 ```swift
 func validatePuzzle(_ puzzle: [[Int]]) -> (valid: Bool, unique: Bool) {
-    let isValid = SudokuValidator.isValid(puzzle)
-    let hasUniqueSolution = SudokuValidator.hasUniqueSolution(puzzle)
+    let isValid = Validator.hasNoConflicts(in: puzzle)
+    let hasUnique = Validator.hasUniqueSolution(puzzle)
 
-    return (isValid, hasUniqueSolution)
+    return (isValid, hasUnique)
 }
 
 let (valid, unique) = validatePuzzle(startingState)
@@ -252,11 +252,8 @@ for cell in board.cells where cell.value == nil {
 Get valid candidates for a specific cell:
 
 ```swift
-let options = SudokuValidator.validOptions(
-    for: position,
-    in: board.cells.solution
-)
-
+let allOptions = Validator.validOptions(for: board.cells.solution)
+let options = allOptions[position.row][position.column]
 print("Valid candidates: \(options)")
 ```
 
@@ -265,33 +262,21 @@ print("Valid candidates: \(options)")
 Ensure generated puzzles meet quality standards:
 
 ```swift
-func generateQualityPuzzle(
-    difficulty: PuzzleDifficulty.Level
-) async -> Puzzle? {
-    let generator = SudokuGenerator()
-
-    for attempt in 0..<100 {
-        let puzzle = await generator.generatePuzzle(
-            difficulty: difficulty,
-            emptyCells: 40...50
-        )
+func generateQualityPuzzle() async -> Puzzle? {
+    for _ in 0..<100 {
+        let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 40...50)
 
         // Validate
-        guard SudokuValidator.isValid(puzzle.startingState) else {
-            continue
-        }
-
-        guard SudokuValidator.hasUniqueSolution(puzzle.startingState) else {
-            continue
-        }
+        guard Validator.hasNoConflicts(in: starting) else { continue }
+        guard Validator.hasUniqueSolution(starting) else { continue }
 
         // Check minimum clues (typically 17+)
-        let givenCount = puzzle.startingState.flatMap { $0 }.filter { $0 != 0 }.count
-        guard givenCount >= 17 else {
-            continue
-        }
+        let givenCount = starting.flatMap { $0 }.filter { $0 != 0 }.count
+        guard givenCount >= 17 else { continue }
 
-        return puzzle
+        if let info = try? await SudokuDifficultyCalculator.calculateDifficulty(for: starting) {
+            return Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
+        }
     }
 
     return nil
@@ -323,7 +308,7 @@ let solution: [[Int]] = [
     // Complete 9×9 grid with all values filled
 ]
 
-if SudokuValidator.isCompleteAndValidSolution(solution) {
+if (try? Validator.isCompleteAndValidSolution(solution)) == true {
     print("Valid Sudoku solution")
 }
 ```
@@ -387,7 +372,7 @@ class ValidationCache {
             return lastValidationResult ?? false
         }
 
-        let result = SudokuValidator.isValid(currentState)
+        let result = Validator.hasNoConflicts(in: currentState)
         lastBoardState = currentState
         lastValidationResult = result
 

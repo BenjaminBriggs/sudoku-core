@@ -18,13 +18,18 @@ import SudokuCore
 
 ### Step 2: Generate a Puzzle
 
-Use ``SudokuGenerator`` to create a puzzle at your desired difficulty:
+Use ``SudokuGenerator`` to create a starting grid, then compute difficulty and assemble a ``Puzzle``:
 
 ```swift
-let generator = SudokuGenerator()
-let puzzle = await generator.generatePuzzle(
-    difficulty: .medium,
-    emptyCells: 45...55
+let (solution, startingState) = await SudokuGenerator.generatePuzzle(
+    targetsEmptyCells: 45...55
+)
+
+let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
+let puzzle = Puzzle(
+    solution: solution,
+    startingState: startingState,
+    difficulty: info.puzzleDifficulty
 )
 ```
 
@@ -79,8 +84,9 @@ let board = Board(
 Help players when they're stuck:
 
 ```swift
-// Find the next available hint
-if let hint = HintFinder.findHint(for: board, in: [.nakedSingle, .hiddenSingle]) {
+// Find the next available hint (try simpler techniques first)
+let techniques: [HintTechnique] = [.nakedSingle, .hiddenSingle]
+if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.state) }).first {
     // Show the hint to the player
     print(hint.title)
     print(hint.description)
