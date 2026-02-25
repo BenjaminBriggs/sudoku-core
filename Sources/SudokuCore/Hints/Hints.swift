@@ -33,9 +33,12 @@ public enum HintTechnique: String, CaseIterable, Sendable, Codable, Identifiable
     case finnedSwordfish
     case finnedJellyfish
     case skyscraper
+    case twoStringKite
+    case emptyRectangle
     case xyWing
     case xyzWing
     case yWing
+    case wWing
 
     /// An approximate difficulty scale (1 = easiest, higher = more complex).
     /// Adjust these as you see fit for your puzzle’s difficulty progression.
@@ -59,11 +62,15 @@ public enum HintTechnique: String, CaseIterable, Sendable, Codable, Identifiable
             return 80
         case .finnedXWing:
             return 85
-        case .skyscraper:
+        case .skyscraper, .twoStringKite:
             return 90
         case .swordfish:
             return 90
+        case .emptyRectangle:
+            return 92
         case .finnedSwordfish:
+            return 95
+        case .wWing:
             return 95
         case .jellyfish:
             return 100
@@ -103,6 +110,9 @@ public enum HintTechnique: String, CaseIterable, Sendable, Codable, Identifiable
         case .yWing: return "Y-Wing"
         case .xyzWing: return "XYZ-Wing"
         case .skyscraper: return "Skyscraper"
+        case .twoStringKite: return "Two-String Kite"
+        case .emptyRectangle: return "Empty Rectangle"
+        case .wWing: return "W-Wing"
         case .validation: return "Validation"
         case .unknown: return "Unknown"
         }
@@ -131,6 +141,9 @@ public enum HintTechnique: String, CaseIterable, Sendable, Codable, Identifiable
         case .xyWing: return 4.5
         case .xyzWing: return 5.2
         case .skyscraper: return 4.0
+        case .twoStringKite: return 4.0
+        case .emptyRectangle: return 4.0
+        case .wWing: return 4.4
         case .unknown: return 8.0
         }
     }
@@ -161,6 +174,9 @@ public enum HintTechnique: String, CaseIterable, Sendable, Codable, Identifiable
         case .xyWing: return 110
         case .xyzWing: return 130
         case .skyscraper: return 80
+        case .twoStringKite: return 80
+        case .emptyRectangle: return 80
+        case .wWing: return 90
         case .unknown: return 200
         }
     }

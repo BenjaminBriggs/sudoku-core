@@ -161,6 +161,58 @@
         }
       }
     },
+    "Any cell that can see both of these cells cannot contain %lld." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede Zelle, die beide dieser Zellen sieht, kann %lld nicht enthalten."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Any cell that can see both of these cells cannot contain %lld."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Any cell that sees both of these cells cannot have %lld."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cualquier celda que pueda ver ambas celdas no puede contener %lld."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toute case qui voit ces deux cases ne peut pas contenir %lld."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これら2つのセルを両方見える任意のセルには%lldを入れられません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 두 칸 모두 볼 수 있는 칸에는 %lld이(가) 들어갈 수 없습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "能看到这两个单元格的其它格不能包含%lld。"
+          }
+        }
+      }
+    },
     "Because of the fins, eliminations are restricted to cells that can see all fin positions." : {
       "comment" : "Explanation of why eliminations are restricted to cells that can see all fin positions in the Fish Pattern Technique.",
       "localizations" : {
@@ -269,110 +321,209 @@
       }
     },
     "Because this house must contain a %lld, we know that it has to be one of these cells." : {
-
-    },
-    "column" : {
-      "comment" : "Name of a type of orientation in a Sudoku puzzle, referring to a column.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spalte"
+            "value" : "Weil dieses Haus ein %lld enthalten muss, wissen wir, dass es in einer dieser Zellen sein muss."
           }
         },
         "en-GB" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "column"
+            "value" : "Because this house must contain a %lld, we know that it has to be one of these cells."
           }
         },
         "en-US" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "column"
+            "value" : "Because this house must have a %lld, it has to be in one of these cells."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "columna"
+            "value" : "Como esta casa debe contener un %lld, sabemos que tiene que estar en una de estas celdas."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "colonne"
+            "value" : "Comme cette maison doit contenir un %lld, il doit être dans l'une de ces cases."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "コラム"
+            "value" : "このハウスには必ず %lld が入るため、このセルのいずれかであることが分かります。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "열"
+            "value" : "%lld이(가) 이 집에 꼭 있어야 하므로, 해당 숫자는 이 칸들 중 하나에 있어야 합니다."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "列"
+            "value" : "由于此宫必须包含%lld，因此它一定落在这些单元格之一。"
           }
         }
       }
     },
-    "columns" : {
-      "comment" : "Description of the orientation of the base lines in the fish pattern.",
+    "Cell A" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spalten"
+            "value" : "Zelle A"
           }
         },
         "en-GB" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "columns"
+            "value" : "Cell A"
           }
         },
         "en-US" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "columns"
+            "value" : "Cell A"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "columnas"
+            "value" : "Celda A"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "colonnes"
+            "value" : "Case A"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "コラム"
+            "value" : "セルA"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "열"
+            "value" : "A 칸"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "列"
+            "value" : "A格"
+          }
+        }
+      }
+    },
+    "Cell B" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zelle B"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cell B"
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cell B"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Celda B"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Case B"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セルB"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "B 칸"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "B格"
+          }
+        }
+      }
+    },
+    "Digit %lld appears exactly twice in a row and exactly twice in a column, with one cell from each sharing the same box." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ziffer %lld kommt genau zweimal in einer Zeile und zweimal in einer Spalte vor, wobei jeweils eine Zelle in beiden Gruppen im selben Block liegt."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digit %lld appears exactly twice in a row and exactly twice in a column, with one cell from each sharing the same box."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Digit %lld shows up exactly twice in a row and twice in a column, with one cell from each sharing a box."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El dígito %lld aparece exactamente dos veces en una fila y dos veces en una columna, compartiendo una celda en la misma caja."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le chiffre %lld apparaît exactement deux fois sur une ligne et deux fois sur une colonne, avec une case de chaque partageant le même bloc."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数字%lldが1行にちょうど2回、1列にも2回現れ、それぞれのうち1つが同じボックスを共有します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "숫자 %lld이(가) 한 행과 한 열에 각각 두 번씩 등장하며, 각 행과 열의 칸이 같은 박스를 공유합니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数字%lld在一行和一列中各出现两次，且每行/列有一个单元格在同一宫内。"
           }
         }
       }
@@ -695,112 +846,6 @@
         }
       }
     },
-    "four" : {
-      "comment" : "A number in English, used to describe the count of cells in a fish pattern.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "vier"
-          }
-        },
-        "en-GB" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "four"
-          }
-        },
-        "en-US" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "four"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "cuatro"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "quatre"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "四"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "넷"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "四"
-          }
-        }
-      }
-    },
-    "house" : {
-      "comment" : "Name of the third dimension in a 3x3x3 grid.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Haus"
-          }
-        },
-        "en-GB" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "house"
-          }
-        },
-        "en-US" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "house"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "casa"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "maison"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ハウス"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "집"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "房屋"
-          }
-        }
-      }
-    },
     "However, this pattern has extra candidates (fins) that prevent it from being a perfect fish:" : {
       "comment" : "Explanation of why a fish pattern with fins is not considered a \"perfect\" fish.",
       "localizations" : {
@@ -850,6 +895,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "然而，这种模式有额外的候选数（鳍），使其不成为完美的鱼："
+          }
+        }
+      }
+    },
+    "If Cell A is %lld, Cell B must be %lld. If Cell A is %lld, the strong link forces %lld away, so Cell B is still %lld. Either way, one of these cells contains %lld." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenn Zelle A %1$lld ist, muss Zelle B %2$lld sein. Ist Zelle A %3$lld, verdrängt der starke Link %4$lld, also bleibt Zelle B %5$lld. So oder so enthält eine dieser Zellen %6$lld."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If Cell A is %1$lld, Cell B must be %2$lld. If Cell A is %3$lld, the strong link forces %4$lld away, so Cell B is still %5$lld. Either way, one of these cells contains %6$lld."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If Cell A is %1$lld, Cell B must be %2$lld. If Cell A is %3$lld, the strong link rules out %4$lld, so Cell B is still %5$lld. Either way, one of these cells has %6$lld."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si la Celda A es %1$lld, la Celda B debe ser %2$lld. Si la Celda A es %3$lld, el enlace fuerte elimina %4$lld, así que la Celda B sigue siendo %5$lld. De cualquier modo, una de estas celdas contiene %6$lld."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si la case A est %1$lld, la case B doit être %2$lld. Si la case A est %3$lld, le lien fort exclut %4$lld, donc la case B est quand même %5$lld. Dans tous les cas, une de ces cases contient %6$lld."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "セルAが%1$lldの場合、セルBは%2$lldになります。セルAが%3$lldの場合、強リンクによって%4$lldが除外され、セルBはやはり%5$lldとなります。どちらにしても、この2つのセルのうち1つが%6$lldを持ちます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A 칸에 %1$lld이(가) 있다면 B 칸은 %2$lld이(가) 됩니다. A 칸이 %3$lld이면 강한 연결로 %4$lld이(가) 제외되어 B 칸은 여전히 %5$lld입니다. 두 경우 모두 이 칸들 중 하나에 %6$lld이(가) 있습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "若A格为%1$lld，B格为%2$lld。若A格为%3$lld，强链排除%4$lld，故B格仍为%5$lld。无论如何，二者之一包含%6$lld。"
           }
         }
       }
@@ -1172,6 +1269,58 @@
         }
       }
     },
+    "Look at the candidates for digit %lld in this box — they form an Empty Rectangle pattern." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schau dir die Kandidaten für Ziffer %lld in diesem Block an – sie bilden ein Leeres-Rechteck-Muster."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look at the candidates for digit %lld in this box — they form an Empty Rectangle pattern."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check the candidates for digit %lld in this box—they form an Empty Rectangle pattern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mira los candidatos para el dígito %lld en esta caja: forman un patrón de Rectángulo Vacío."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regardez les candidats pour le chiffre %lld dans ce bloc — ils forment un motif de Rectangle Vide."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このボックス内の数字%lldの候補を見てください ― Empty Rectangleパターンになっています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 박스에서 숫자 %lld의 후보를 보면, 빈 사각형 패턴을 이룹니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请看本区块内数字%lld的候选格——它们形成了空矩形模式。"
+          }
+        }
+      }
+    },
     "Look at these %@ cells in the same %@. Together, they contain only %@ candidates: %@." : {
       "comment" : "Explanation of the first step in the naked subset explanation. The first argument is the number of cells in the subset. The second argument is the name of the subset (e.g. \"two\" or \"three\").",
       "localizations" : {
@@ -1278,6 +1427,58 @@
         }
       }
     },
+    "Look at these cells forming a Two-String Kite pattern for digit %lld:" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beachte diese Zellen, sie bilden für Ziffer %lld ein Zwei-Faden-Drachen-Muster:"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look at these cells forming a Two-String Kite pattern for digit %lld:"
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look at these cells forming a Two-String Kite pattern for digit %lld:"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Observa estas celdas que forman un patrón de Two-String Kite para el dígito %lld:"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regardez ces cases formant un motif Two-String Kite pour le chiffre %lld :"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらのセルで%lldのTwo-String Kiteパターンができます:"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "다음 칸들이 숫자 %lld에 대한 투스트링 카이트 패턴을 형성합니다:"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请看这些单元格，形成了数字%lld的双弦风筝模式："
+          }
+        }
+      }
+    },
     "Look at these three cells forming a %@ pattern:" : {
       "comment" : "The text of the first step in the explanation, describing the pattern and highlighting the relevant cells.",
       "localizations" : {
@@ -1327,6 +1528,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "看看这三个单元格，它们形成了一个%@模式："
+          }
+        }
+      }
+    },
+    "Look at these two cells — they both contain candidates {%lld, %lld}, forming a W-Wing pattern." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sieh dir diese beiden Zellen an – beide enthalten Kandidaten {%1$lld, %2$lld}, das ergibt ein W-Wing-Muster."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look at these two cells — they both contain candidates {%1$lld, %2$lld}, forming a W-Wing pattern."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Look at these two cells—they both have candidates {%1$lld, %2$lld}, forming a W-Wing pattern."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mira estas dos celdas: ambas tienen candidatos {%1$lld, %2$lld}, formando un patrón W-Wing."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regardez ces deux cases — elles contiennent toutes les deux les candidats {%1$lld, %2$lld}, formant un motif W-Wing."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この2つのセルにはどちらも候補{%1$lld, %2$lld}があり、W-Wingパターンを構成しています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 두 칸을 보세요 — 둘 다 후보 {%1$lld, %2$lld}을(를) 가지고 있으며, W-윙 패턴을 이룹니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "看这两个单元格——它们都包含候选数 {%1$lld, %2$lld}，形成了W翼型。"
           }
         }
       }
@@ -1433,6 +1686,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无论基点填入哪个值，至少有一个翅膀必须包含%lld。"
+          }
+        }
+      }
+    },
+    "One end of the strong link aligns with the rectangle. If %lld is not at that end, the rectangle forces %lld into a position that eliminates it from the target cell." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Ende des starken Links stimmt mit dem Rechteck überein. Ist %1$lld nicht am Ende, zwingt das Rechteck %2$lld in eine Position, die es aus der Zielzelle entfernt."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One end of the strong link aligns with the rectangle. If %1$lld is not at that end, the rectangle forces %2$lld into a position that eliminates it from the target cell."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One end of the strong link lines up with the rectangle. If %1$lld isn't at that end, the rectangle puts %2$lld where it removes it from the target cell."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un extremo del enlace fuerte se alinea con el rectángulo. Si %1$lld no está en ese extremo, el rectángulo fuerza que %2$lld esté en una posición que lo elimina de la celda objetivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Une extrémité du lien fort s'aligne avec le rectangle. Si %1$lld n'est pas à cette extrémité, le rectangle force %2$lld dans une position qui l'élimine de la case cible."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "強リンクの一端が長方形に揃っています。その端に%1$lldがない場合、長方形は%2$lldを標的セルから除外する位置に導きます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "강한 연결의 한쪽 끝이 사각형과 맞닿아 있습니다. %1$lld이(가) 그 끝에 없다면, 사각형은 %2$lld을(를) 위치에 강제하여 목표 칸에서 제거하게 만듭니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强链一端与矩形对齐。如果%1$lld不在此端，矩形会将%2$lld限定到排除目标格的位置。"
+          }
+        }
+      }
+    },
+    "One of these two cells must contain %lld." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine dieser beiden Zellen muss %lld enthalten."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One of these two cells must contain %lld."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One of these two cells must have %lld."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una de estas dos celdas debe contener %lld."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'une de ces deux cases doit contenir %lld."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この2つのセルのいずれかに%lldが入ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 두 칸 중 하나에는 반드시 %lld이(가) 들어갑니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这两个格必有一个包含%lld。"
           }
         }
       }
@@ -1649,118 +2006,54 @@
         }
       }
     },
-    "row" : {
-      "comment" : "Name of the orientation that represents a row in a 2D grid.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zeile"
-          }
-        },
-        "en-GB" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "row"
-          }
-        },
-        "en-US" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "row"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "fila"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "rangée"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "行"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "행"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "行"
-          }
-        }
-      }
-    },
-    "rows" : {
-      "comment" : "The horizontal or vertical dimension of the base of the fish pattern.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zeilen"
-          }
-        },
-        "en-GB" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "rows"
-          }
-        },
-        "en-US" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "rows"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "filas"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "rangées"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "行"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "행"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "行数"
-          }
-        }
-      }
-    },
     "Since %lld must be in one of these cells, it can't appear anywhere else in this %@." : {
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Da %1$lld in einer dieser Zellen sein muss, kann es sonst nirgends in diesem %2$@ stehen."
+          }
+        },
         "en-GB" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "Since %1$lld must be in one of these cells, it can't appear anywhere else in this %2$@."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Since %1$lld must be in one of these cells, it can't go anywhere else in this %2$@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Como %1$lld debe estar en una de estas celdas, no puede aparecer en otro lugar en este %2$@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puisque %1$lld doit être dans l'une de ces cases, il ne peut pas apparaître ailleurs dans ce(tte) %2$@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このセルのいずれかに%1$lldが入るため、この%2$@の他の場所には現れません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld는 이 칸들 중 하나에 반드시 있어야 하므로, 이 %2$@의 다른 곳에 나타날 수 없습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "因为%1$lld必须在这些单元格中，所以它不能出现在该%2$@的其他地方。"
           }
         }
       }
@@ -2296,6 +2589,58 @@
         }
       }
     },
+    "There is also a strong link for %lld — it appears exactly twice in this line." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für %lld gibt es auch einen starken Link – die Ziffer kommt genau zweimal in dieser Reihe vor."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There is also a strong link for %lld — it appears exactly twice in this line."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There's also a strong link for %lld—it appears exactly twice in this line."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "También hay un enlace fuerte para %lld: aparece exactamente dos veces en esta línea."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Il y a aussi un lien fort pour %lld — il apparaît exactement deux fois dans cette ligne."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "また、%lldにも強リンクがあります — この行内でちょうど2つ現れます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld에 대한 강한 연결도 있습니다 — 이 줄에서 정확히 두 번 나타납니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还有%lld的强链——它在本行恰好出现两次。"
+          }
+        }
+      }
+    },
     "There's a conflict with digit %lld in this %@." : {
       "comment" : "Text displayed in the explanation for a validation hint. The first argument is the digit that caused the conflict. The second argument is the orientation of the conflict (e.g., row, column, 3x3 box).",
       "localizations" : {
@@ -2508,6 +2853,58 @@
         }
       }
     },
+    "Therefore, %lld can be eliminated from this cell." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daher kann %lld aus dieser Zelle entfernt werden."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Therefore, %lld can be eliminated from this cell."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So, %lld can be removed from this cell."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Por lo tanto, %lld puede eliminarse de esta celda."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Donc, %lld peut être éliminé de cette case."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "したがって、このセルから%lldを除外できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "따라서 이 칸에서 %lld을(를) 제거할 수 있습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "因此，%lld 可以从该单元格中排除。"
+          }
+        }
+      }
+    },
     "Therefore, %lld can be removed from any cell that sees all three cells in the pattern." : {
       "comment" : "The part of the explanation step text that explains that the elimination digit can be removed from any cell that sees all three cells in the pattern.",
       "localizations" : {
@@ -2610,6 +3007,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "因此，%lld可以从任何能够看到两个翅膀的单元格中移除。"
+          }
+        }
+      }
+    },
+    "Therefore, %lld can be removed from any cell that sees both." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deshalb kann %lld in allen Zellen, die beide sehen, entfernt werden."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Therefore, %lld can be removed from any cell that sees both."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So, %lld can be removed from any cell that sees both."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Por lo tanto, %lld puede eliminarse de cualquier celda que vea ambas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Donc, %lld peut être supprimé de toute case qui voit les deux."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "したがって、どちらのセルも見えるセルからは %lld を除外できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "따라서 두 칸 모두 볼 수 있는 칸에서는 %lld을(를) 제거할 수 있습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "因此，%lld 可以从能同时看到这两个单元格的任意单元格中移除。"
           }
         }
       }
@@ -2769,6 +3218,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这些 %1$lld 影响此 %2$@"
+          }
+        }
+      }
+    },
+    "These cells are connected by a strong link on digit %lld — it appears exactly twice in a shared unit." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Zellen sind durch einen starken Link auf Ziffer %lld verbunden – sie kommt genau zweimal in einer gemeinsamen Einheit vor."
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These cells are connected by a strong link on digit %lld — it appears exactly twice in a shared unit."
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These cells are connected by a strong link on digit %lld—it appears exactly twice in a shared unit."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estas celdas están conectadas por un enlace fuerte en el dígito %lld: aparece exactamente dos veces en una unidad compartida."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ces cases sont reliées par un lien fort sur le chiffre %lld — il apparaît exactement deux fois dans une unité partagée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これらのセルは数字%lldの強リンクでつながっています（共通ユニット上でちょうど2つ現れます）。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 칸들은 숫자 %lld의 강한 연결로 연결되어 있습니다 — 이 공유 단위에서 정확히 두 번 나타납니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些格由%lld的强链连接——其在共享单位内仅出现两次。"
           }
         }
       }
@@ -3087,112 +3588,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此值不正确。正确的值是 %lld。"
-          }
-        }
-      }
-    },
-    "three" : {
-      "comment" : "A word for the number three.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "drei"
-          }
-        },
-        "en-GB" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "three"
-          }
-        },
-        "en-US" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "three"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "tres"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "trois"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "三"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "셋"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "三"
-          }
-        }
-      }
-    },
-    "two" : {
-      "comment" : "A string that translates to \"two\".",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "zwei"
-          }
-        },
-        "en-GB" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "two"
-          }
-        },
-        "en-US" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "two"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "dos"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "deux"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "二"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "둘"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "二"
           }
         }
       }
@@ -3617,6 +4012,430 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Y翼"
+          }
+        }
+      }
+    },
+    "column" : {
+      "comment" : "Name of a type of orientation in a Sudoku puzzle, referring to a column.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spalte"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "column"
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "column"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "columna"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "colonne"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コラム"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "열"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列"
+          }
+        }
+      }
+    },
+    "columns" : {
+      "comment" : "Description of the orientation of the base lines in the fish pattern.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spalten"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "columns"
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "columns"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "columnas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "colonnes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コラム"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "열"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "列"
+          }
+        }
+      }
+    },
+    "four" : {
+      "comment" : "A number in English, used to describe the count of cells in a fish pattern.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "vier"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "four"
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "four"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "cuatro"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "quatre"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "四"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "넷"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "四"
+          }
+        }
+      }
+    },
+    "house" : {
+      "comment" : "Name of the third dimension in a 3x3x3 grid.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haus"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "house"
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "house"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "casa"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "maison"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハウス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "집"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "房屋"
+          }
+        }
+      }
+    },
+    "row" : {
+      "comment" : "Name of the orientation that represents a row in a 2D grid.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeile"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "row"
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "row"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "fila"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rangée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "행"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行"
+          }
+        }
+      }
+    },
+    "rows" : {
+      "comment" : "The horizontal or vertical dimension of the base of the fish pattern.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeilen"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rows"
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rows"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "filas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rangées"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "행"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行数"
+          }
+        }
+      }
+    },
+    "three" : {
+      "comment" : "A word for the number three.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "drei"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "three"
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "three"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tres"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trois"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "三"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "셋"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "三"
+          }
+        }
+      }
+    },
+    "two" : {
+      "comment" : "A string that translates to \"two\".",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "zwei"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "two"
+          }
+        },
+        "en-US" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "two"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "deux"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "二"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "둘"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "二"
           }
         }
       }

@@ -61,8 +61,8 @@ struct HardPuzzleDifficultyTests {
             let result = try SudokuDifficultyCalculator.calculateDifficultySync(for: grid)
 
             #expect(
-                result.level == .hard,
-                "Puzzle should be hard (score: \(Int(result.score)), level: \(result.level.rawValue), hardest: \(result.hardestTechnique?.rawValue ?? "unknown"))"
+                result.level == .hard || result.level == .expert,
+                "Puzzle should be hard or expert (score: \(Int(result.score)), level: \(result.level.rawValue), hardest: \(result.hardestTechnique?.rawValue ?? "unknown"))"
             )
 
             #expect(

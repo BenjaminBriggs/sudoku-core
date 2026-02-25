@@ -51,6 +51,12 @@ public enum HintFinder {
             return findNFish(n: 4, requiresFin: true, in: state)
         case .skyscraper:
             return findSkyscraper(in: state)
+        case .twoStringKite:
+            return findTwoStringKite(in: state)
+        case .emptyRectangle:
+            return findEmptyRectangle(in: state)
+        case .wWing:
+            return findWWing(in: state)
         case .unknown:
             return nil // this will never have a hint
         }
