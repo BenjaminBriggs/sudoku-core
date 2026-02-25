@@ -136,14 +136,9 @@ extension HintFinder {
     ) -> HintStep? {
         let (pivotPos, pivotCandidates) = pivot
 
-        // For XYZ-Wing, filter wings to only neighbors of pivot
-        let candidateWings: [(Puzzle.Index, Set<Int>)]
-        if case .xyz = type {
-            let pivotNeighbours = LookupTables.cellNeighbours[pivotPos.row][pivotPos.column]
-            candidateWings = biValueCells.filter { pivotNeighbours.contains($0.0) && $0.0 != pivotPos }
-        } else {
-            candidateWings = biValueCells.filter { $0.0 != pivotPos }
-        }
+        // Wings must be neighbours of the pivot for all wing types
+        let pivotNeighbours = LookupTables.cellNeighbours[pivotPos.row][pivotPos.column]
+        let candidateWings = biValueCells.filter { pivotNeighbours.contains($0.0) && $0.0 != pivotPos }
 
         // Try all combinations of two wings
         for wingAIndex in 0..<candidateWings.count {
@@ -265,38 +260,39 @@ extension HintFinder {
         return z1 == z2 ? z1 : nil
     }
 
-    /// Validates a Y-Wing pattern (relaxed variant of XY-Wing).
+    /// Validates a Y-Wing pattern.
     ///
-    /// Each wing must contain at least one of the pivot's candidates, and both wings must share
-    /// the same non-pivot candidate as the elimination digit. Unlike XY-Wing, the sharing
-    /// constraint is not strictly one-to-one.
+    /// Each wing must share exactly one distinct candidate with the pivot. If pivot is {X, Y},
+    /// one wing must share X and the other must share Y. Both wings' remaining candidate must
+    /// be the same digit Z — the elimination digit.
     ///
     /// - Parameters:
     ///   - pivot: The pivot cell's candidate set.
     ///   - wingA: The first wing cell's candidate set.
     ///   - wingB: The second wing cell's candidate set.
-    /// - Returns: The elimination digit, or `nil` if the pattern is invalid.
+    /// - Returns: The elimination digit Z, or `nil` if the pattern is invalid.
     private static func validateYWing(
         pivot: Set<Int>,
         wingA: Set<Int>,
         wingB: Set<Int>
     ) -> Int? {
-        let pivotArray = Array(pivot)
-        let x = pivotArray[0]
-        let y = pivotArray[1]
+        // Each wing shares exactly 1 candidate with pivot
+        let pivotWingACommon = pivot.intersection(wingA)
+        guard pivotWingACommon.count == 1 else { return nil }
 
-        // Wing A must contain one of pivot's candidates
-        guard wingA.contains(x) || wingA.contains(y) else { return nil }
+        let pivotWingBCommon = pivot.intersection(wingB)
+        guard pivotWingBCommon.count == 1 else { return nil }
 
-        // Wing B must contain one of pivot's candidates
-        guard wingB.contains(x) || wingB.contains(y) else { return nil }
+        // The shared candidates must be different
+        let x = pivotWingACommon.first!
+        let y = pivotWingBCommon.first!
+        guard x != y else { return nil }
 
-        // Extract the non-pivot candidates from each wing
-        let z1 = wingA.subtracting(pivot).first ?? 0
-        let z2 = wingB.subtracting(pivot).first ?? 0
+        // Wings share a common digit (the elimination digit)
+        let z1 = wingA.subtracting([x]).first!
+        let z2 = wingB.subtracting([y]).first!
 
-        // Both wings must share the same elimination digit
-        return (z1 == z2 && z1 != 0) ? z1 : nil
+        return z1 == z2 ? z1 : nil
     }
 
     /// Validates an XYZ-Wing pattern.
@@ -315,21 +311,15 @@ extension HintFinder {
         wingA: Set<Int>,
         wingB: Set<Int>
     ) -> Int? {
-        // Pivot must share at least one candidate with each wing
-        let pivotWingACommon = pivot.intersection(wingA)
-        guard pivotWingACommon.isEmpty == false else { return nil }
+        // Each wing's candidates must be a subset of the pivot's candidates
+        guard wingA.isSubset(of: pivot) else { return nil }
+        guard wingB.isSubset(of: pivot) else { return nil }
 
-        let pivotWingBCommon = pivot.intersection(wingB)
-        guard pivotWingBCommon.isEmpty == false else { return nil }
-
-        // Wings must share exactly one common candidate
+        // Wings must share exactly one common candidate (the elimination digit Z)
         let wingCommon = wingA.intersection(wingB)
         guard wingCommon.count == 1 else { return nil }
 
-        let z = wingCommon.first!
-
-        // The elimination digit must also be in the pivot
-        return pivot.contains(z) ? z : nil
+        return wingCommon.first!
     }
 
     // MARK: - Elimination Cell Finding

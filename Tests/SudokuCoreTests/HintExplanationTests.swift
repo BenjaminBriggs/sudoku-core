@@ -32,6 +32,9 @@ struct HintExplanationTests {
         .init(.xyWing, min: 4, max: 4),
         .init(.yWing, min: 4, max: 4),
         .init(.xyzWing, min: 4, max: 4),
+        .init(.twoStringKite, min: 4, max: 4),
+        .init(.emptyRectangle, min: 4, max: 4),
+        .init(.wWing, min: 4, max: 4),
     ]
 
     struct StepCountExpectation: Sendable, CustomTestStringConvertible {

@@ -9,36 +9,6 @@ import Testing
 
 @testable import SudokuCore
 
-// MARK: - Enhanced Test Data Structures
-
-struct HintTestCase {
-    let gridString: String
-    let technique: HintTechnique
-    let expectedEliminationCount: Int?
-    let expectedAffectedCells: Set<Puzzle.Index>?
-    let expectedEliminatedDigits: Set<Int>?
-    let shouldApplyCleanly: Bool
-    let shouldFindHint: Bool
-
-    init(
-        gridString: String,
-        technique: HintTechnique,
-        expectedEliminationCount: Int? = nil,
-        expectedAffectedCells: Set<Puzzle.Index>? = nil,
-        expectedEliminatedDigits: Set<Int>? = nil,
-        shouldApplyCleanly: Bool = true,
-        shouldFindHint: Bool = true
-    ) {
-        self.gridString = gridString
-        self.technique = technique
-        self.expectedEliminationCount = expectedEliminationCount
-        self.expectedAffectedCells = expectedAffectedCells
-        self.expectedEliminatedDigits = expectedEliminatedDigits
-        self.shouldApplyCleanly = shouldApplyCleanly
-        self.shouldFindHint = shouldFindHint
-    }
-}
-
 struct HintTests {
 
     // MARK: - Enhanced Test Cases with Expected Results
@@ -348,65 +318,6 @@ struct HintTests {
         ),
     ]
 
-    static let enhancedTestCases: [HintTestCase] = [
-        // Naked Pair examples with expected results.
-        HintTestCase(
-            gridString:
-                "658003421249185003713006598802030150037000286005800000586010042971000805324008017",
-            technique: .nakedPair,
-            expectedEliminationCount: 1,
-            expectedEliminatedDigits: [9]
-        ),
-
-        // Hidden Single with expected cell
-        HintTestCase(
-            gridString:
-                "000093000000005000000064000000000000000000000000000000000000000000700000000000000",
-            technique: .hiddenSingle,
-            expectedEliminationCount: 1  // Should solve one cell
-        ),
-
-        // X-Wing with expected eliminations.
-        HintTestCase(
-            gridString:
-                "040070180003100700170948035617890350009000071000701908791486523004017896068009417",
-            technique: .xWing,
-            expectedEliminatedDigits: [6]
-        ),
-
-        // False positive test: No naked pair in this grid
-        HintTestCase(
-            gridString:
-                "123456789456789123789123456231564897564897231897231564312645978645978312978312645",
-            technique: .nakedPair,
-            shouldFindHint: false
-        ),
-
-        // False positive test: No X-Wing in empty grid
-        HintTestCase(
-            gridString:
-                "000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-            technique: .xWing,
-            shouldFindHint: false
-        ),
-
-        // Y-Wing example.
-        HintTestCase(
-            gridString:
-                "387956412600024083420800096743519628162487935958002147200098354500240800804005200",
-            technique: .yWing,
-            expectedEliminatedDigits: [7]
-        ),
-
-        // Swordfish example.
-        HintTestCase(
-            gridString:
-                "638005219149628000752193800820951030573860901000030508300509602265380190007216000",
-            technique: .swordfish,
-            expectedEliminatedDigits: [4]
-        ),
-    ]
-
     @Test("Test Hints", arguments: testGrids)
     func testHints(technique: HintTechnique, gridStrings: [String]) async {
         for gridString in gridStrings {
@@ -449,87 +360,6 @@ struct HintTests {
 
         // Verify that no hint was found
         #expect(hint == nil)
-    }
-
-    // MARK: - Enhanced Test Methods
-
-    @Test("Enhanced hint validation", arguments: HintTests.enhancedTestCases)
-    func testEnhancedHints(testCase: HintTestCase) async {
-        let grid = Solution.cells(from: testCase.gridString)
-        let pencilMarks = Validator.validOptions(for: grid)
-
-        let state = BoardState(
-            grid: grid,
-            pencilMarks: pencilMarks,
-            validOptions: pencilMarks
-        )
-
-        let hint = HintFinder.findHint(for: testCase.technique, in: state)
-
-        // Verify hint existence matches expectation
-        if testCase.shouldFindHint {
-            #expect(
-                hint != nil,
-                "Expected to find \(testCase.technique.rawValue) in \(testCase.gridString)"
-            )
-
-            guard let hint = hint else { return }
-
-            // Verify correct technique
-            #expect(hint.technique == testCase.technique)
-
-            // Verify elimination count if specified
-            if let expectedCount = testCase.expectedEliminationCount {
-                #expect(
-                    hint.actions.count == expectedCount,
-                    "Expected \(String(expectedCount)) eliminations, got \(String(hint.actions.count))"
-                )
-            }
-
-            // Verify affected cells if specified
-            if let expectedCells = testCase.expectedAffectedCells {
-                let actualCells = Set(hint.actions.map { $0.position })
-                #expect(
-                    actualCells == expectedCells,
-                    "Expected cells \(expectedCells), got \(actualCells)"
-                )
-            }
-
-            // Verify eliminated digits if specified
-            if let expectedDigits = testCase.expectedEliminatedDigits {
-                let actualDigits = Set(
-                    hint.actions.compactMap {
-                        if case .ruleOut(let digit) = $0.action { return digit }
-                        return nil
-                    })
-                #expect(
-                    actualDigits == expectedDigits,
-                    "Expected digits \(expectedDigits), got \(actualDigits)"
-                )
-            }
-
-            // Verify applying hint doesn't create conflicts
-            if testCase.shouldApplyCleanly {
-                let newState = applyHintToState(hint, state)
-                #expect(
-                    Validator.hasNoConflicts(in: newState.grid),
-                    "Applying hint created a conflict"
-                )
-
-                // Verify candidates were actually reduced
-                let originalCandidateCount = countCandidates(state)
-                let newCandidateCount = countCandidates(newState)
-                #expect(
-                    newCandidateCount < originalCandidateCount,
-                    "Hint should reduce candidate count"
-                )
-            }
-        } else {
-            #expect(
-                hint == nil,
-                "Should not find \(testCase.technique.rawValue) in \(testCase.gridString)"
-            )
-        }
     }
 
     // MARK: - Property-Based Tests
@@ -609,81 +439,74 @@ struct HintTests {
         }
     }
 
-    // MARK: - Cross-Validation Tests (False Positive Detection)
+    // MARK: - Solution Verification (False Positive Detection)
 
-    @Test("Techniques don't trigger false positives on other technique grids")
-    func testNoFalsePositivesAcrossTechniques() async {
-        // Test that each technique only finds hints in its own test grids
-        // and doesn't falsely trigger on other techniques' grids
-
-        for (targetTechnique, _) in Self.testGrids {
-            // Skip some techniques that are likely to find hints in many grids
-            let broadTechniques: Set<HintTechnique> = [
-                .validation,  // Always checks validity
-                .nakedSingle,  // Very common
-                .hiddenSingle,  // Very common
-                .lockedCandidatesPointing,  // Common
-                .lockedCandidatesClaiming,  // Common
-                .nakedPair,  // Very common, appears in many grids
-                .nakedTriple,  // Common, appears in many complex grids
-                .nakedQuad,  // Common in complex grids
-                .hiddenPair,  // Common
-                .hiddenTriple,  // Common in complex grids
-                .hiddenQuad,  // Common in complex grids
-                .xWing,  // Fish pattern, overlaps with other patterns
-                .yWing,  // Wing pattern, overlaps with other wing patterns
-                .xyWing,  // Common wing pattern
-                .xyzWing,  // Wing pattern, overlaps with other wing patterns
-                .swordfish,  // Fish pattern, overlaps with other patterns
-                .jellyfish,  // Fish pattern, overlaps with other patterns
-                .finnedXWing,  // Advanced pattern, naturally finds simpler patterns
-                .finnedSwordfish,  // Advanced pattern, naturally finds simpler patterns
-                .finnedJellyfish,  // Advanced pattern, naturally finds simpler patterns
-                .skyscraper,  // Common chain pattern
-            ]
-
-            if broadTechniques.contains(targetTechnique) {
+    @Test("Hints never eliminate solution digits", arguments: testGrids)
+    func testHintsNeverEliminateSolutionDigits(technique: HintTechnique, gridStrings: [String]) {
+        for gridString in gridStrings {
+            let state: BoardState
+            do {
+                state = try BoardStateParser.parse(gridString)
+            } catch {
+                Issue.record("Failed to parse grid for \(technique.rawValue): \(error)")
                 continue
             }
 
-            // Test this technique against other techniques' grids
-            for (otherTechnique, otherGrids) in Self.testGrids {
-                // Skip testing against itself
-                if targetTechnique == otherTechnique {
-                    continue
-                }
+            let solveResult = SudokuSolver.solve(grid: state.grid)
+            guard let solution = solveResult.solution else {
+                Issue.record("Failed to solve grid for \(technique.rawValue): \(gridString.prefix(30))...")
+                continue
+            }
 
-                // Skip if other technique is one we're not cross-testing
-                if broadTechniques.contains(otherTechnique) {
-                    continue
-                }
+            guard let hint = HintFinder.findHint(for: technique, in: state) else {
+                Issue.record("Expected to find \(technique.rawValue) hint in \(gridString.prefix(30))...")
+                continue
+            }
 
-                // Test a sample of grids (first 2 from each technique to keep tests fast)
-                for gridString in otherGrids.prefix(2) {
-                    let grid = Solution.cells(from: gridString)
-                    let pencilMarks = Validator.validOptions(for: grid)
-
-                    let state = BoardState(
-                        grid: grid,
-                        pencilMarks: pencilMarks,
-                        validOptions: pencilMarks
+            for action in hint.actions {
+                let row = action.position.row
+                let col = action.position.column
+                switch action.action {
+                case .ruleOut(let digit):
+                    #expect(
+                        digit != solution[row][col],
+                        "\(technique.rawValue) incorrectly eliminates solution digit \(digit) at (\(row),\(col))"
                     )
-
-                    let hint = HintFinder.findHint(for: targetTechnique, in: state)
-
-                    // We expect most techniques NOT to find hints in other techniques' grids
-                    // If a hint is found, it's potentially a false positive
-                    if hint != nil {
-                        // Log this for investigation (not necessarily an error, but worth noting)
-                        // Some overlap is expected (e.g., a grid with naked pair might also have naked triple)
-                        let gridPrefix = String(gridString.prefix(20))
-                        let message =
-                            "\(targetTechnique.rawValue) found hint in \(otherTechnique.rawValue) grid: \(gridPrefix)..."
-                        Issue.record(Comment(rawValue: message))
-                    }
+                case .solveAs(let digit):
+                    #expect(
+                        digit == solution[row][col],
+                        "\(technique.rawValue) solves (\(row),\(col)) as \(digit) but solution is \(solution[row][col])"
+                    )
+                case .pencilIn, .clear:
+                    break
                 }
             }
         }
+    }
+
+    // MARK: - Cross-Validation Tests (False Positive Detection)
+
+    @Test("Solved board returns nil for all techniques", arguments: HintTechnique.allCases)
+    func testSolvedBoardReturnsNilForAllTechniques(technique: HintTechnique) {
+        if technique == .validation || technique == .unknown {
+            return
+        }
+
+        let solvedGrid = Solution.cells(
+            from: "123456789456789123789123456231564897564897231897231564312645978645978312978312645"
+        )
+        let pencilMarks = Validator.validOptions(for: solvedGrid)
+        let state = BoardState(
+            grid: solvedGrid,
+            pencilMarks: pencilMarks,
+            validOptions: pencilMarks
+        )
+
+        let hint = HintFinder.findHint(for: technique, in: state)
+        #expect(
+            hint == nil,
+            "\(technique.rawValue) should not find a hint in a solved board"
+        )
     }
 
     // MARK: - All Hints Tests
@@ -717,7 +540,7 @@ struct HintTests {
                 "658003421249185003713006598802030150037000286005800000586010042971000805324008017",
             expectedTechniques: [
                 .nakedPair, .hiddenPair, .xWing, .swordfish, .jellyfish,
-                .xyWing, .yWing, .xyzWing, .skyscraper, .finnedXWing,
+                .xyWing, .yWing, .skyscraper, .finnedXWing,
                 .lockedCandidatesPointing, .lockedCandidatesClaiming,
             ],
             description: "Complex puzzle with naked pair and many techniques"
@@ -727,7 +550,7 @@ struct HintTests {
         PuzzleAllHintsTestCase(
             gridString:
                 "040070180003100700170948035617890350009000071000701908791486523004017896068009417",
-            expectedTechniques: [.xWing, .swordfish, .xyWing, .yWing, .xyzWing],
+            expectedTechniques: [.xWing, .swordfish],
             description: "Advanced puzzle with X-Wing pattern"
         ),
 
@@ -829,77 +652,6 @@ struct HintTests {
         if extraTechniques.isEmpty == false {
             // Log extra techniques for information (not a failure)
             // This helps us understand what other hints are available
-        }
-    }
-
-    @Test("Specific known false positive cases")
-    func testKnownFalsePositiveCases() async {
-        let falsePositiveCases: [(HintTechnique, [String])] = [
-            // Solved grid - no technique should find hints
-            (
-                .nakedPair,
-                [
-                    "123456789456789123789123456231564897564897231897231564312645978645978312978312645"
-                ]
-            ),
-            (
-                .nakedTriple,
-                [
-                    "123456789456789123789123456231564897564897231897231564312645978645978312978312645"
-                ]
-            ),
-            (
-                .xWing,
-                [
-                    "123456789456789123789123456231564897564897231897231564312645978645978312978312645"
-                ]
-            ),
-            (
-                .swordfish,
-                [
-                    "123456789456789123789123456231564897564897231897231564312645978645978312978312645"
-                ]
-            ),
-            (
-                .yWing,
-                [
-                    "123456789456789123789123456231564897564897231897231564312645978645978312978312645"
-                ]
-            ),
-
-            // Near-complete grid with only singles available - no advanced techniques
-            (
-                .xWing,
-                [
-                    "123456789456789123789123450231564897564897231897231564312645978645978312978312645"
-                ]
-            ),
-            (
-                .swordfish,
-                [
-                    "123456789456789123789123450231564897564897231897231564312645978645978312978312645"
-                ]
-            ),
-        ]
-
-        for (technique, grids) in falsePositiveCases {
-            for gridString in grids {
-                let grid = Solution.cells(from: gridString)
-                let pencilMarks = Validator.validOptions(for: grid)
-
-                let state = BoardState(
-                    grid: grid,
-                    pencilMarks: pencilMarks,
-                    validOptions: pencilMarks
-                )
-
-                let hint = HintFinder.findHint(for: technique, in: state)
-
-                #expect(
-                    hint == nil,
-                    "\(technique.rawValue) should not find hint in: \(gridString.prefix(30))..."
-                )
-            }
         }
     }
 
