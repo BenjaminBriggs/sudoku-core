@@ -51,4 +51,37 @@ struct KillerTechniqueTests {
         let state = BoardState.fromGrid(grid([]))
         #expect(CageLastCell().findHint(in: state) == nil)
     }
+
+    @Test("CageCombinations eliminates non-combination candidates")
+    func combinations() throws {
+        // 2-cell cage, sum 4 => only {1,3}: eliminate 2 and 4-9 from both cells.
+        let cage = KillerCage(
+            cells: [.init(row: 0, column: 0), .init(row: 0, column: 1)],
+            sum: 4
+        )
+        // Build state WITHOUT cage pruning so eliminations exist to find:
+        var state = BoardState.fromGrid(grid([]))
+        state.constraints = [AnyConstraint(cage)]
+
+        let hint = try #require(CageCombinations().findHint(in: state))
+        #expect(hint.technique.id == TechniqueID(rawValue: "killer.cageCombinations"))
+        let eliminated = hint.actions.compactMap { action -> Int? in
+            guard case .ruleOut(let digit) = action.action else { return nil }
+            return digit
+        }
+        #expect(eliminated.isEmpty == false)
+        #expect(Set(eliminated).isDisjoint(with: [1, 3]))
+        #expect(hint.reasoning.eliminations.count == hint.actions.count)
+    }
+
+    @Test("CageCombinations returns nil when pencil marks already match")
+    func combinationsNil() {
+        let cage = KillerCage(
+            cells: [.init(row: 0, column: 0), .init(row: 0, column: 1)],
+            sum: 4
+        )
+        // fromGrid applies cage pruning, so there is nothing left to eliminate.
+        let state = BoardState.fromGrid(grid([]), constraints: [AnyConstraint(cage)])
+        #expect(CageCombinations().findHint(in: state) == nil)
+    }
 }

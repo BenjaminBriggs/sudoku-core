@@ -72,3 +72,66 @@ public struct CageLastCell: HintTechnique {
         return nil
     }
 }
+
+/// Eliminates pencil-mark candidates that appear in no valid cage combination.
+public struct CageCombinations: HintTechnique {
+    public let info: TechniqueInfo = .killerCageCombinations
+    public init() {}
+
+    public func findHint(in state: BoardState) -> HintStep? {
+        for cage in state.killerCages {
+            var placedDigits: Set<Int> = []
+            var placedSum = 0
+            var emptyCells: [Puzzle.Index] = []
+            for cell in cage.cells {
+                let value = state.grid[cell.row][cell.column]
+                if value == 0 {
+                    emptyCells.append(cell)
+                } else {
+                    placedDigits.insert(value)
+                    placedSum += value
+                }
+            }
+            guard emptyCells.isEmpty == false else { continue }
+
+            let combos = KillerCage.combinations(
+                size: emptyCells.count,
+                sum: cage.sum - placedSum,
+                excluding: placedDigits
+            )
+            let allowed = combos.reduce(into: Set<Int>()) { $0.formUnion($1) }
+
+            var actions: [HintAction] = []
+            var eliminations: [CandidateRef] = []
+            var eliminatedFacts: [CellFact] = []
+            for cell in emptyCells {
+                let marks = state.pencilMarks[cell.row][cell.column]
+                let toRemove = marks.subtracting(allowed)
+                guard toRemove.isEmpty == false else { continue }
+                eliminatedFacts.append(CellFact(position: cell, candidates: toRemove))
+                for digit in toRemove.sorted() {
+                    actions.append(HintAction(position: cell, ruleOut: digit))
+                    eliminations.append(CandidateRef(position: cell, digit: digit))
+                }
+            }
+            guard actions.isEmpty == false else { continue }
+
+            return HintStep(
+                actions: actions,
+                technique: info,
+                reasoning: HintReasoning(
+                    focusDigits: Array(allowed).sorted(),
+                    components: [
+                        HintComponent(
+                            role: .constraint,
+                            cells: cage.cells.map { CellFact($0, in: state) }
+                        ),
+                        HintComponent(role: .eliminated, cells: eliminatedFacts),
+                    ],
+                    eliminations: eliminations
+                )
+            )
+        }
+        return nil
+    }
+}
