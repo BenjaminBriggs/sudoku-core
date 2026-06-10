@@ -12,7 +12,20 @@ extension Board {
     }
 
     internal func updateCellValidation(grid: [[Int]]) {
-        let validOptions = Validator.validOptions(for: grid)
+        var validOptions = Validator.validOptions(for: grid)
+        if constraints.isEmpty == false {
+            let snapshot = BoardState(
+                grid: grid,
+                pencilMarks: validOptions,
+                validOptions: validOptions,
+                solution: solution,
+                constraints: constraints
+            )
+            for constraint in constraints {
+                constraint.base.prune(candidates: &validOptions, in: snapshot)
+            }
+            constraintViolations = constraints.flatMap { $0.base.violations(in: snapshot) }
+        }
         for (index, cell) in self.cells.enumerated() {
             self.cells[index].validOptions = validOptions[cell.position.row][cell.position.column]
         }

@@ -8,14 +8,26 @@
 import Foundation
 
 extension BoardState {
-    /// Build a BoardState from a 9x9 grid, initializing candidates via Validator.
-    public static func fromGrid(_ grid: [[Int]]) -> BoardState {
-        let pencilMarks = Validator.validOptions(for: grid)
-        return BoardState(
+    /// Build a BoardState from a 9x9 grid, initializing candidates via Validator
+    /// and applying any constraint pruning.
+    public static func fromGrid(
+        _ grid: [[Int]], constraints: [AnyConstraint] = []
+    ) -> BoardState {
+        var options = Validator.validOptions(for: grid)
+        var state = BoardState(
             grid: grid,
-            pencilMarks: pencilMarks,
-            validOptions: pencilMarks
+            pencilMarks: options,
+            validOptions: options,
+            constraints: constraints
         )
+        if constraints.isEmpty == false {
+            for constraint in constraints {
+                constraint.base.prune(candidates: &options, in: state)
+            }
+            state.pencilMarks = options
+            state.validOptions = options
+        }
+        return state
     }
 
     /// True when every cell is non-zero and there are no conflicts.
@@ -52,7 +64,19 @@ extension BoardState {
 
         // Elimination-only hints leave the grid untouched, so the valid options
         // derived from it are unchanged — skip the full recompute.
-        let validOptions = gridChanged ? Validator.validOptions(for: newGrid) : self.validOptions
+        var validOptions = gridChanged ? Validator.validOptions(for: newGrid) : self.validOptions
+        if gridChanged && self.constraints.isEmpty == false {
+            let snapshot = BoardState(
+                grid: newGrid,
+                pencilMarks: validOptions,
+                validOptions: validOptions,
+                solution: self.solution,
+                constraints: self.constraints
+            )
+            for constraint in self.constraints {
+                constraint.base.prune(candidates: &validOptions, in: snapshot)
+            }
+        }
         var merged = newPencilMarks
         for row in 0..<9 {
             for col in 0..<9 {
@@ -63,7 +87,9 @@ extension BoardState {
         return BoardState(
             grid: newGrid,
             pencilMarks: merged,
-            validOptions: validOptions
+            validOptions: validOptions,
+            solution: self.solution,
+            constraints: self.constraints
         )
     }
 }

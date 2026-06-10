@@ -30,7 +30,8 @@ extension Board {
             grid: self.currentGrid,
             pencilMarks: pencilMarks,
             validOptions: validOptions,
-            solution: self.solution
+            solution: self.solution,
+            constraints: self.constraints
         )
     }
 }
