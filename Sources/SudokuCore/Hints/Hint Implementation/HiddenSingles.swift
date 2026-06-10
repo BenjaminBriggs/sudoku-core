@@ -59,14 +59,23 @@ extension HintFinder {
                 guard pencilMarks[position.row][position.column].count > 1
                 else { continue }
 
+                let actions = [HintAction(position: position, solveAs: digit)]
                 return HintStep(
-                    actions: [HintAction(position: position, solveAs: digit)],
+                    actions: actions,
                     technique: .hiddenSingle,
                     explanation: hiddenSingleExplanation(
                         orientation: unit.orientation,
                         digit: digit,
                         cellWithDigit: position,
                         state: state
+                    ),
+                    reasoning: .make(
+                        actions: actions,
+                        focusDigits: [digit],
+                        units: [unit],
+                        components: [
+                            .make(.subject, [position], candidates: [digit], unit: unit)
+                        ]
                     )
                 )
             }

@@ -410,6 +410,9 @@ extension HintFinder {
                         for: n,
                         includesFin: includesFin
                     )
+                    let crossOrientation: Puzzle.Index.Orientation = baseOrientation == .row ? .column : .row
+                    let fishUnits = fishBaseLines.map { SudokuUnit(orientation: baseOrientation, index: $0) }
+                        + coreCrossLines.map { SudokuUnit(orientation: crossOrientation, index: $0) }
                     return HintStep(
                         actions: removals,
                         technique: technique,
@@ -423,6 +426,16 @@ extension HintFinder {
                             n: n,
                             fins: fins,
                             state: state
+                        ),
+                        reasoning: .make(
+                            actions: removals,
+                            focusDigits: [digit],
+                            units: fishUnits,
+                            components: [
+                                .make(.base, fishPositions.subtracting(fins), candidates: [digit]),
+                                .make(.fin, fins, candidates: [digit]),
+                                .make(.eliminated, eliminationCells, candidates: [digit])
+                            ]
                         )
                     )
                 }

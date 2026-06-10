@@ -35,14 +35,24 @@ extension HintFinder {
                 // Use pre-computed neighbours
                 let influence = LookupTables.cellNeighbours[row][col]
 
+                let actions = [HintAction(position: position, solveAs: digit)]
                 return HintStep(
-                    actions: [HintAction(position: position, solveAs: digit)],
+                    actions: actions,
                     technique: .nakedSingle,
                     explanation: nakedSingleExplanation(
                         index: position,
                         digit: digit,
                         influence: influence,
                         state: state
+                    ),
+                    reasoning: .make(
+                        actions: actions,
+                        focusDigits: [digit],
+                        units: [.row(row), .column(col), .house(position.houseNumber)],
+                        components: [
+                            .make(.subject, [position], candidates: [digit]),
+                            .make(.constraint, influence.filter { state.grid[$0.row][$0.column] != 0 }, in: state)
+                        ]
                     )
                 )
             }

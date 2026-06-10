@@ -141,6 +141,7 @@ extension HintFinder {
                             }
 
                             if removals.isEmpty == false {
+                                let roof = Set([end1Pos, end2Pos])
                                 return HintStep(
                                     actions: removals,
                                     technique: .skyscraper,
@@ -151,6 +152,19 @@ extension HintFinder {
                                         orientation: baseOrientation,
                                         eliminationCells: eliminationCells,
                                         state: state
+                                    ),
+                                    reasoning: .make(
+                                        actions: removals,
+                                        focusDigits: [digit],
+                                        units: [
+                                            SudokuUnit(orientation: baseOrientation, index: baseLine1),
+                                            SudokuUnit(orientation: baseOrientation, index: baseLine2)
+                                        ],
+                                        components: [
+                                            .make(.base, skyscraperPositions.subtracting(roof), candidates: [digit]),
+                                            .make(.wing, roof, candidates: [digit]),
+                                            .make(.eliminated, eliminationCells, candidates: [digit])
+                                        ]
                                     )
                                 )
                             }

@@ -83,6 +83,15 @@ extension HintFinder {
                                 orientation: .row,
                                 cellsOutsideBoxToRemoveDigit: cellsToRemoveFrom,
                                 state: state
+                            ),
+                            reasoning: .make(
+                                actions: removals,
+                                focusDigits: [digit],
+                                units: [.house(boxIndex), .row(lockedRow)],
+                                components: [
+                                    .make(.base, cellsInHouse, candidates: [digit], unit: .house(boxIndex)),
+                                    .make(.eliminated, cellsToRemoveFrom, candidates: [digit], unit: .row(lockedRow))
+                                ]
                             )
                         )
                     }
@@ -123,6 +132,15 @@ extension HintFinder {
                                 orientation: .column,
                                 cellsOutsideBoxToRemoveDigit: cellsToRemoveFrom,
                                 state: state
+                            ),
+                            reasoning: .make(
+                                actions: removals,
+                                focusDigits: [digit],
+                                units: [.house(boxIndex), .column(lockedCol)],
+                                components: [
+                                    .make(.base, cellsInHouse, candidates: [digit], unit: .house(boxIndex)),
+                                    .make(.eliminated, cellsToRemoveFrom, candidates: [digit], unit: .column(lockedCol))
+                                ]
                             )
                         )
                     }

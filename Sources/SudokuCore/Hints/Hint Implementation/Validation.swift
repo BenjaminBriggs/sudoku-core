@@ -203,6 +203,13 @@ extension HintFinder {
                 conflictCells: conflictCells,
                 solution: solution,
                 state: state
+            ),
+            reasoning: .make(
+                actions: uniqueActions,
+                focusDigits: [digit],
+                components: [
+                    .make(.constraint, conflictCells, in: state)
+                ]
             )
         )
     }

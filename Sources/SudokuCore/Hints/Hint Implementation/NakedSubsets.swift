@@ -131,6 +131,15 @@ extension HintFinder {
                             excludeIndices: excludeIndices,
                             n: n,
                             state: state
+                        ),
+                        reasoning: .make(
+                            actions: removals,
+                            focusDigits: Array(allCandidates).sorted(),
+                            units: [unit],
+                            components: [
+                                .make(.subset, subsetPositions, in: state, unit: unit),
+                                .make(.eliminated, excludeIndices, in: state, unit: unit)
+                            ]
                         )
                     )
                 }

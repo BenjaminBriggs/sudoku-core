@@ -246,6 +246,13 @@ public struct HintStep: CustomDebugStringConvertible, Sendable {
     /// A human-readable explanation of why this deduction is valid.
     public let explanation: [HintExplanationStep]
 
+    /// Structured, machine-readable record of how this hint was determined.
+    ///
+    /// Unlike `explanation` (pre-rendered prose), this captures the logical premises of the
+    /// deduction so the app can validate, re-present, or generatively explain the hint.
+    /// Defaults to an empty value so existing call sites remain valid.
+    public let reasoning: HintReasoning
+
     public var debugDescription: String {
         "Hint(\(technique.rawValue), \(actions))"
     }
@@ -253,11 +260,13 @@ public struct HintStep: CustomDebugStringConvertible, Sendable {
     public init(
         actions: [HintAction],
         technique: HintTechnique,
-        explanation: [HintExplanationStep]
+        explanation: [HintExplanationStep],
+        reasoning: HintReasoning = HintReasoning()
     ) {
         self.actions = actions
         self.technique = technique
         self.explanation = explanation
+        self.reasoning = reasoning
     }
 }
 

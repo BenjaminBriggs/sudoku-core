@@ -85,6 +85,15 @@ extension HintFinder {
                                 cellsInRowOrColumn: Set(candidates),
                                 boxCellsToRemoveDigit: cellsToRemoveFrom,
                                 state: state
+                            ),
+                            reasoning: .make(
+                                actions: removals,
+                                focusDigits: [digit],
+                                units: [unit, .house(boxIndex)],
+                                components: [
+                                    .make(.base, Set(candidates), candidates: [digit], unit: unit),
+                                    .make(.eliminated, cellsToRemoveFrom, candidates: [digit], unit: .house(boxIndex))
+                                ]
                             )
                         )
                     }

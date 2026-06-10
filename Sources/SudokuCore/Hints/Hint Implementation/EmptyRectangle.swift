@@ -134,10 +134,18 @@ extension HintFinder {
                         let connectingCell = Puzzle.Index(row: linkRow, column: erCol)
                         let otherLinkCell = Puzzle.Index(row: linkRow, column: otherCol)
 
+                        let actions = [HintAction(position: target, ruleOut: digit)]
                         return HintStep(
-                            actions: [HintAction(position: target, ruleOut: digit)],
+                            actions: actions,
                             technique: .emptyRectangle,
                             explanation: emptyRectangleExplanation(
+                                digit: digit,
+                                boxCandidates: candidatePositions,
+                                strongLink: [connectingCell, otherLinkCell],
+                                eliminationCell: target
+                            ),
+                            reasoning: emptyRectangleReasoning(
+                                actions: actions,
                                 digit: digit,
                                 boxCandidates: candidatePositions,
                                 strongLink: [connectingCell, otherLinkCell],
@@ -197,10 +205,18 @@ extension HintFinder {
                         let connectingCell = Puzzle.Index(row: erRow, column: linkCol)
                         let otherLinkCell = Puzzle.Index(row: otherRow, column: linkCol)
 
+                        let actions = [HintAction(position: target, ruleOut: digit)]
                         return HintStep(
-                            actions: [HintAction(position: target, ruleOut: digit)],
+                            actions: actions,
                             technique: .emptyRectangle,
                             explanation: emptyRectangleExplanation(
+                                digit: digit,
+                                boxCandidates: candidatePositions,
+                                strongLink: [connectingCell, otherLinkCell],
+                                eliminationCell: target
+                            ),
+                            reasoning: emptyRectangleReasoning(
+                                actions: actions,
                                 digit: digit,
                                 boxCandidates: candidatePositions,
                                 strongLink: [connectingCell, otherLinkCell],
@@ -212,6 +228,30 @@ extension HintFinder {
             }
         }
         return nil
+    }
+
+    /// Builds the structured reasoning for an Empty Rectangle elimination.
+    private static func emptyRectangleReasoning(
+        actions: [HintAction],
+        digit: Int,
+        boxCandidates: [Puzzle.Index],
+        strongLink: [Puzzle.Index],
+        eliminationCell: Puzzle.Index
+    ) -> HintReasoning {
+        var units: [SudokuUnit] = []
+        if let boxCell = boxCandidates.first {
+            units.append(.house(boxCell.houseNumber))
+        }
+        return .make(
+            actions: actions,
+            focusDigits: [digit],
+            units: units,
+            components: [
+                .make(.base, boxCandidates, candidates: [digit]),
+                .make(.constraint, strongLink, candidates: [digit]),
+                .make(.eliminated, [eliminationCell], candidates: [digit])
+            ]
+        )
     }
 
     /// Generates a multi-step explanation for an Empty Rectangle elimination.

@@ -185,6 +185,18 @@ extension HintFinder {
                             eliminationDigit: eliminationDigit,
                             eliminationCells: eliminationCells,
                             state: state
+                        ),
+                        reasoning: .make(
+                            actions: removals,
+                            focusDigits: [eliminationDigit],
+                            components: [
+                                HintComponent(role: .pivot, cells: [CellFact(position: pivotPos, candidates: pivotCandidates)]),
+                                HintComponent(role: .wing, cells: [
+                                    CellFact(position: wingAPos, candidates: wingACandidates),
+                                    CellFact(position: wingBPos, candidates: wingBCandidates)
+                                ]),
+                                .make(.eliminated, eliminationCells, candidates: [eliminationDigit])
+                            ]
                         )
                     )
                 }

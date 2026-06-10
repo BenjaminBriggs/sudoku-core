@@ -109,6 +109,16 @@ extension HintFinder {
                                             tipPositions: [rowTip, colTip],
                                             boxPositions: [rowEndpoint, colEndpoint],
                                             eliminationCells: eliminationCells
+                                        ),
+                                        reasoning: .make(
+                                            actions: removals,
+                                            focusDigits: [digit],
+                                            units: [.row(rowLink.row), .column(colLink.col), .house(rowEndpoint.houseNumber)],
+                                            components: [
+                                                .make(.base, [rowEndpoint, colEndpoint], candidates: [digit]),
+                                                .make(.wing, [rowTip, colTip], candidates: [digit]),
+                                                .make(.eliminated, eliminationCells, candidates: [digit])
+                                            ]
                                         )
                                     )
                                 }

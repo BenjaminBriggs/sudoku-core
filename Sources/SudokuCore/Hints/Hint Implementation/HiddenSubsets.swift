@@ -129,6 +129,17 @@ extension HintFinder {
                             unitCells: unitCells,
                             n: n,
                             state: state
+                        ),
+                        reasoning: .make(
+                            actions: removals,
+                            focusDigits: digitCombo.sorted(),
+                            units: [unit],
+                            // The subset cells are also the cells that lose candidates, so a single
+                            // `.subset` component (carrying each cell's real pencil marks) captures
+                            // the pattern; the eliminations themselves are in `reasoning.eliminations`.
+                            components: [
+                                .make(.subset, unionCells, in: state, unit: unit)
+                            ]
                         )
                     )
                 }

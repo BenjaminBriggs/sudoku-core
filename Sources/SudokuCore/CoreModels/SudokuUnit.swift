@@ -6,8 +6,19 @@
 //
 
 
-public enum SudokuUnit: Hashable, Sendable {
+public enum SudokuUnit: Hashable, Sendable, Codable {
     case row(Int), column(Int), house(Int)
+}
+
+extension SudokuUnit {
+    /// Creates a unit from an orientation and line index (house index for `.house`).
+    public init(orientation: Puzzle.Index.Orientation, index: Int) {
+        switch orientation {
+        case .row:    self = .row(index)
+        case .column: self = .column(index)
+        case .house:  self = .house(index)
+        }
+    }
 }
 
 extension SudokuUnit {

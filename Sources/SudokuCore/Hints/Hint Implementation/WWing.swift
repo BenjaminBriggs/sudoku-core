@@ -191,6 +191,18 @@ extension HintFinder {
                         eliminationDigit: eliminationDigit,
                         eliminationCells: eliminationCells,
                         pencilMarks: pencilMarks
+                    ),
+                    reasoning: .make(
+                        actions: removals,
+                        focusDigits: [linkDigit, eliminationDigit],
+                        components: [
+                            HintComponent(role: .wing, cells: [
+                                CellFact(position: cellA, candidates: pencilMarks[cellA.row][cellA.column]),
+                                CellFact(position: cellB, candidates: pencilMarks[cellB.row][cellB.column])
+                            ]),
+                            .make(.constraint, [link.cellA, link.cellB], candidates: [linkDigit]),
+                            .make(.eliminated, eliminationCells, candidates: [eliminationDigit])
+                        ]
                     )
                 )
             }
