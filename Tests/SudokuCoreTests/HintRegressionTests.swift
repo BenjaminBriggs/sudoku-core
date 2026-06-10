@@ -9,7 +9,7 @@ struct HintRegressionTests {
         let puzzle = "020005060890007003003000000300020006000000010407001005000104950000090000060000030"
         var state = try makeInitialState(from: puzzle)
 
-        var lastHint: HintTechnique? = nil
+        var lastHint: TechniqueInfo? = nil
         for iteration in 0..<300 {
             assertNoEmptyCandidates(in: state, iteration: iteration, previousHint: lastHint)
 
@@ -69,7 +69,7 @@ private func applyHint(_ hint: HintStep, to state: BoardState) -> BoardState {
     state.applying(hint)
 }
 
-private func assertNoEmptyCandidates(in state: BoardState, iteration: Int, previousHint: HintTechnique?) {
+private func assertNoEmptyCandidates(in state: BoardState, iteration: Int, previousHint: TechniqueInfo?) {
     for row in 0..<9 {
         for col in 0..<9 where state.grid[row][col] == 0 {
             let candidates = state.pencilMarks[row][col]

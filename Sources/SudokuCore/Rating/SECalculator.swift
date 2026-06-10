@@ -31,7 +31,7 @@ public enum SECalculator {
         for (idx, step) in path.steps.enumerated() {
             let key = TechniqueMapping.seId(for: step.technique)
             summary[key, default: 0] += 1
-            let value: Double = step.technique.seStepValue
+            let value: Double = step.technique.seStepValue ?? 0
             if value > maxValue {
                 maxValue = value
                 maxIndex = idx

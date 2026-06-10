@@ -15,7 +15,7 @@ struct HintReasoningTests {
 
     /// Resolves a board state and hint for a grid string, recording an issue if either fails.
     private func hint(
-        for technique: HintTechnique,
+        for technique: TechniqueInfo,
         gridString: String
     ) -> (state: BoardState, hint: HintStep)? {
         let state: BoardState
@@ -35,7 +35,7 @@ struct HintReasoningTests {
     // MARK: - Reasoning mirrors the hint's actions
 
     @Test("Reasoning placements and eliminations mirror the hint actions", arguments: HintTests.testGrids)
-    func reasoningMirrorsActions(technique: HintTechnique, gridStrings: [String]) async {
+    func reasoningMirrorsActions(technique: TechniqueInfo, gridStrings: [String]) async {
         for gridString in gridStrings {
             guard let (_, hint) = hint(for: technique, gridString: gridString) else { continue }
 
@@ -74,7 +74,7 @@ struct HintReasoningTests {
     // MARK: - Reasoning is consistent with the board it was generated from
 
     @Test("Reasoning is consistent with its source board", arguments: HintTests.testGrids)
-    func reasoningIsConsistentWithSourceBoard(technique: HintTechnique, gridStrings: [String]) async {
+    func reasoningIsConsistentWithSourceBoard(technique: TechniqueInfo, gridStrings: [String]) async {
         for gridString in gridStrings {
             guard let (state, hint) = hint(for: technique, gridString: gridString) else { continue }
 
@@ -89,7 +89,7 @@ struct HintReasoningTests {
     // MARK: - Reasoning carries structural premises
 
     @Test("Reasoning records focus digits and components", arguments: HintTests.testGrids)
-    func reasoningHasStructure(technique: HintTechnique, gridStrings: [String]) async {
+    func reasoningHasStructure(technique: TechniqueInfo, gridStrings: [String]) async {
         for gridString in gridStrings {
             guard let (_, hint) = hint(for: technique, gridString: gridString) else { continue }
 

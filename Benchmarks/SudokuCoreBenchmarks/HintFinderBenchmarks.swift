@@ -37,7 +37,7 @@ let hintFinderBenchmarks: @Sendable () -> Void = {
         let grid = parseGrid("000000000000000000000000000000000000000000283000000154000000000000000070000000090")
         let state = createBoardState(from: grid)
         for _ in benchmark.scaledIterations {
-            let hint = HintFinder.findHint(for:.nakedSingle, in: state)  // 'await' makes closure async
+            let hint = ClassicTechniques.technique(for: TechniqueInfo.nakedSingle.id)?.findHint(in: state)  // 'await' makes closure async
             blackHole(hint)
         }
     }
@@ -47,7 +47,7 @@ let hintFinderBenchmarks: @Sendable () -> Void = {
         let grid = parseGrid("000093000000005000000064000000000000000000000000000000000000000000700000000000000")
         let state = createBoardState(from: grid)
         for _ in benchmark.scaledIterations {
-            let hint = HintFinder.findHint(for:.hiddenSingle, in: state)
+            let hint = ClassicTechniques.technique(for: TechniqueInfo.hiddenSingle.id)?.findHint(in: state)
             blackHole(hint)
         }
     }
@@ -57,7 +57,7 @@ let hintFinderBenchmarks: @Sendable () -> Void = {
         let grid = parseGrid("658003421249185003713006598802030150037000286005800000586010042971000805324008017")
         let state = createBoardState(from: grid)
         for _ in benchmark.scaledIterations {
-            let hint = HintFinder.findHint(for:.nakedPair, in: state)
+            let hint = ClassicTechniques.technique(for: TechniqueInfo.nakedPair.id)?.findHint(in: state)
             blackHole(hint)
         }
     }
@@ -67,7 +67,7 @@ let hintFinderBenchmarks: @Sendable () -> Void = {
         let grid = parseGrid("631480000000130806008960134006079000800256000570041600060518749985724361147693582")
         let state = createBoardState(from: grid)
         for _ in benchmark.scaledIterations {
-            let hint = HintFinder.findHint(for:.nakedTriple, in: state)
+            let hint = ClassicTechniques.technique(for: TechniqueInfo.nakedTriple.id)?.findHint(in: state)
             blackHole(hint)
         }
     }
@@ -77,7 +77,7 @@ let hintFinderBenchmarks: @Sendable () -> Void = {
         let grid = parseGrid("040070180003100700170948035617890350009000071000701908791486523004017896068009417")
         let state = createBoardState(from: grid)
         for _ in benchmark.scaledIterations {
-            let hint = HintFinder.findHint(for:.xWing, in: state)
+            let hint = ClassicTechniques.technique(for: TechniqueInfo.xWing.id)?.findHint(in: state)
             blackHole(hint)
         }
     }
@@ -87,7 +87,7 @@ let hintFinderBenchmarks: @Sendable () -> Void = {
         let grid = parseGrid("638005219149628000752193800820951030573860901000030508300509602265380190007216000")
         let state = createBoardState(from: grid)
         for _ in benchmark.scaledIterations {
-            let hint = HintFinder.findHint(for:.swordfish, in: state)
+            let hint = ClassicTechniques.technique(for: TechniqueInfo.swordfish.id)?.findHint(in: state)
             blackHole(hint)
         }
     }
@@ -97,7 +97,7 @@ let hintFinderBenchmarks: @Sendable () -> Void = {
         let grid = parseGrid("387956412600024083420800096743519628162487935958002147200098354500240800804005200")
         let state = createBoardState(from: grid)
         for _ in benchmark.scaledIterations {
-            let hint = HintFinder.findHint(for:.yWing, in: state)
+            let hint = ClassicTechniques.technique(for: TechniqueInfo.yWing.id)?.findHint(in: state)
             blackHole(hint)
         }
     }
@@ -109,8 +109,8 @@ let hintFinderBenchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             var foundHint: HintStep? = nil
-            for technique in HintTechnique.orderedCases {
-                if let hint = HintFinder.findHint(for: technique, in: state) {
+            for technique in ClassicTechniques.all {
+                if let hint = technique.findHint(in: state) {
                     foundHint = hint
                     break
                 }
@@ -126,8 +126,8 @@ let hintFinderBenchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             var foundHint: HintStep? = nil
-            for technique in HintTechnique.orderedCases {
-                if let hint = HintFinder.findHint(for: technique, in: state) {
+            for technique in ClassicTechniques.all {
+                if let hint = technique.findHint(in: state) {
                     foundHint = hint
                     break
                 }

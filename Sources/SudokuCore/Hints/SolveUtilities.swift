@@ -70,9 +70,16 @@ extension BoardState {
 
 extension HintFinder {
     /// Return the first available hint scanning techniques from easiest to hardest.
-    public static func firstHint(in state: BoardState) -> HintStep? {
-        for technique in HintTechnique.orderedCases {
-            if let hint = findHint(for: technique, in: state) {
+    ///
+    /// `techniques` defaults to the classic set; variant modules append their own
+    /// (e.g. `ClassicTechniques.all + KillerSudoku.techniques`). The array is
+    /// stable-sorted by difficulty, so callers compose by concatenation.
+    public static func firstHint(
+        in state: BoardState,
+        using techniques: [any HintTechnique] = ClassicTechniques.all
+    ) -> HintStep? {
+        for technique in techniques.sorted(by: { $0.info.difficulty < $1.info.difficulty }) {
+            if let hint = technique.findHint(in: state) {
                 return hint
             }
         }

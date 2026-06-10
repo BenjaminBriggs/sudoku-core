@@ -15,10 +15,10 @@ extension HintFinder {
     /// meaning all other candidates in those cells can be eliminated.
     /// - Parameters:
     ///   - n: The subset size (2 = hidden pair, 3 = hidden triple, 4 = hidden quad).
-    ///   - technique: The `HintTechnique` to label the result with.
+    ///   - technique: The `TechniqueInfo` to label the result with.
     ///   - state: The current immutable board snapshot to analyse.
     /// - Returns: A `HintStep` with candidate removal actions, or `nil` if no hidden subset is found.
-    static func findHiddenSubsets(n: Int, technique: HintTechnique, in state: BoardState) -> HintStep? {
+    static func findHiddenSubsets(n: Int, technique: TechniqueInfo, in state: BoardState) -> HintStep? {
         // Check all units (rows, columns, houses)
         for unit in SudokuUnit.allUnits {
             if let hint = findHiddenSubsetsInUnit(n: n, unit: unit, technique: technique, state: state) {
@@ -36,13 +36,13 @@ extension HintFinder {
     /// - Parameters:
     ///   - n: The subset size (2 = pair, 3 = triple, 4 = quad).
     ///   - unit: The row, column, or box to search.
-    ///   - technique: The `HintTechnique` to label the result with.
+    ///   - technique: The `TechniqueInfo` to label the result with.
     ///   - state: The current board state.
     /// - Returns: A `HintStep` with candidate removal actions, or `nil` if no hidden subset is found.
     private static func findHiddenSubsetsInUnit(
         n: Int,
         unit: SudokuUnit,
-        technique: HintTechnique,
+        technique: TechniqueInfo,
         state: BoardState
     ) -> HintStep? {
         // Use array instead of dictionary for digit->cells mapping (digits 1-9)

@@ -119,7 +119,7 @@ extension TechniqueInfo {
 
 /// A solving technique: identity plus the ability to find a hint in a board state.
 /// Conform to this to add techniques — classic (third-party apps) or variant (e.g. killer).
-public protocol HintTechniqueFinding: Sendable {
+public protocol HintTechnique: Sendable {
     var info: TechniqueInfo { get }
     func findHint(in state: BoardState) -> HintStep?
 }

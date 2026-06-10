@@ -50,7 +50,7 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
     public let level: Level
 
     /// Most advanced technique required to solve the puzzle
-    public let hardestTechnique: HintTechnique
+    public let hardestTechnique: TechniqueID
 
     /// HoDoKu cumulative effort rating
     /// Represents intrinsic puzzle difficulty independent of player performance
@@ -63,7 +63,7 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
 
     public init(
         level: Level,
-        hardestTechnique: HintTechnique,
+        hardestTechnique: TechniqueID,
         score: Int,
         seRating: Double? = nil,
         hodokuRating: Int? = nil,
@@ -118,7 +118,7 @@ extension Puzzle {
             ],
             difficulty: PuzzleDifficulty(
                 level: .easy,
-                hardestTechnique: .hiddenSingle,
+                hardestTechnique: TechniqueInfo.hiddenSingle.id,
                 score: 0
             )
         )

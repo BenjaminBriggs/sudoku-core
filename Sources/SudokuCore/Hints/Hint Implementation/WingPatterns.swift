@@ -52,12 +52,12 @@ extension HintFinder {
     ///
     /// - Parameters:
     ///   - type: The specific wing pattern variant to search for.
-    ///   - technique: The `HintTechnique` to tag the result with.
+    ///   - technique: The `TechniqueInfo` to tag the result with.
     ///   - state: The current board state snapshot.
     /// - Returns: A `HintStep` for the first valid wing pattern found, or `nil`.
     private static func findWingPattern(
         type: WingType,
-        technique: HintTechnique,
+        technique: TechniqueInfo,
         in state: BoardState
     ) -> HintStep? {
         // Pre-compute grid and pencil marks for faster access
@@ -122,14 +122,14 @@ extension HintFinder {
     ///
     /// - Parameters:
     ///   - type: The wing pattern variant.
-    ///   - technique: The `HintTechnique` to tag the result with.
+    ///   - technique: The `TechniqueInfo` to tag the result with.
     ///   - pivot: The pivot cell position and its candidates.
     ///   - biValueCells: All bi-value cells on the board (potential wings).
     ///   - state: The current board state snapshot.
     /// - Returns: A `HintStep` if a valid wing with eliminations is found, or `nil`.
     private static func findWingWithPivot(
         type: WingType,
-        technique: HintTechnique,
+        technique: TechniqueInfo,
         pivot: (pos: Puzzle.Index, candidates: Set<Int>),
         biValueCells: [(Puzzle.Index, Set<Int>)],
         state: BoardState
