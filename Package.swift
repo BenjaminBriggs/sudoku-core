@@ -11,6 +11,9 @@ let package = Package(
         .library(
             name: "SudokuCore",
             targets: ["SudokuCore"]),
+        .library(
+            name: "SudokuKiller",
+            targets: ["SudokuKiller"]),
     ],
     dependencies: [
         .package(url: "https://github.com/ordo-one/package-benchmark", from: "1.29.4"),
@@ -28,6 +31,13 @@ let package = Package(
                 .product(name: "Numerics", package: "swift-numerics"),
                 .product(name: "Algorithms", package: "swift-algorithms")
             ]),
+        .target(
+            name: "SudokuKiller",
+            dependencies: ["SudokuCore"]),
+        .testTarget(
+            name: "SudokuKillerTests",
+            dependencies: ["SudokuKiller"]
+        ),
         .testTarget(
             name: "SudokuCoreTests",
             dependencies: ["SudokuCore"],
