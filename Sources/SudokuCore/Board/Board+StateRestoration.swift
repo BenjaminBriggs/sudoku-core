@@ -116,8 +116,7 @@ extension Board {
                 self.cells[position.linerIndex].background = .init(from: value)
             }
         }
-        updateCellValidation()
-        updateCompletedSets()
+        refreshDerivedState()
     }
 }
 
@@ -139,16 +138,11 @@ extension Board {
 
 extension Board {
     public var currentGrid: [[Int]] {
-        Array(0..<9).map { row in
-            Array(0..<9).map { col in
-                self.cell(
-                    at: Puzzle.Index(
-                        row: row,
-                        column: col
-                    )
-                ).value ?? 0
-            }
+        var grid = Array(repeating: Array(repeating: 0, count: 9), count: 9)
+        for cell in cells {
+            grid[cell.position.row][cell.position.column] = cell.value ?? 0
         }
+        return grid
     }
 
     public var startingGrid: [[Int]] {

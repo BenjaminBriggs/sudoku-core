@@ -23,45 +23,19 @@ extension HintFinder {
         let pencilMarks = state.pencilMarks
 
         for digit in 1...9 {
-            // Collect rows where digit appears as candidate in exactly 2 cells
-            var rowLinks: [(row: Int, cols: (Int, Int))] = []
-            for row in 0..<9 {
-                var cols: [Int] = []
-                for col in 0..<9 {
-                    if grid[row][col] == 0, pencilMarks[row][col].contains(digit) {
-                        cols.append(col)
-                    }
-                }
-                if cols.count == 2 {
-                    rowLinks.append((row: row, cols: (cols[0], cols[1])))
-                }
-            }
-
-            // Collect columns where digit appears as candidate in exactly 2 cells
-            var colLinks: [(col: Int, rows: (Int, Int))] = []
-            for col in 0..<9 {
-                var rows: [Int] = []
-                for row in 0..<9 {
-                    if grid[row][col] == 0, pencilMarks[row][col].contains(digit) {
-                        rows.append(row)
-                    }
-                }
-                if rows.count == 2 {
-                    colLinks.append((col: col, rows: (rows[0], rows[1])))
-                }
-            }
+            // Collect rows/columns where digit appears as candidate in exactly 2 cells
+            let rowLinks = strongLinks(
+                for: digit, grid: grid, pencilMarks: pencilMarks, units: [.row]
+            )
+            let colLinks = strongLinks(
+                for: digit, grid: grid, pencilMarks: pencilMarks, units: [.column]
+            )
 
             // For each (row link, column link) pair, check if any two endpoints share a box
             for rowLink in rowLinks {
                 for colLink in colLinks {
-                    let rowEndpoints = [
-                        Puzzle.Index(row: rowLink.row, column: rowLink.cols.0),
-                        Puzzle.Index(row: rowLink.row, column: rowLink.cols.1)
-                    ]
-                    let colEndpoints = [
-                        Puzzle.Index(row: colLink.rows.0, column: colLink.col),
-                        Puzzle.Index(row: colLink.rows.1, column: colLink.col)
-                    ]
+                    let rowEndpoints = [rowLink.cellA, rowLink.cellB]
+                    let colEndpoints = [colLink.cellA, colLink.cellB]
 
                     // Check all 4 endpoint combinations for shared box
                     for ri in 0..<2 {
@@ -113,7 +87,7 @@ extension HintFinder {
                                         reasoning: .make(
                                             actions: removals,
                                             focusDigits: [digit],
-                                            units: [.row(rowLink.row), .column(colLink.col), .house(rowEndpoint.houseNumber)],
+                                            units: [.row(rowLink.cellA.row), .column(colLink.cellA.column), .house(rowEndpoint.houseNumber)],
                                             components: [
                                                 .make(.base, [rowEndpoint, colEndpoint], candidates: [digit]),
                                                 .make(.wing, [rowTip, colTip], candidates: [digit]),

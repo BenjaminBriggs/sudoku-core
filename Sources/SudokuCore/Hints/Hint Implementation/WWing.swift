@@ -33,59 +33,25 @@ extension HintFinder {
             }
         }
 
-        // Pre-compute strong links for each digit in each unit type
-        // Strong link = digit appears as candidate in exactly 2 cells in a unit
-        var strongLinks: [Int: [(cellA: Puzzle.Index, cellB: Puzzle.Index)]] = [:]
-        for digit in 1...9 {
-            var links: [(Puzzle.Index, Puzzle.Index)] = []
-
-            // Row strong links
-            for row in 0..<9 {
-                var cells: [Puzzle.Index] = []
-                for col in 0..<9 {
-                    if grid[row][col] == 0, pencilMarks[row][col].contains(digit) {
-                        cells.append(Puzzle.Index(row: row, column: col))
-                    }
-                }
-                if cells.count == 2 {
-                    links.append((cells[0], cells[1]))
-                }
-            }
-
-            // Column strong links
-            for col in 0..<9 {
-                var cells: [Puzzle.Index] = []
-                for row in 0..<9 {
-                    if grid[row][col] == 0, pencilMarks[row][col].contains(digit) {
-                        cells.append(Puzzle.Index(row: row, column: col))
-                    }
-                }
-                if cells.count == 2 {
-                    links.append((cells[0], cells[1]))
-                }
-            }
-
-            // Box strong links
-            for boxIndex in 0..<9 {
-                let boxCells = LookupTables.boxCells[boxIndex]
-                var cells: [Puzzle.Index] = []
-                for cell in boxCells {
-                    if grid[cell.row][cell.column] == 0, pencilMarks[cell.row][cell.column].contains(digit) {
-                        cells.append(cell)
-                    }
-                }
-                if cells.count == 2 {
-                    links.append((cells[0], cells[1]))
-                }
-            }
-
-            strongLinks[digit] = links
-        }
-
         // Sort candidate pairs for deterministic iteration order
         let sortedGroups = biValueGroups
             .filter { $0.value.count >= 2 }
             .sorted { $0.key.lexicographicallyPrecedes($1.key) }
+
+        // No pair of matching bi-value cells means no W-Wing can exist.
+        guard sortedGroups.isEmpty == false else { return nil }
+
+        // Compute strong links only for digits that appear in a usable bi-value pair.
+        // Strong link = digit appears as candidate in exactly 2 cells in a unit.
+        var strongLinksByDigit: [Int: [(cellA: Puzzle.Index, cellB: Puzzle.Index)]] = [:]
+        for digit in Set(sortedGroups.flatMap(\.key)) {
+            strongLinksByDigit[digit] = Self.strongLinks(
+                for: digit,
+                grid: grid,
+                pencilMarks: pencilMarks,
+                units: [.row, .column, .box]
+            )
+        }
 
         // For each group of bi-value cells with the same candidates
         for (candidatePair, cells) in sortedGroups {
@@ -103,7 +69,7 @@ extension HintFinder {
                     if let hint = tryWWingConnection(
                         cellA: cellA, cellB: cellB,
                         linkDigit: digitX, eliminationDigit: digitY,
-                        strongLinks: strongLinks[digitX] ?? [],
+                        strongLinks: strongLinksByDigit[digitX] ?? [],
                         grid: grid, pencilMarks: pencilMarks
                     ) {
                         return hint
@@ -113,7 +79,7 @@ extension HintFinder {
                     if let hint = tryWWingConnection(
                         cellA: cellA, cellB: cellB,
                         linkDigit: digitY, eliminationDigit: digitX,
-                        strongLinks: strongLinks[digitY] ?? [],
+                        strongLinks: strongLinksByDigit[digitY] ?? [],
                         grid: grid, pencilMarks: pencilMarks
                     ) {
                         return hint

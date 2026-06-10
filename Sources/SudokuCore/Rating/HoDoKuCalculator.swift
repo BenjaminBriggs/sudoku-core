@@ -27,10 +27,9 @@ public enum HoDoKuCalculator {
 
         for step in path.steps {
             let key = TechniqueMapping.hodokuId(for: step.technique)
-            let base: Double = step.technique.hodokuPoints
-            // Simple modifier example (placeholder): reward eliminations slightly
-            let modifier = 1.0 + 0.05 * Double(step.eliminations)
-            let points = Int((base * modifier).rounded())
+            // Standard HoDoKu scoring: fixed points per technique, regardless of
+            // how many eliminations the step produces.
+            let points = Int(step.technique.hodokuPoints.rounded())
             breakdown[key, default: 0] += points
             total += Double(points)
         }

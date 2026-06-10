@@ -8,10 +8,22 @@ import Foundation
 
 extension Board {
     public func updateCellValidation() {
-        let validOptions = Validator.validOptions(for: currentGrid)
+        updateCellValidation(grid: currentGrid)
+    }
+
+    internal func updateCellValidation(grid: [[Int]]) {
+        let validOptions = Validator.validOptions(for: grid)
         for (index, cell) in self.cells.enumerated() {
             self.cells[index].validOptions = validOptions[cell.position.row][cell.position.column]
         }
+    }
+
+    /// Recomputes cell validation and completed-set tracking sharing a single
+    /// grid snapshot, instead of rebuilding the grid for each step.
+    internal func refreshDerivedState() {
+        let grid = currentGrid
+        updateCellValidation(grid: grid)
+        updateCompletedSets(grid: grid)
     }
 
     public func updatePencilMarks() {
@@ -38,9 +50,12 @@ extension Board {
     }
 
     internal func updateCompletedSets() {
+        updateCompletedSets(grid: currentGrid)
+    }
+
+    internal func updateCompletedSets(grid: [[Int]]) {
 
         // check the current state against the know solution
-        let grid = currentGrid
         if grid == solution {
             isSolved = true
         } else if let solution, solution.count == 9 {
@@ -123,7 +138,7 @@ extension Board {
         self.completedHouses = completedHouses
         self.completedNumbers = completedNumbers
 
-        if (try? Validator.isCompleteAndValidSolution(cells.solution)) == true {
+        if (try? Validator.isCompleteAndValidSolution(grid)) == true {
             self.isSolved = true
         } else {
             self.isSolved = false

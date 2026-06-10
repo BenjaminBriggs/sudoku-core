@@ -22,6 +22,31 @@ struct HintRegressionTests {
             assertNoEmptyCandidates(in: state, iteration: iteration, previousHint: lastHint)
         }
     }
+
+    @Test("applying(_:) matches a full candidate recompute at every solve step")
+    func testApplyingMatchesFullRecompute() throws {
+        let puzzle = "020005060890007003003000000300020006000000010407001005000104950000090000060000030"
+        var state = try makeInitialState(from: puzzle)
+
+        for _ in 0..<300 {
+            guard let hint = nextHint(for: state) else { break }
+            state = state.applying(hint)
+
+            let recomputed = Validator.validOptions(for: state.grid)
+            #expect(
+                state.validOptions == recomputed,
+                "validOptions after applying \(hint.technique.rawValue) should match a full recompute"
+            )
+            for row in 0..<9 {
+                for col in 0..<9 where state.grid[row][col] == 0 {
+                    #expect(
+                        state.pencilMarks[row][col].isSubset(of: recomputed[row][col]),
+                        "pencilMarks must stay within valid options at (\(row),\(col))"
+                    )
+                }
+            }
+        }
+    }
 }
 
 private func makeInitialState(from puzzle: String) throws -> BoardState {

@@ -132,6 +132,10 @@ public final class Board {
     /// Use ``undo()`` or ``undo(to:)`` to restore previous states.
     public internal(set) var undoStack: [UndoStep] = []
 
+    /// Suppresses `saveState()` while a compound mutation (e.g. applying a hint)
+    /// runs, so the whole change is captured as a single undo step.
+    internal var isPerformingAtomicChange = false
+
     // MARK: - Auto-Pencil Mode
 
     /// When enabled, the board automatically maintains valid pencil marks for empty cells.

@@ -32,22 +32,27 @@ extension BoardState {
     public func applying(_ hint: HintStep) -> BoardState {
         var newGrid = self.grid
         var newPencilMarks = self.pencilMarks
+        var gridChanged = false
 
         for action in hint.actions {
             switch action.action {
             case .solveAs(let value):
                 newGrid[action.position.row][action.position.column] = value
                 newPencilMarks[action.position.row][action.position.column] = []
+                gridChanged = true
             case .ruleOut(let value):
                 newPencilMarks[action.position.row][action.position.column].remove(value)
             case .pencilIn(_):
                 break
             case .clear:
                 newGrid[action.position.row][action.position.column] = 0
+                gridChanged = true
             }
         }
 
-        let validOptions = Validator.validOptions(for: newGrid)
+        // Elimination-only hints leave the grid untouched, so the valid options
+        // derived from it are unchanged — skip the full recompute.
+        let validOptions = gridChanged ? Validator.validOptions(for: newGrid) : self.validOptions
         var merged = newPencilMarks
         for row in 0..<9 {
             for col in 0..<9 {

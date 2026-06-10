@@ -139,4 +139,52 @@ struct BoardMarkingTests {
         let cellAfterToggle = board.cell(at: pos)
         #expect(cellAfterToggle.background == .clear)
     }
+
+    @Test("color(positions:as:) can be undone")
+    @MainActor
+    func testColorUndo() {
+        let board = Board(
+            difficulty: .easy,
+            givenCells: sampleGivenCells,
+            solution: nil
+        )
+        let pos = Puzzle.Index(row: 3, column: 4)
+        let newColor = Board.Cell.Background(from: 4)
+        board.color(positions: [pos], as: newColor)
+        #expect(board.cell(at: pos).background == newColor)
+
+        board.undo()
+        #expect(board.cell(at: pos).background == .clear)
+    }
+
+    // MARK: - apply(hint:)
+
+    @Test("apply(hint:) with multiple actions is undone in a single step")
+    @MainActor
+    func testApplyHintAtomicUndo() {
+        let board = Board(
+            difficulty: .easy,
+            givenCells: sampleGivenCells,
+            solution: nil
+        )
+        let solvePos = Puzzle.Index(row: 0, column: 2)
+        let ruleOutPos = Puzzle.Index(row: 1, column: 1)
+        // Seed a pencil mark so the ruleOut action changes state too.
+        board.pencil(positions: [ruleOutPos], as: 4)
+        let cellsBeforeHint = board.cells
+
+        let hint = HintStep(
+            actions: [
+                HintAction(position: solvePos, solveAs: 9),
+                HintAction(position: ruleOutPos, ruleOut: 4),
+            ],
+            technique: .nakedSingle,
+            explanation: []
+        )
+        board.apply(hint: hint)
+        #expect(board.cells != cellsBeforeHint)
+
+        board.undo()
+        #expect(board.cells == cellsBeforeHint)
+    }
 }

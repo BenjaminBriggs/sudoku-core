@@ -5,10 +5,13 @@
 //  Created by Benjamin Briggs on 25/02/2025.
 //
 import Foundation
+import OSLog
 
 public enum UndoError: Error {
     case stepNotFound
 }
+
+private let logger = Logger(subsystem: "SudokuCore", category: "Board.UndoRedo")
 
 extension Board {
 
@@ -18,8 +21,7 @@ extension Board {
 
         self.cells = lastState.cells
 
-        updateCellValidation()
-        updateCompletedSets()
+        refreshDerivedState()
     }
 
     public func undo(to step: UndoStep) throws {
@@ -46,8 +48,8 @@ extension Board {
                 do {
                     try undo(to: step)
                     return
-                } catch  {
-                    print(error)
+                } catch {
+                    logger.error("Failed to undo to last correct state: \(error)")
                 }
             }
         }
@@ -55,10 +57,23 @@ extension Board {
 
     public func makeCheckpoint() -> UndoStep {
         saveState()
-        return undoStack.last!
+        guard let checkpoint = undoStack.last else {
+            // saveState() is suppressed during atomic changes; fall back to a
+            // step built from the current state rather than crashing.
+            return UndoStep(
+                cells: cells,
+                changes: [],
+                isValid: isValid,
+                correctSolution: isSolvable
+            )
+        }
+        return checkpoint
     }
 
     public func saveState() {
+        guard isPerformingAtomicChange == false
+        else { return }
+
         let previousState = undoStack.last
 
         guard cells != previousState?.cells

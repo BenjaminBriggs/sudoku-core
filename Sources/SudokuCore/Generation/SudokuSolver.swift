@@ -235,7 +235,9 @@ public enum SudokuSolver {
         }
         
         if minRow != -1 {
-            return (minRow, minCol, Array(domains[minRow][minCol]))
+            // Sorted so branching order — and therefore callCount and which of
+            // several solutions is found first — is deterministic across runs.
+            return (minRow, minCol, domains[minRow][minCol].sorted())
         }
         
         return nil

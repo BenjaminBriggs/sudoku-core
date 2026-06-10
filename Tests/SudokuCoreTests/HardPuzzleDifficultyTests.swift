@@ -56,7 +56,7 @@ struct HardPuzzleDifficultyTests {
         let grid = Solution.cells(from: puzzleString)
 
         do {
-            let result = try SudokuDifficultyCalculator.calculateDifficultySync(for: grid)
+            let result = try SudokuDifficultyCalculator.calculateDifficulty(for: grid)
 
             #expect(
                 result.level == .hard || result.level == .expert,

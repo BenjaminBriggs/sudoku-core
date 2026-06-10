@@ -5,7 +5,6 @@
 //  Created by Benjamin Briggs on 19/02/2025.
 //
 
-// Rename, maybe Puzzle.Grid
 public typealias Solution = [[Int]]
 public typealias PencilMarks = [[Set<Int>]]
 

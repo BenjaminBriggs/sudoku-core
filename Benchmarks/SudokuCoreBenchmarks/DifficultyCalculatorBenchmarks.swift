@@ -30,7 +30,7 @@ let difficultyCalculatorBenchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             do {
-                let result = try SudokuDifficultyCalculator.calculateDifficultySync(for: easyPuzzle)
+                let result = try SudokuDifficultyCalculator.calculateDifficulty(for: easyPuzzle)
                 blackHole(result)
             } catch {
                 blackHole(error)
@@ -57,7 +57,7 @@ let difficultyCalculatorBenchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             do {
-                let result = try SudokuDifficultyCalculator.calculateDifficultySync(for: mediumPuzzle)
+                let result = try SudokuDifficultyCalculator.calculateDifficulty(for: mediumPuzzle)
                 blackHole(result)
             } catch {
                 blackHole(error)
@@ -84,7 +84,7 @@ let difficultyCalculatorBenchmarks: @Sendable () -> Void = {
 
         for _ in benchmark.scaledIterations {
             do {
-                let result = try SudokuDifficultyCalculator.calculateDifficultySync(for: hardPuzzle)
+                let result = try SudokuDifficultyCalculator.calculateDifficulty(for: hardPuzzle)
                 blackHole(result)
             } catch {
                 blackHole(error)
@@ -142,7 +142,7 @@ let difficultyCalculatorBenchmarks: @Sendable () -> Void = {
         for _ in benchmark.scaledIterations {
             for puzzle in puzzles {
                 do {
-                    let result = try SudokuDifficultyCalculator.calculateDifficultySync(for: puzzle)
+                    let result = try SudokuDifficultyCalculator.calculateDifficulty(for: puzzle)
                     blackHole(result)
                 } catch {
                     blackHole(error)

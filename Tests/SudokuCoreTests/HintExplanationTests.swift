@@ -187,7 +187,64 @@ struct HintExplanationTests {
         }
     }
 
-    // MARK: - Test 4: Applying hint changes board state
+    // MARK: - Test 4: Explanation grammar
+
+    @Test("Hidden single explanation uses 'affects' for a single restricting cell")
+    func hiddenSingleSingularGrammar() throws {
+        guard let (_, gridStrings) = HintTests.testGrids.first(
+            where: { $0.0 == .hiddenSingle }
+        ) else {
+            Issue.record("No test grid found for hiddenSingle")
+            return
+        }
+
+        var singularStepSeen = false
+        for gridString in gridStrings {
+            let state = try BoardStateParser.parse(gridString)
+            guard let hint = HintFinder.findHint(for: .hiddenSingle, in: state) else {
+                continue
+            }
+            for step in hint.explanation {
+                let rendered = String(localized: step.text)
+                if rendered.range(
+                    of: #"^This \d+ affect"#,
+                    options: .regularExpression
+                ) != nil {
+                    singularStepSeen = true
+                    #expect(
+                        rendered.contains("affects"),
+                        "Singular form should read 'affects', got: \(rendered)"
+                    )
+                }
+            }
+        }
+        #expect(singularStepSeen, "Expected at least one grid to exercise the singular branch")
+    }
+
+    @Test("Every explanation step renders non-empty localized text", arguments: HintTests.testGrids)
+    func explanationTextRenders(technique: HintTechnique, gridStrings: [String]) throws {
+        for gridString in gridStrings {
+            let state = try BoardStateParser.parse(gridString)
+            guard let hint = HintFinder.findHint(for: technique, in: state) else {
+                Issue.record("Expected to find \(technique.rawValue) hint")
+                continue
+            }
+
+            for (index, step) in hint.explanation.enumerated() {
+                let rendered = String(localized: step.text)
+                #expect(
+                    rendered.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                    "Step \(index) of \(technique.rawValue) rendered empty text"
+                )
+                #expect(
+                    rendered.contains("%") == false,
+                    "Step \(index) of \(technique.rawValue) contains an unresolved format specifier: \(rendered)"
+                )
+            }
+        }
+    }
+
+    // MARK: - Test 5: Applying hint changes board state
 
     @Test("Applying hint changes board state", arguments: HintTests.testGrids)
     func hintApplicationChangesState(technique: HintTechnique, gridStrings: [String]) {

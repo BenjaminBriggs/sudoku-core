@@ -133,7 +133,7 @@ let puzzleGenerationBenchmarks: @Sendable () -> Void = {
 
             // Step 3: Calculate difficulty
             do {
-                let difficulty = try SudokuDifficultyCalculator.calculateDifficultySync(for: puzzle)
+                let difficulty = try SudokuDifficultyCalculator.calculateDifficulty(for: puzzle)
                 blackHole(difficulty)
             } catch {
                 blackHole(error)

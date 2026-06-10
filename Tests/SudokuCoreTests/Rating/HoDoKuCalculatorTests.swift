@@ -29,6 +29,27 @@ struct HoDoKuCalculatorTests {
         #expect(result.classLabel.count > 0)
     }
 
+    @Test("Elimination count does not modify technique points")
+    func eliminationsDoNotInflatePoints() {
+        let actions = (0..<3).map { column in
+            HintAction(position: Puzzle.Index(row: 0, column: column), ruleOut: 1)
+        }
+        let step = SolvePathEmitter.SolveStep(
+            technique: .xWing,
+            actions: actions,
+            explanationSteps: 0
+        )
+        let path = SolvePathEmitter.SolvePath(
+            steps: [step],
+            solved: true,
+            finalState: BoardState.fromGrid(solved),
+            iterationCount: 1
+        )
+
+        let result = HoDoKuCalculator.compute(from: path)
+        #expect(result.rating == Int(HintTechnique.xWing.hodokuPoints))
+    }
+
     // MARK: - Comprehensive Rating Tests
 
     @Test("All puzzles produce ratings within tolerance")

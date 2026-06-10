@@ -345,6 +345,70 @@ struct HintTests {
         }
     }
 
+    @Test(
+        "Finned fish hints identify fins and restrict eliminations to the fin box",
+        arguments: testGrids.filter {
+            [.finnedXWing, .finnedSwordfish, .finnedJellyfish].contains($0.0)
+        }
+    )
+    func testFinnedFishStructure(technique: HintTechnique, gridStrings: [String]) throws {
+        for gridString in gridStrings {
+            let state = try BoardStateParser.parse(gridString)
+
+            guard let hint = HintFinder.findHint(for: technique, in: state) else {
+                Issue.record("Expected \(technique.rawValue) in \(gridString)")
+                continue
+            }
+
+            // The recorded reasoning must be consistent with the board.
+            #expect(
+                hint.reasoning.inconsistencies(in: state).isEmpty,
+                "\(technique.rawValue) reasoning inconsistent in \(gridString)"
+            )
+
+            // All actions must eliminate one single fish digit.
+            var eliminationDigits = Set<Int>()
+            for action in hint.actions {
+                guard case .ruleOut(let digit) = action.action else {
+                    Issue.record("\(technique.rawValue) produced a non-elimination action")
+                    continue
+                }
+                eliminationDigits.insert(digit)
+                #expect(
+                    state.pencilMarks[action.position.row][action.position.column].contains(digit),
+                    "Elimination targets a candidate that is not present"
+                )
+            }
+            #expect(
+                eliminationDigits.count == 1,
+                "\(technique.rawValue) should eliminate exactly one digit, got \(eliminationDigits)"
+            )
+
+            // A finned fish must record its fin cells, and every elimination
+            // must see the fins (share the fins' box).
+            let finCells = hint.reasoning.components
+                .filter { $0.role == .fin }
+                .flatMap { $0.cells.map(\.position) }
+            #expect(
+                finCells.isEmpty == false,
+                "\(technique.rawValue) should record at least one fin cell"
+            )
+
+            if let finBox = finCells.first?.houseNumber {
+                #expect(
+                    finCells.allSatisfy { $0.houseNumber == finBox },
+                    "All fins must share one box"
+                )
+                for action in hint.actions {
+                    #expect(
+                        action.position.houseNumber == finBox,
+                        "Elimination at \(action.position) does not see the fin box \(finBox)"
+                    )
+                }
+            }
+        }
+    }
+
     @Test("Test Hints Empty", arguments: HintTechnique.allCases)
     func testHintsEmpty(technique: HintTechnique) async {
         let grid = Solution.empty()

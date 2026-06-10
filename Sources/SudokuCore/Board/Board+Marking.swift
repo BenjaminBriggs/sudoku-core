@@ -37,20 +37,14 @@ extension Board {
         guard positions.isEmpty == false else { return }
         saveState()
         for position in positions where cell(at: position).isGiven == false {
-            self.cells[position.linerIndex]
-                .value = value
-            self.cells[position.linerIndex]
-                .ruledOutCandidates
-                .removeAll()
-            self.cells[position.linerIndex]
-                .simplePencilMarks
-                .removeAll()
-            self.cells[position.linerIndex]
-                .advancedPencilMarks
-                .removeAll()
+            var cell = self.cells[position.linerIndex]
+            cell.value = value
+            cell.ruledOutCandidates.removeAll()
+            cell.simplePencilMarks.removeAll()
+            cell.advancedPencilMarks.removeAll()
+            self.cells[position.linerIndex] = cell
         }
-        updateCellValidation()
-        updateCompletedSets()
+        refreshDerivedState()
     }
 
     /// Clears cells, removing values, pencil marks, and background colors.
@@ -63,25 +57,18 @@ extension Board {
         guard positions.isEmpty == false else { return }
         saveState()
         for position in positions {
-            if cell(at: position).isGiven == false {
-                self.cells[position.linerIndex]
-                    .value = nil
+            var cell = self.cells[position.linerIndex]
+            if cell.isGiven == false {
+                cell.value = nil
             }
-            self.cells[position.linerIndex]
-                .ruledOutCandidates
-                .removeAll()
-            self.cells[position.linerIndex]
-                .simplePencilMarks
-                .removeAll()
-            self.cells[position.linerIndex]
-                .advancedPencilMarks
-                .removeAll()
-            self.cells[position.linerIndex]
-                .background = .clear
+            cell.ruledOutCandidates.removeAll()
+            cell.simplePencilMarks.removeAll()
+            cell.advancedPencilMarks.removeAll()
+            cell.background = .clear
+            self.cells[position.linerIndex] = cell
         }
 
-        updateCellValidation()
-        updateCompletedSets()
+        refreshDerivedState()
     }
 
     /// Toggles simple pencil marks in the specified cells.
@@ -160,6 +147,7 @@ extension Board {
     ///   - value: The background color to apply.
     public func color(positions: Set<Puzzle.Index>, as value: Cell.Background) {
         guard positions.isEmpty == false else { return }
+        saveState()
         let remove = positions
             .map(cell(at:))
             .map(\.background)
@@ -173,7 +161,6 @@ extension Board {
                     .background = value
             }
         }
-        saveState()
     }
 
     /// Marks a candidate value as ruled out (eliminated) for the specified cells.
@@ -213,6 +200,9 @@ extension Board {
     /// - Parameter hint: The hint step containing the actions to apply.
     public func apply(hint: HintStep) {
         hintsUsed += 1
+        saveState()
+        isPerformingAtomicChange = true
+        defer { isPerformingAtomicChange = false }
         for action in hint.actions {
             switch action.action {
             case .clear:

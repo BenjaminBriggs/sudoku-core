@@ -141,6 +141,61 @@ extension HintFinder {
     }
 
 
+    /// The unit kinds a strong link can be found in.
+    enum StrongLinkUnit: CaseIterable {
+        case row
+        case column
+        case box
+    }
+
+    /// Finds all strong links for a digit in the given unit kinds.
+    ///
+    /// A strong link exists when a digit appears as a candidate in exactly two
+    /// cells of a unit (row, column, or box) — one of the two must contain it.
+    ///
+    /// - Parameters:
+    ///   - digit: The candidate digit to scan for.
+    ///   - grid: The current grid values (0 for empty).
+    ///   - pencilMarks: The current pencil marks per cell.
+    ///   - units: Which unit kinds to scan.
+    /// - Returns: The endpoint pairs of every strong link found, in unit order.
+    static func strongLinks(
+        for digit: Int,
+        grid: [[Int]],
+        pencilMarks: [[Set<Int>]],
+        units: [StrongLinkUnit]
+    ) -> [(cellA: Puzzle.Index, cellB: Puzzle.Index)] {
+        var links: [(cellA: Puzzle.Index, cellB: Puzzle.Index)] = []
+
+        for unit in units {
+            for unitIndex in 0..<9 {
+                let unitCells: [Puzzle.Index]
+                switch unit {
+                case .row:
+                    unitCells = LookupTables.rowCells[unitIndex]
+                case .column:
+                    unitCells = LookupTables.columnCells[unitIndex]
+                case .box:
+                    unitCells = LookupTables.boxCells[unitIndex]
+                }
+
+                var cells: [Puzzle.Index] = []
+                for cell in unitCells {
+                    if grid[cell.row][cell.column] == 0,
+                       pencilMarks[cell.row][cell.column].contains(digit) {
+                        cells.append(cell)
+                        if cells.count > 2 { break }
+                    }
+                }
+                if cells.count == 2 {
+                    links.append((cells[0], cells[1]))
+                }
+            }
+        }
+
+        return links
+    }
+
     /// Finds the placed cells that prevent a given digit from being valid at a position.
     ///
     /// For each requested orientation (row, column, house), returns the set of cells

@@ -65,7 +65,7 @@ struct SudokuDifficultyCalculatorTests {
 
     @Test("SudokuDifficultyCalculator correctly solves a complete Sudoku")
     func testCalculateCompleteGrid() async throws {
-        let result = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(
             for: completeSudoku
         )
 
@@ -77,7 +77,7 @@ struct SudokuDifficultyCalculatorTests {
 
     @Test("SudokuDifficultyCalculator correctly rates an easy puzzle")
     func testCalculateEasyPuzzle() async throws {
-        let result = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(
             for: easyPuzzle
         )
 
@@ -101,7 +101,7 @@ struct SudokuDifficultyCalculatorTests {
 
     @Test("SudokuDifficultyCalculator correctly rates a medium puzzle")
     func testCalculateMediumPuzzle() async throws {
-        let result = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(
             for: mediumPuzzle
         )
 
@@ -131,7 +131,7 @@ struct SudokuDifficultyCalculatorTests {
 
     @Test("SudokuDifficultyCalculator correctly reports techniques used")
     func testReportTechniquesUsed() async throws {
-        let result = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(
             for: mediumPuzzle
         )
 
@@ -166,7 +166,7 @@ struct SudokuDifficultyCalculatorTests {
         // Note: Generated puzzles might require techniques not yet implemented
         // so we'll handle the case where difficulty calculation fails
         do {
-            let easyResult = try await SudokuDifficultyCalculator.calculateDifficulty(
+            let easyResult = try SudokuDifficultyCalculator.calculateDifficulty(
                 for: easyPuzzle.startingState
             )
 
@@ -181,7 +181,7 @@ struct SudokuDifficultyCalculatorTests {
 
     @Test("Easy puzzles produce scores in 1-300 range")
     func testEasyScoreRange() async throws {
-        let result = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(
             for: easyPuzzle
         )
 
@@ -195,11 +195,11 @@ struct SudokuDifficultyCalculatorTests {
     @Test("Difficulty score increases with technique complexity")
     func testScoreIncreasesWithComplexity() async throws {
         // Easy puzzle should have lower score than medium/hard
-        let easyResult = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let easyResult = try SudokuDifficultyCalculator.calculateDifficulty(
             for: easyPuzzle
         )
 
-        let mediumResult = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let mediumResult = try SudokuDifficultyCalculator.calculateDifficulty(
             for: mediumPuzzle
         )
 
@@ -217,7 +217,7 @@ struct SudokuDifficultyCalculatorTests {
             from:
                 "009010030050009000000004020901000702030000100280060000020300609000090000000157004")
 
-        let result = try SudokuDifficultyCalculator.calculateDifficultySync(for: puzzle)
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(for: puzzle)
 
         #expect(result.wasSolved, "Puzzle should be solved")
         #expect(
@@ -231,7 +231,7 @@ struct SudokuDifficultyCalculatorTests {
 
     @Test("Score reflects iteration count complexity")
     func testScoreReflectsIterationCount() async throws {
-        let result = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(
             for: mediumPuzzle
         )
 
@@ -248,7 +248,7 @@ struct SudokuDifficultyCalculatorTests {
 
     @Test("Difficulty level correctly categorized based on score")
     func testDifficultyLevelCategories() async throws {
-        let easyResult = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let easyResult = try SudokuDifficultyCalculator.calculateDifficulty(
             for: easyPuzzle
         )
 
@@ -275,7 +275,7 @@ struct SudokuDifficultyCalculatorTests {
     @Test("Score calculation handles edge cases")
     func testScoreEdgeCases() async throws {
         // Complete grid (no techniques needed)
-        let completeResult = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let completeResult = try SudokuDifficultyCalculator.calculateDifficulty(
             for: completeSudoku
         )
 
@@ -288,7 +288,7 @@ struct SudokuDifficultyCalculatorTests {
 
     @Test("Technique frequency accurately counts usage")
     func testTechniqueFrequencyAccuracy() async throws {
-        let result = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(
             for: mediumPuzzle
         )
 
@@ -310,7 +310,7 @@ struct SudokuDifficultyCalculatorTests {
 
     @Test("Hardest technique correctly identified")
     func testHardestTechniqueIdentification() async throws {
-        let result = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(
             for: mediumPuzzle
         )
 

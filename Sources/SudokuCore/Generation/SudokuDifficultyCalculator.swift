@@ -38,23 +38,10 @@ public enum SudokuDifficultyCalculator {
     enum DifficultyError: Error {
         case unsolved
     }
-    /// Determines difficulty by solving the puzzle with progressively harder techniques
-    /// - Returns: Difficulty information including level, score, and techniques used
-    public static func calculateDifficulty(for initialGrid: [[Int]]) async throws
-        -> DifficultyResult
-    {
-        try computeDifficulty(for: initialGrid)
-    }
-
-    /// Synchronous convenience for performance-critical contexts that cannot suspend
-    public static func calculateDifficultySync(for initialGrid: [[Int]]) throws -> DifficultyResult
-    {
-        try computeDifficulty(for: initialGrid)
-    }
 
     /// Determines difficulty by solving the puzzle with progressively harder techniques
     /// - Returns: Difficulty information including level, score, and techniques used
-    private static func computeDifficulty(for initialGrid: [[Int]]) throws -> DifficultyResult {
+    public static func calculateDifficulty(for initialGrid: [[Int]]) throws -> DifficultyResult {
 
         // Build a solve path once and derive metrics from it
         let path = SolvePathEmitter.emit(from: initialGrid)
@@ -166,7 +153,7 @@ public enum SudokuDifficultyCalculator {
         /// The calculated difficulty level
         public let level: PuzzleDifficulty.Level
 
-        /// A normalised difficulty score (0-1)
+        /// The difficulty score in HoDoKu points (see the class-level difficulty ranges)
         public let score: Double
 
         /// All techniques that were used to solve the puzzle

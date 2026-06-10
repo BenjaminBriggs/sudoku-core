@@ -3327,7 +3327,7 @@
         }
       }
     },
-    "This %lld affect this %@" : {
+    "This %lld affects this %@" : {
       "comment" : "Text used in a hint explanation step when explaining why a single cell in a group of cells cannot contain a particular digit.",
       "localizations" : {
         "de" : {
@@ -3339,13 +3339,13 @@
         "en-GB" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This %1$lld affect this %2$@"
+            "value" : "This %1$lld affects this %2$@"
           }
         },
         "en-US" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This %1$lld affect this %2$@"
+            "value" : "This %1$lld affects this %2$@"
           }
         },
         "es" : {

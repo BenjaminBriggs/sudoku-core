@@ -126,7 +126,7 @@ extension HintFinder {
         if interest.restrictions.isEmpty == false {
             let text: LocalizedStringResource
             if interest.restrictions.count == 1 {
-                text = LocalizedStringResource("This \(digit) affect this \(orientation.displayName)", bundle: .module)
+                text = LocalizedStringResource("This \(digit) affects this \(orientation.displayName)", bundle: .module)
             } else {
                 text = LocalizedStringResource("These \(digit)'s affect this \(orientation.displayName)", bundle: .module)
             }

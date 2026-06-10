@@ -19,7 +19,7 @@ public struct PuzzleCreator {
         startingState: [[Int]]
     ) async throws -> Puzzle {
         // Calculate difficulty
-        let difficultyResult = try await SudokuDifficultyCalculator.calculateDifficulty(
+        let difficultyResult = try SudokuDifficultyCalculator.calculateDifficulty(
             for: startingState
         )
 
@@ -90,7 +90,7 @@ public struct PuzzleCreator {
             // Calculate difficulty - skip if calculation fails
             let difficultyResult: SudokuDifficultyCalculator.DifficultyResult
             do {
-                difficultyResult = try await SudokuDifficultyCalculator.calculateDifficulty(
+                difficultyResult = try SudokuDifficultyCalculator.calculateDifficulty(
                     for: puzzle
                 )
             } catch {
