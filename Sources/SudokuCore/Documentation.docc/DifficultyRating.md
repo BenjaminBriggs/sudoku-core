@@ -43,7 +43,7 @@ Each technique contributes a fixed number of points to the cumulative score, reg
 - **Swordfish**: 90 points
 - **Y-Wing**: 100 points
 
-See ``HintTechnique/hodokuPoints`` for the complete list.
+See ``TechniqueInfo/hodokuPoints`` for the complete list.
 
 ### Sudoku Explainer Rating (Peak Difficulty)
 
@@ -279,18 +279,15 @@ func validateDifficulty(
 Analyze which techniques a puzzle requires:
 
 ```swift
-func analyzeTechniques(for puzzle: Puzzle) async -> [HintTechnique: Int] {
-    var techniqueCounts: [HintTechnique: Int] = [:]
+func analyzeTechniques(for puzzle: Puzzle) async -> [TechniqueID: Int] {
+    var techniqueCounts: [TechniqueID: Int] = [:]
 
     let board = Board(puzzle: puzzle)
 
     while !board.isSolved {
-        let state = board.state
-        guard let hint = HintTechnique.orderedCases
-            .compactMap({ HintFinder.findHint(for: $0, in: state) })
-            .first else { break }
+        guard let hint = HintFinder.firstHint(in: board.state) else { break }
 
-        techniqueCounts[hint.technique, default: 0] += 1
+        techniqueCounts[hint.technique.id, default: 0] += 1
         board.apply(hint: hint)
     }
 

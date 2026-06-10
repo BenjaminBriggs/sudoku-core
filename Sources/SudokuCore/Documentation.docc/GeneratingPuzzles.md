@@ -302,7 +302,7 @@ let collection = try JSONDecoder().decode(PuzzleCollection.self, from: loadedDat
 Ensure puzzles use desired techniques:
 
 ```swift
-func generatePuzzleWithTechnique(_ technique: HintTechnique) async -> Puzzle? {
+func generatePuzzleWithTechnique(_ technique: TechniqueID) async -> Puzzle? {
     for _ in 0..<100 {
         let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 45...55)
         guard let info = try? SudokuDifficultyCalculator.calculateDifficulty(for: starting) else { continue }
@@ -313,7 +313,7 @@ func generatePuzzleWithTechnique(_ technique: HintTechnique) async -> Puzzle? {
 }
 
 // Generate a puzzle that requires X-Wing
-let xWingPuzzle = await generatePuzzleWithTechnique(.xWing)
+let xWingPuzzle = await generatePuzzleWithTechnique(TechniqueInfo.xWing.id)
 ```
 
 ## Next Steps

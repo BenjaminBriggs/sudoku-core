@@ -56,6 +56,14 @@ SudokuCore is the engine behind a Sudoku application: the game logic, puzzle gen
 - <doc:HintSystem>
 - ``HintFinder``
 - ``HintTechnique``
+- ``TechniqueInfo``
+- ``TechniqueID``
+- ``ClassicTechniques``
+- ``Constraint``
+- ``AnyConstraint``
+- ``ConstraintRegistry``
+- ``ConstraintViolation``
+- ``PuzzlePresentation``
 - ``HintStep``
 - ``HintAction``
 - ``HintReasoning``

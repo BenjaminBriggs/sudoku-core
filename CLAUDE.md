@@ -26,11 +26,16 @@ SudokuCore is a Swift 6 package (iOS 18+/macOS 15+) providing Sudoku game mechan
 
 ### Module Layout (Sources/SudokuCore/)
 
-- **CoreModels/** — Foundation types: `Puzzle` (immutable definition with solution, startingState, difficulty), `Puzzle.Index` (row/col position), `PuzzleDifficulty`, `UndoStep`, `Solution` (typealias for `[[Int]]`)
-- **Board/** — `Board` is the main `@Observable @MainActor` class managing gameplay state. Contains 81 `Board.Cell` objects in a flat row-major array. Functionality split across extensions: `Board+Marking`, `Board+UndoRedo`, `Board+Validation`, `Board+Checking`, `Board+Helpers`
-- **Generation/** — Puzzle creation pipeline: `SolutionGenerator` (backtracking with bitset optimization) → `SudokuGenerator` (cell removal with uniqueness validation) → `SudokuDifficultyCalculator` → `PuzzleCreator` (orchestrator). Also includes `SudokuValidator` and `SudokuSolver`
-- **Hints/** — 18+ solving techniques from naked singles to finned fish patterns. `HintFinder` dispatches to technique implementations in `Hint Implementation/`. Uses `BoardState` (immutable snapshot) and returns `HintStep` with `HintAction` items and a machine-readable `HintReasoning` record of the deduction
-- **Rating/** — Dual rating system: `HoDoKuCalculator` (cumulative effort) and `SECalculator` (peak difficulty). `SolvePathEmitter` generates technique-annotated solve paths. `PersonalizedCalibrator` adjusts for player skill
+- **CoreModels/** — Foundation types: `Puzzle` (immutable definition with solution, startingState, difficulty, optional constraints + presentation payload), `Puzzle.Index` (row/col position), `PuzzleDifficulty`, `SudokuUnit` (row/column/house), `UndoStep`, `Solution` (typealias for `[[Int]]`)
+- **Board/** — `Board` is the main `@Observable @MainActor` class managing gameplay state. Contains 81 `Board.Cell` objects in a flat row-major array. Applies constraint pruning to candidates and surfaces `constraintViolations`. Functionality split across extensions: `Board+Marking`, `Board+UndoRedo`, `Board+Validation`, `Board+Checking`, `Board+Helpers`, `Board+StateRestoration`
+- **Constraints/** — Variant extension point: `Constraint` protocol (violations + candidate pruning), `AnyConstraint` (type-erased Codable wrapper, `{"type":…,"payload":…}`), `ConstraintRegistry` (typeID → type, register at startup). Variants are additive rules on the classic 9×9
+- **Generation/** — Puzzle creation pipeline: `SolutionGenerator` (backtracking with bitset optimization) → `SudokuGenerator` (cell removal with uniqueness validation) → `SudokuDifficultyCalculator` → `PuzzleCreator` (orchestrator). Also includes `SudokuValidator` and `SudokuSolver`. Classic-only; the package does not generate variant puzzles
+- **Hints/** — 23 classic solving techniques from naked singles to finned fish and wing patterns, as structs conforming to the `HintTechnique` protocol (identity via `TechniqueID`/`TechniqueInfo`). `ClassicTechniques.all` is the built-in set; `HintFinder.firstHint(in:using:)` takes any technique array, so apps and variant modules add their own. Uses `BoardState` (immutable snapshot, carries constraints) and returns `HintStep` with `HintAction` items and a machine-readable `HintReasoning` record of the deduction
+- **Rating/** — Dual rating system: `HoDoKuCalculator` (cumulative effort) and `SECalculator` (peak difficulty). `SolvePathEmitter` generates technique-annotated solve paths. `PersonalizedCalibrator` adjusts for player skill. Classic-only; variant techniques carry no rating metadata
+
+### SudokuKiller target (Sources/SudokuKiller/)
+
+Killer sudoku variant module proving the extension points: `KillerCage` (`Constraint` with sum/no-repeat violations and combination-based pruning) plus `CageLastCell` and `CageCombinations` techniques. `KillerSudoku.register()` registers the cage type for decoding; combine `ClassicTechniques.all + KillerSudoku.techniques` for hint finding.
 
 ### Scope
 

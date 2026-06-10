@@ -14,23 +14,23 @@ Find the easiest available hint for the current board state:
 
 ```swift
 if let hint = HintFinder.firstHint(in: board.state) {
-    print(hint.technique)         // e.g. .hiddenSingle
-    print(hint.debugDescription)  // "Hint(Hidden Single, [Hint add 7 at (5,3)])"
+    print(hint.technique.id)      // e.g. hiddenSingle
+    print(hint.debugDescription)  // "Hint(hiddenSingle, [Hint add 7 at (5,3)])"
 }
 ```
 
-Or check specific techniques:
+`firstHint(in:using:)` defaults to ``ClassicTechniques/all``. Pass your own array to check specific techniques — or to add techniques the core doesn't ship:
 
 ```swift
-let techniques: [HintTechnique] = [
-    .nakedSingle,
-    .hiddenSingle,
-    .nakedPair,
-    .xWing
+let techniques: [any HintTechnique] = [
+    NakedSingleTechnique(),
+    HiddenSingleTechnique(),
+    NakedSubsetTechnique(size: 2),
+    FishTechnique(size: 2, finned: false),
 ]
 
-if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.state) }).first {
-    print(hint.technique)
+if let hint = HintFinder.firstHint(in: board.state, using: techniques) {
+    print(hint.technique.id)
 }
 ```
 
@@ -39,7 +39,7 @@ if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.sta
 Once you have a hint, apply it to the board:
 
 ```swift
-if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.state) }).first {
+if let hint = HintFinder.firstHint(in: board.state, using: techniques) {
     // Show the hint to the player first...
 
     // Then apply it
@@ -72,12 +72,33 @@ Numbers in parentheses show relative difficulty values.
 
 ### Technique Details
 
-Access technique information:
+Every technique is identified by a ``TechniqueInfo`` — a stable ``TechniqueID`` plus its solve-order rank and (for classic techniques) rating metadata:
 
 ```swift
-let technique = HintTechnique.xWing
+let technique = TechniqueInfo.xWing
+print(technique.id)          // xWing
 print(technique.difficulty)  // 80
 print(technique.seId)        // "X-Wing"
+```
+
+### Adding Your Own Techniques
+
+``HintTechnique`` is a protocol: conform to it to add techniques without touching core, then pass them to ``HintFinder/firstHint(in:using:)`` alongside ``ClassicTechniques/all``. Variant modules do exactly this — the `SudokuKiller` target adds cage-based techniques the same way an app would add a custom classic one:
+
+```swift
+struct MyTechnique: HintTechnique {
+    let info = TechniqueInfo(id: "myApp.myTechnique", difficulty: 65)
+
+    func findHint(in state: BoardState) -> HintStep? {
+        // Inspect state.grid / state.pencilMarks, return a HintStep or nil
+        nil
+    }
+}
+
+let hint = HintFinder.firstHint(
+    in: board.state,
+    using: ClassicTechniques.all + [MyTechnique()]
+)
 ```
 
 ## Hint Structure
@@ -88,7 +109,7 @@ A ``HintStep`` contains:
 
 ```swift
 struct HintStep {
-    let technique: HintTechnique  // Which technique applies
+    let technique: TechniqueInfo  // Which technique applies
     let actions: [HintAction]     // What to do
     let reasoning: HintReasoning  // Why the deduction holds
 }
@@ -135,7 +156,7 @@ for action in hint.actions {
 The `.validation` technique doesn't advance the solve — it finds what's wrong. It checks, in priority order: duplicate digits in a row, then a column, then a box, and finally (when the board has a solution) any filled cell that disagrees with it.
 
 ```swift
-if let mistake = HintFinder.findHint(for: .validation, in: board.state) {
+if let mistake = ValidationTechnique().findHint(in: board.state) {
     // Each action is a .clear for an offending cell
     for action in mistake.actions {
         print("Conflict at \(action.position)")
@@ -144,7 +165,7 @@ if let mistake = HintFinder.findHint(for: .validation, in: board.state) {
 }
 ```
 
-`.validation` has difficulty 0, so it sorts first in `HintTechnique.orderedCases` — when the board contains an error, ``HintFinder/firstHint(in:)`` returns the mistake before suggesting any solving technique. A player who asks for a hint on a broken board is told what to fix first.
+`.validation` has difficulty 0, so it sorts first in ``ClassicTechniques/all`` — when the board contains an error, ``HintFinder/firstHint(in:using:)`` returns the mistake before suggesting any solving technique. A player who asks for a hint on a broken board is told what to fix first.
 
 The hint's reasoning records the conflicting cells as a `.constraint` component and, when the solution is known, which of the two duplicates is actually correct as the `.subject`.
 
@@ -173,28 +194,30 @@ Implement a progressive hint system that starts with easier techniques:
 
 ```swift
 class HintProvider {
-    private let techniques: [[HintTechnique]] = [
+    private let techniques: [[any HintTechnique]] = [
         // Level 1: Basic
-        [.nakedSingle, .hiddenSingle],
+        [NakedSingleTechnique(), HiddenSingleTechnique()],
 
         // Level 2: Intermediate
-        [.lockedCandidatesPointing, .lockedCandidatesClaiming],
+        [LockedCandidatesTechnique(kind: .pointing), LockedCandidatesTechnique(kind: .claiming)],
 
         // Level 3: Advanced
-        [.nakedPair, .hiddenPair, .nakedTriple, .hiddenTriple],
+        [NakedSubsetTechnique(size: 2), HiddenSubsetTechnique(size: 2),
+         NakedSubsetTechnique(size: 3), HiddenSubsetTechnique(size: 3)],
 
         // Level 4: Expert
-        [.xWing, .swordfish, .skyscraper],
+        [FishTechnique(size: 2, finned: false), FishTechnique(size: 3, finned: false),
+         SkyscraperTechnique()],
 
         // Level 5: Master
-        [.yWing, .xyWing, .xyzWing]
+        [YWingTechnique(), XYWingTechnique(), XYZWingTechnique()]
     ]
 
     func findHint(for board: Board, maxLevel: Int) -> HintStep? {
         for level in 0..<min(maxLevel, techniques.count) {
             let state = board.state
             if let hint = techniques[level]
-                .compactMap({ HintFinder.findHint(for: $0, in: state) })
+                .compactMap({ $0.findHint(in: state) })
                 .first {
                 return hint
             }
@@ -209,7 +232,7 @@ class HintProvider {
 Use cell coloring to highlight hint components:
 
 ```swift
-if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.state) }).first {
+if let hint = HintFinder.firstHint(in: board.state, using: techniques) {
     // Color cells mentioned in the hint
     for action in hint.actions {
         switch action.action {
@@ -231,7 +254,7 @@ if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.sta
 Every hint carries a ``HintReasoning`` — a structured, `Codable` record of the deduction's premises. It captures the focus digit(s), the participating units, and labelled groups of cells (``HintComponent``) such as the fish base and cover, fins, wing pivots, or the cells being eliminated from.
 
 ```swift
-let hint = HintFinder.findHint(for: .finnedXWing, in: board.state)!
+let hint = FishTechnique(size: 2, finned: true).findHint(in: board.state)!
 
 print(hint.reasoning.focusDigits)     // [4]
 print(hint.reasoning.units)           // The rows/columns forming the pattern
@@ -266,14 +289,13 @@ Finding complex hints (like fish patterns) is more expensive than basic singles:
 
 ```swift
 // Fast: Check only basic techniques
-let basicHint = [.nakedSingle, .hiddenSingle]
-    .compactMap({ HintFinder.findHint(for: $0, in: board.state) })
-    .first
+let basicHint = HintFinder.firstHint(
+    in: board.state,
+    using: [NakedSingleTechnique(), HiddenSingleTechnique()]
+)
 
-// Slower: Check all advanced techniques
-let advancedHint = HintTechnique.orderedCases
-    .compactMap({ HintFinder.findHint(for: $0, in: board.state) })
-    .first
+// Slower: Check all techniques (the default set)
+let advancedHint = HintFinder.firstHint(in: board.state)
 ```
 
 ### Caching
@@ -285,7 +307,7 @@ class HintCache {
     private var cachedHint: HintStep?
     private var cachedBoardState: [[Int]]?
 
-    func getHint(for board: Board, techniques: [HintTechnique]) -> HintStep? {
+    func getHint(for board: Board, techniques: [any HintTechnique]) -> HintStep? {
         let currentState = board.cells.solution
 
         if currentState == cachedBoardState, let cached = cachedHint {
@@ -293,7 +315,7 @@ class HintCache {
         }
 
         let state = board.state
-        cachedHint = techniques.compactMap { HintFinder.findHint(for: $0, in: state) }.first
+        cachedHint = HintFinder.firstHint(in: state, using: techniques)
         cachedBoardState = currentState
         return cachedHint
     }
@@ -312,13 +334,10 @@ struct HintSettings {
 }
 
 func provideHint(for board: Board, settings: HintSettings) -> HintStep? {
-    let allowed = HintTechnique.orderedCases.filter {
-        $0.difficulty <= settings.maxDifficulty
+    let allowed = ClassicTechniques.all.filter {
+        $0.info.difficulty <= settings.maxDifficulty
     }
-    let state = board.state
-    guard let hint = allowed
-        .compactMap({ HintFinder.findHint(for: $0, in: state) })
-        .first
+    guard let hint = HintFinder.firstHint(in: board.state, using: allowed)
     else { return nil }
 
     if settings.highlightCells {
