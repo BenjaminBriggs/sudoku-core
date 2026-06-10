@@ -36,8 +36,7 @@ struct HoDoKuCalculatorTests {
         }
         let step = SolvePathEmitter.SolveStep(
             technique: .xWing,
-            actions: actions,
-            explanationSteps: 0
+            actions: actions
         )
         let path = SolvePathEmitter.SolvePath(
             steps: [step],

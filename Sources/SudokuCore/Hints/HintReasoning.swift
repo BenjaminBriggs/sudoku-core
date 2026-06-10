@@ -8,10 +8,10 @@ import Foundation
 
 /// Structured, machine-readable record of *how* a hint was determined.
 ///
-/// This is deliberately distinct from `HintStep.explanation`, which is pre-rendered
-/// human-facing text. `HintReasoning` captures the logical premises of a deduction —
-/// the digit(s) it is built around, the units involved, the labelled groups of cells
-/// that play a structural role, and the placements/eliminations it licenses.
+/// `HintReasoning` captures the logical premises of a deduction — the digit(s) it is built
+/// around, the units involved, the labelled groups of cells that play a structural role, and
+/// the placements/eliminations it licenses. Human-facing *presentation* is built from this
+/// outside core (see the app's HintExplainer), keeping core free of explanation copy.
 ///
 /// It exists for three reasons:
 /// 1. **Debugging** — `inconsistencies(in:)` can check the recorded premises still hold
@@ -124,44 +124,18 @@ public struct CandidateRef: Sendable, Codable, Equatable {
     }
 }
 
-// MARK: - Construction Helpers
-
-extension HintComponent {
-    /// Builds a component, snapshotting each cell's facts from the board.
-    static func make<S: Sequence>(
-        _ role: Role,
-        _ positions: S,
-        in state: BoardState,
-        unit: SudokuUnit? = nil
-    ) -> HintComponent where S.Element == Puzzle.Index {
-        HintComponent(role: role, cells: positions.map { CellFact($0, in: state) }, unit: unit)
-    }
-
-    /// Builds a component where every cell carries the same fixed candidate set
-    /// (useful for single-digit patterns where only the focus digit is relevant).
-    static func make<S: Sequence>(
-        _ role: Role,
-        _ positions: S,
-        candidates: Set<Int>,
-        unit: SudokuUnit? = nil
-    ) -> HintComponent where S.Element == Puzzle.Index {
-        HintComponent(
-            role: role,
-            cells: positions.map { CellFact(position: $0, candidates: candidates) },
-            unit: unit
-        )
-    }
-}
+// MARK: - Construction
 
 extension HintReasoning {
-    /// Builds a `HintReasoning`, deriving `placements`/`eliminations` directly from `actions`
-    /// so they stay in lockstep with what the hint applies. Empty components are dropped.
-    static func make(
+    /// Creates a reasoning record, deriving `placements`/`eliminations` directly from
+    /// `actions` so they stay in lockstep with what the hint applies. Empty components
+    /// are dropped.
+    init(
         actions: [HintAction],
         focusDigits: [Int],
         units: [SudokuUnit] = [],
         components: [HintComponent]
-    ) -> HintReasoning {
+    ) {
         var placements: [CandidateRef] = []
         var eliminations: [CandidateRef] = []
         for action in actions {
@@ -174,12 +148,129 @@ extension HintReasoning {
                 break
             }
         }
-        return HintReasoning(
+        self.init(
             focusDigits: focusDigits,
             units: units,
             components: components.filter { $0.cells.isEmpty == false },
             placements: placements,
             eliminations: eliminations
+        )
+    }
+}
+
+// MARK: - Role-Named Component Factories
+
+/// Each `HintComponent.Role` has a pair of factories named after it, so call sites read
+/// as the domain: `.subject(...)`, `.fin(...)`, `.eliminated(...)`.
+///
+/// The parameter labels select the construction mode:
+/// - `in: state` snapshots each cell's current facts (placed value or pencil marks)
+///   from the board.
+/// - `candidates:` stamps every cell with the same fixed candidate set — useful for
+///   single-digit patterns where only the focus digit is relevant.
+extension HintComponent {
+    /// The cell(s) the deduction solves.
+    static func subject<S: Sequence>(_ positions: S, in state: BoardState, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        snapshot(.subject, positions, in: state, unit: unit)
+    }
+    /// The cell(s) the deduction solves.
+    static func subject<S: Sequence>(_ positions: S, candidates: Set<Int>, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        stamped(.subject, positions, candidates: candidates, unit: unit)
+    }
+
+    /// Already-known cells that force the deduction.
+    static func constraint<S: Sequence>(_ positions: S, in state: BoardState, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        snapshot(.constraint, positions, in: state, unit: unit)
+    }
+    /// Already-known cells that force the deduction.
+    static func constraint<S: Sequence>(_ positions: S, candidates: Set<Int>, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        stamped(.constraint, positions, candidates: candidates, unit: unit)
+    }
+
+    /// The cells forming a naked or hidden subset.
+    static func subset<S: Sequence>(_ positions: S, in state: BoardState, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        snapshot(.subset, positions, in: state, unit: unit)
+    }
+    /// The cells forming a naked or hidden subset.
+    static func subset<S: Sequence>(_ positions: S, candidates: Set<Int>, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        stamped(.subset, positions, candidates: candidates, unit: unit)
+    }
+
+    /// A wing pivot cell.
+    static func pivot<S: Sequence>(_ positions: S, in state: BoardState, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        snapshot(.pivot, positions, in: state, unit: unit)
+    }
+    /// A wing pivot cell.
+    static func pivot<S: Sequence>(_ positions: S, candidates: Set<Int>, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        stamped(.pivot, positions, candidates: candidates, unit: unit)
+    }
+
+    /// Wing pincer cells, or the "roof"/"tip" cells of single-digit chains.
+    static func wing<S: Sequence>(_ positions: S, in state: BoardState, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        snapshot(.wing, positions, in: state, unit: unit)
+    }
+    /// Wing pincer cells, or the "roof"/"tip" cells of single-digit chains.
+    static func wing<S: Sequence>(_ positions: S, candidates: Set<Int>, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        stamped(.wing, positions, candidates: candidates, unit: unit)
+    }
+
+    /// The base set of a fish / the defining cells of a single-digit pattern.
+    static func base<S: Sequence>(_ positions: S, in state: BoardState, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        snapshot(.base, positions, in: state, unit: unit)
+    }
+    /// The base set of a fish / the defining cells of a single-digit pattern.
+    static func base<S: Sequence>(_ positions: S, candidates: Set<Int>, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        stamped(.base, positions, candidates: candidates, unit: unit)
+    }
+
+    /// The cover set of a fish.
+    static func cover<S: Sequence>(_ positions: S, in state: BoardState, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        snapshot(.cover, positions, in: state, unit: unit)
+    }
+    /// The cover set of a fish.
+    static func cover<S: Sequence>(_ positions: S, candidates: Set<Int>, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        stamped(.cover, positions, candidates: candidates, unit: unit)
+    }
+
+    /// Fin cells of a finned fish.
+    static func fin<S: Sequence>(_ positions: S, in state: BoardState, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        snapshot(.fin, positions, in: state, unit: unit)
+    }
+    /// Fin cells of a finned fish.
+    static func fin<S: Sequence>(_ positions: S, candidates: Set<Int>, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        stamped(.fin, positions, candidates: candidates, unit: unit)
+    }
+
+    /// Cells losing a candidate as a result of the deduction.
+    static func eliminated<S: Sequence>(_ positions: S, in state: BoardState, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        snapshot(.eliminated, positions, in: state, unit: unit)
+    }
+    /// Cells losing a candidate as a result of the deduction.
+    static func eliminated<S: Sequence>(_ positions: S, candidates: Set<Int>, unit: SudokuUnit? = nil) -> HintComponent where S.Element == Puzzle.Index {
+        stamped(.eliminated, positions, candidates: candidates, unit: unit)
+    }
+
+    /// Snapshots each cell's facts from the board.
+    private static func snapshot<S: Sequence>(
+        _ role: Role,
+        _ positions: S,
+        in state: BoardState,
+        unit: SudokuUnit?
+    ) -> HintComponent where S.Element == Puzzle.Index {
+        HintComponent(role: role, cells: positions.map { CellFact($0, in: state) }, unit: unit)
+    }
+
+    /// Stamps every cell with the same fixed candidate set.
+    private static func stamped<S: Sequence>(
+        _ role: Role,
+        _ positions: S,
+        candidates: Set<Int>,
+        unit: SudokuUnit?
+    ) -> HintComponent where S.Element == Puzzle.Index {
+        HintComponent(
+            role: role,
+            cells: positions.map { CellFact(position: $0, candidates: candidates) },
+            unit: unit
         )
     }
 }

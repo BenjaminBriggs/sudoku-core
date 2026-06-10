@@ -176,17 +176,7 @@ extension HintFinder {
                     return HintStep(
                         actions: removals,
                         technique: technique,
-                        explanation: wingExplanation(
-                            type: type,
-                            technique: technique,
-                            pivot: (pivotPos, pivotCandidates),
-                            wingA: (wingAPos, wingACandidates),
-                            wingB: (wingBPos, wingBCandidates),
-                            eliminationDigit: eliminationDigit,
-                            eliminationCells: eliminationCells,
-                            state: state
-                        ),
-                        reasoning: .make(
+                        reasoning: HintReasoning(
                             actions: removals,
                             focusDigits: [eliminationDigit],
                             components: [
@@ -195,7 +185,7 @@ extension HintFinder {
                                     CellFact(position: wingAPos, candidates: wingACandidates),
                                     CellFact(position: wingBPos, candidates: wingBCandidates)
                                 ]),
-                                .make(.eliminated, eliminationCells, candidates: [eliminationDigit])
+                                .eliminated(eliminationCells, candidates: [eliminationDigit])
                             ]
                         )
                     )
@@ -395,132 +385,4 @@ extension HintFinder {
     }
 
     // MARK: - Explanation Generation
-
-    /// Generates a multi-step explanation for a wing pattern elimination.
-    ///
-    /// Produces four explanation steps:
-    /// 1. Identifies the three-cell pattern with labelled highlights (Pivot, Wing A, Wing B).
-    /// 2. Explains the candidate-sharing logic, varying by wing type.
-    /// 3. Describes why the elimination digit must appear in at least one wing.
-    /// 4. Shows the elimination cells highlighted with `.warning`.
-    ///
-    /// - Parameters:
-    ///   - type: The wing pattern variant.
-    ///   - technique: The `HintTechnique` to reference in the explanation.
-    ///   - pivot: The pivot cell position and its candidates.
-    ///   - wingA: The first wing cell position and its candidates.
-    ///   - wingB: The second wing cell position and its candidates.
-    ///   - eliminationDigit: The digit to be eliminated from affected cells.
-    ///   - eliminationCells: The set of cell positions where the digit can be removed.
-    ///   - state: The current board state snapshot.
-    /// - Returns: An array of `HintExplanationStep` values describing the wing pattern.
-    private static func wingExplanation(
-        type: WingType,
-        technique: HintTechnique,
-        pivot: (pos: Puzzle.Index, candidates: Set<Int>),
-        wingA: (pos: Puzzle.Index, candidates: Set<Int>),
-        wingB: (pos: Puzzle.Index, candidates: Set<Int>),
-        eliminationDigit: Int,
-        eliminationCells: Set<Puzzle.Index>,
-        state: BoardState
-    ) -> [HintExplanationStep] {
-        let (pivotPos, pivotCandidates) = pivot
-        let (wingAPos, wingACandidates) = wingA
-        let (wingBPos, wingBCandidates) = wingB
-
-        var steps: [HintExplanationStep] = []
-
-        // Wing name
-        let wingName: LocalizedStringResource
-        switch type {
-        case .xy:
-            wingName = LocalizedStringResource("XY-Wing", bundle: .module)
-        case .y:
-            wingName = LocalizedStringResource("Y-Wing", bundle: .module)
-        case .xyz:
-            wingName = LocalizedStringResource("XYZ-Wing", bundle: .module)
-        }
-
-        // Step 1: Identify the pattern
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Look at these three cells forming a \(wingName) pattern:", bundle: .module),
-                highlightedCells: [
-                    HintExplanationStepHighlight(
-                        cell: pivotPos,
-                        label: "Pivot",
-                        candidates: state.pencilMarks[pivotPos.row][pivotPos.column]
-                    ),
-                    HintExplanationStepHighlight(
-                        cell: wingAPos,
-                        label: "Wing A",
-                        candidates: state.pencilMarks[wingAPos.row][wingAPos.column]
-                    ),
-                    HintExplanationStepHighlight(
-                        cell: wingBPos,
-                        label: "Wing B",
-                        candidates: state.pencilMarks[wingBPos.row][wingBPos.column]
-                    )
-                ]
-            )
-        )
-
-        // Step 2: Explain the pattern logic (type-specific)
-        let logicText: LocalizedStringResource
-        switch type {
-        case .xy, .y:
-            logicText = LocalizedStringResource("The pivot cell shares one candidate with each wing. Both wings contain \(eliminationDigit) as their second candidate.", bundle: .module)
-        case .xyz:
-            logicText = LocalizedStringResource("The pivot cell has 3 candidates. Each wing shares one candidate with the pivot, and both wings share \(eliminationDigit) as their second candidate.", bundle: .module)
-        }
-
-        steps.append(
-            HintExplanationStep(
-                text: logicText,
-                highlightedCells: [
-                    HintExplanationStepHighlight(cell: pivotPos, label: "Pivot", candidates: pivotCandidates),
-                    HintExplanationStepHighlight(cell: wingAPos, label: "Wing A", candidates: wingACandidates),
-                    HintExplanationStepHighlight(cell: wingBPos, label: "Wing B", candidates: wingBCandidates)
-                ]
-            )
-        )
-
-        // Step 3: Explain the elimination
-        let eliminationText: LocalizedStringResource
-        if case .xyz = type {
-            eliminationText = LocalizedStringResource("No matter which value goes in the pivot, at least one of the wings must contain \(eliminationDigit).", bundle: .module)
-        } else {
-            eliminationText = LocalizedStringResource("Either way, \(eliminationDigit) must appear in one of the wing cells.", bundle: .module)
-        }
-
-        steps.append(
-            HintExplanationStep(
-                text: eliminationText,
-                highlightedCells: [
-                    HintExplanationStepHighlight(cell: pivotPos, candidates: pivotCandidates),
-                    HintExplanationStepHighlight(cell: wingAPos, candidates: wingACandidates),
-                    HintExplanationStepHighlight(cell: wingBPos, candidates: wingBCandidates)
-                ]
-            )
-        )
-
-        // Step 4: Show eliminations
-        let seeText: LocalizedStringResource
-        if case .xyz = type {
-            seeText = LocalizedStringResource("Therefore, \(eliminationDigit) can be removed from any cell that sees all three cells in the pattern.", bundle: .module)
-        } else {
-            seeText = LocalizedStringResource("Therefore, \(eliminationDigit) can be removed from any cell that sees both wings.", bundle: .module)
-        }
-
-        steps.append(
-            HintExplanationStep(
-                text: seeText,
-                highlightedCells: eliminationCells.map { cell in
-                    HintExplanationStepHighlight(cell: cell, highlightType: .warning)
-                }
-            )
-        )
-
-        return steps
-    }
 }

@@ -60,21 +60,24 @@ extension HintFinder {
                 else { continue }
 
                 let actions = [HintAction(position: position, solveAs: digit)]
+                // The cells already holding `digit` elsewhere that force it into `position` —
+                // a fact of the deduction, captured so presentation can narrate it.
+                let restrictions = cellsOfIntrest(
+                    for: position,
+                    with: digit,
+                    in: unit.orientation,
+                    in: state
+                ).restrictions
                 return HintStep(
                     actions: actions,
                     technique: .hiddenSingle,
-                    explanation: hiddenSingleExplanation(
-                        orientation: unit.orientation,
-                        digit: digit,
-                        cellWithDigit: position,
-                        state: state
-                    ),
-                    reasoning: .make(
+                    reasoning: HintReasoning(
                         actions: actions,
                         focusDigits: [digit],
                         units: [unit],
                         components: [
-                            .make(.subject, [position], candidates: [digit], unit: unit)
+                            .subject([position], candidates: [digit], unit: unit),
+                            .constraint(restrictions, in: state)
                         ]
                     )
                 )
@@ -82,114 +85,5 @@ extension HintFinder {
         }
 
         return nil
-    }
-
-    /// Builds the explanation steps for a hidden single hint.
-    ///
-    /// Generates four steps: (1) highlight the unit with `.primary` to show the missing digit,
-    /// (2) show restricting cells with `.secondary`, (3) mark eliminated cells with `.warning`
-    /// to explain why the digit cannot go elsewhere, and (4) place the digit with `.success`.
-    /// - Parameters:
-    ///   - orientation: Whether the unit is a row, column, or box.
-    ///   - digit: The hidden single digit to place.
-    ///   - cellWithDigit: The only cell in the unit where the digit can go.
-    ///   - state: The current board state for context.
-    /// - Returns: An array of `HintExplanationStep` describing the hidden single deduction.
-    private static func hiddenSingleExplanation(
-        orientation: Puzzle.Index.Orientation,
-        digit: Int,
-        cellWithDigit: Puzzle.Index,
-        state: BoardState
-    ) -> [HintExplanationStep] {
-        var steps: [HintExplanationStep] = []
-
-        // Step 1: Draw attention to the unit (row, column, or house)
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("We are missing a \(digit) in this \(orientation.displayName).", bundle: .module),
-                highlightedCells: cellWithDigit.cells(in: orientation).map { cell in
-                    HintExplanationStepHighlight(
-                        cell: cell,
-                        highlightType: .primary
-                    )
-                }
-            )
-        )
-
-        // Step 2: Explain why the other cells can't be the digit
-        let interest = cellsOfIntrest(
-            for: cellWithDigit,
-            with: digit,
-            in: orientation,
-            in: state
-        )
-        if interest.restrictions.isEmpty == false {
-            let text: LocalizedStringResource
-            if interest.restrictions.count == 1 {
-                text = LocalizedStringResource("This \(digit) affects this \(orientation.displayName)", bundle: .module)
-            } else {
-                text = LocalizedStringResource("These \(digit)'s affect this \(orientation.displayName)", bundle: .module)
-            }
-            steps.append(
-                HintExplanationStep(
-                    text: text,
-                    highlightedCells: interest.restrictions.map { cell in
-                        HintExplanationStepHighlight(
-                            cell: cell,
-                            highlightType: .secondary
-                        )
-                    } + cellWithDigit.cells(in: orientation).map { cell in
-                        HintExplanationStepHighlight(
-                            cell: cell,
-                            highlightType: .primary
-                        )
-                    }
-                )
-            )
-        }
-
-        // Step 3: Explain hidden single concept
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("So, the red cells cannot be \(digit).", bundle: .module),
-                highlightedCells: interest.restrictions.map { cell in
-                    HintExplanationStepHighlight(
-                        cell: cell,
-                        highlightType: .secondary
-                    )
-                } + interest.highlighted.map { cell in
-                    HintExplanationStepHighlight(
-                        cell: cell,
-                        highlightType: .warning
-                    )
-                } + [
-                    HintExplanationStepHighlight(
-                        cell: cellWithDigit,
-                        highlightType: .primary
-                    )
-                ] + cellWithDigit.cells(in: orientation).map { cell in
-                    HintExplanationStepHighlight(
-                        cell: cell,
-                        highlightType: .warning
-                    )
-                }
-            )
-        )
-
-        // Step 4: Place the value
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Therefore, this cell must be \(digit).", bundle: .module),
-                highlightedCells: [
-                    HintExplanationStepHighlight(
-                        cell: cellWithDigit,
-                        value: digit,
-                        highlightType: .success
-                    )
-                ]
-            )
-        )
-
-        return steps
     }
 }

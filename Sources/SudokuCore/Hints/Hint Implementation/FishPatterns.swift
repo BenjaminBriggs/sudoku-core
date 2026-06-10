@@ -416,25 +416,14 @@ extension HintFinder {
                     return HintStep(
                         actions: removals,
                         technique: technique,
-                        explanation: fishExplanation(
-                            digit: digit,
-                            fishPositions: fishPositions,
-                            baseLines: Array(fishBaseLines),
-                            crossLines: Array(coreCrossLines),
-                            orientation: baseOrientation,
-                            eliminationCells: eliminationCells,
-                            n: n,
-                            fins: fins,
-                            state: state
-                        ),
-                        reasoning: .make(
+                        reasoning: HintReasoning(
                             actions: removals,
                             focusDigits: [digit],
                             units: fishUnits,
                             components: [
-                                .make(.base, fishPositions.subtracting(fins), candidates: [digit]),
-                                .make(.fin, fins, candidates: [digit]),
-                                .make(.eliminated, eliminationCells, candidates: [digit])
+                                .base(fishPositions.subtracting(fins), candidates: [digit]),
+                                .fin(fins, candidates: [digit]),
+                                .eliminated(eliminationCells, candidates: [digit])
                             ]
                         )
                     )
@@ -443,171 +432,5 @@ extension HintFinder {
         }
 
         return nil
-    }
-
-    /// Builds the localised explanation steps for a fish pattern hint.
-    ///
-    /// Generates 3-6 steps depending on whether fins are present:
-    /// 1. Identify the fish pattern (`.primary` highlights on fish cells).
-    /// 2. Explain the n-base / n-cross constraint (`.action` highlights).
-    /// 3. State the placement implication (`.action` with value highlights).
-    /// 4-5. (Finned only) Show fin cells as `.secondary` and explain restricted eliminations.
-    /// 6. Show eliminations (`.warning` highlights on cells to clear).
-    ///
-    /// - Parameters:
-    ///   - digit: The candidate digit the fish pattern applies to.
-    ///   - fishPositions: The cell positions forming the fish pattern.
-    ///   - baseLines: The base-line indices of the fish.
-    ///   - crossLines: The cross-line indices of the fish.
-    ///   - orientation: Whether the base lines are rows or columns.
-    ///   - eliminationCells: The cells from which the digit will be eliminated.
-    ///   - n: The fish size (2 = X-Wing, 3 = Swordfish, 4 = Jellyfish).
-    ///   - fins: The set of fin cell positions, empty for a perfect fish.
-    ///   - state: The current board state snapshot.
-    /// - Returns: An array of `HintExplanationStep` values describing the pattern.
-    private static func fishExplanation(
-        digit: Int,
-        fishPositions: Set<Puzzle.Index>,
-        baseLines: [Int],
-        crossLines: [Int],
-        orientation: Puzzle.Index.Orientation,
-        eliminationCells: Set<Puzzle.Index>,
-        n: Int,
-        fins: Set<Puzzle.Index> = [],
-        state: BoardState
-    ) -> [HintExplanationStep] {
-        var steps: [HintExplanationStep] = []
-
-        let hasFins = fins.isEmpty == false
-
-        // Determine the fish name and orientations
-        let fishName: LocalizedStringResource
-        switch n {
-        case 2:
-            fishName = hasFins ?
-                LocalizedStringResource("Finned X-Wing", bundle: .module) :
-                LocalizedStringResource("X-Wing", bundle: .module)
-        case 3:
-            fishName = hasFins ?
-                LocalizedStringResource("Finned Swordfish", bundle: .module) :
-                LocalizedStringResource("Swordfish", bundle: .module)
-        case 4:
-            fishName = hasFins ?
-                LocalizedStringResource("Finned Jellyfish", bundle: .module) :
-                LocalizedStringResource("Jellyfish", bundle: .module)
-        default:
-            fishName = hasFins ?
-                LocalizedStringResource("Finned \(n)-Fish", bundle: .module) :
-                LocalizedStringResource("\(n)-Fish", bundle: .module)
-        }
-
-        let baseOrientation = orientation == .row ?
-            LocalizedStringResource("rows", bundle: .module) :
-            LocalizedStringResource("columns", bundle: .module)
-        let crossOrientation = orientation == .row ?
-            LocalizedStringResource("columns", bundle: .module) :
-            LocalizedStringResource("rows", bundle: .module)
-
-        let baseLinesText = baseLines.map { "\($0 + 1)" }.joined(separator: ", ")
-        let crossLinesText = crossLines.map { "\($0 + 1)" }.joined(separator: ", ")
-
-        // Step 1: Identify the fish pattern
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Look at \(baseOrientation) \(baseLinesText) and \(crossOrientation) \(crossLinesText) forming a \(fishName) pattern for digit \(digit):", bundle: .module),
-                highlightedCells: fishPositions.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .primary
-                    )
-                }
-            )
-        )
-
-        // Step 2: Explain the pattern
-        let countName = localisedCountName(n)
-
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("In these \(countName) \(baseOrientation), the digit \(digit) can only appear in \(countName) \(crossOrientation).", bundle: .module),
-                highlightedCells: fishPositions.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-
-        // Step 3: Explain the constraint
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("This means \(digit) must be placed in exactly \(countName) of these cells - one in each \(baseOrientation).", bundle: .module),
-                highlightedCells: fishPositions.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        value: digit,
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-
-        // Step 4: Show fins if present
-        if hasFins {
-            steps.append(
-                HintExplanationStep(
-                    text: LocalizedStringResource("However, this pattern has extra candidates (fins) that prevent it from being a perfect fish:", bundle: .module),
-                    highlightedCells: fins.map { index in
-                        HintExplanationStepHighlight(
-                            cell: index,
-                            candidates: [digit],
-                            highlightType: .secondary
-                        )
-                    }
-                )
-            )
-
-            steps.append(
-                HintExplanationStep(
-                    text: LocalizedStringResource("Because of the fins, eliminations are restricted to cells that can see all fin positions.", bundle: .module),
-                    highlightedCells: fins.map { index in
-                        HintExplanationStepHighlight(
-                            cell: index,
-                            candidates: [digit],
-                            highlightType: .secondary
-                        )
-                    } + fishPositions.subtracting(fins).map { index in
-                        HintExplanationStepHighlight(
-                            cell: index,
-                            candidates: [digit],
-                            highlightType: .primary
-                        )
-                    }
-                )
-            )
-        }
-
-        // Final step: Show the eliminations
-        let eliminationText = hasFins ?
-            LocalizedStringResource("Therefore, \(digit) can be eliminated from cells in the core \(crossOrientation) that see all fins.", bundle: .module) :
-            LocalizedStringResource("Therefore, \(digit) can be eliminated from all other cells in these \(countName) \(crossOrientation).", bundle: .module)
-
-        steps.append(
-            HintExplanationStep(
-                text: eliminationText,
-                highlightedCells: eliminationCells.map { pos in
-                    HintExplanationStepHighlight(
-                        cell: pos,
-                        candidates: [digit],
-                        highlightType: .warning
-                    )
-                }
-            )
-        )
-
-        return steps
     }
 }

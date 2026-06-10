@@ -243,14 +243,11 @@ public struct HintStep: CustomDebugStringConvertible, Sendable {
     /// The technique used for this deduction.
     public let technique: HintTechnique
 
-    /// A human-readable explanation of why this deduction is valid.
-    public let explanation: [HintExplanationStep]
-
     /// Structured, machine-readable record of how this hint was determined.
     ///
-    /// Unlike `explanation` (pre-rendered prose), this captures the logical premises of the
-    /// deduction so the app can validate, re-present, or generatively explain the hint.
-    /// Defaults to an empty value so existing call sites remain valid.
+    /// Captures the logical premises of the deduction so the app can validate, re-present,
+    /// or generatively explain the hint. Presentation (the human-facing explanation) is built
+    /// from this, outside core.
     public let reasoning: HintReasoning
 
     public var debugDescription: String {
@@ -260,55 +257,10 @@ public struct HintStep: CustomDebugStringConvertible, Sendable {
     public init(
         actions: [HintAction],
         technique: HintTechnique,
-        explanation: [HintExplanationStep],
         reasoning: HintReasoning = HintReasoning()
     ) {
         self.actions = actions
         self.technique = technique
-        self.explanation = explanation
         self.reasoning = reasoning
-    }
-}
-
-public struct HintExplanationStep: Sendable {
-    public let text: LocalizedStringResource
-    public let highlightedCells: [HintExplanationStepHighlight]
-    public init(
-        text: LocalizedStringResource,
-        highlightedCells: [HintExplanationStepHighlight]
-    ) {
-        self.text = text
-        self.highlightedCells = highlightedCells
-    }
-}
-
-public struct HintExplanationStepHighlight: Sendable {
-    public let cell: Puzzle.Index
-    public let value: Int?
-    public let label: LocalizedStringResource?
-    public let candidates: Set<Int>?
-    public let highlightType: HighlightType
-
-    public enum HighlightType: String, Sendable {
-        case none        // No highlighting
-        case primary     // Main cells being highlighted
-        case secondary   // Supporting cells
-        case action      // Cells that will be changed
-        case warning     // Cells with issues
-        case success     // Cells with positive outcomes
-    }
-
-    public init(
-        cell: Puzzle.Index,
-        value: Int? = nil,
-        label: LocalizedStringResource? = nil,
-        candidates: Set<Int>? = nil,
-        highlightType: HighlightType = .none
-    ) {
-        self.cell = cell
-        self.value = value
-        self.label = label
-        self.candidates = candidates
-        self.highlightType = highlightType
     }
 }

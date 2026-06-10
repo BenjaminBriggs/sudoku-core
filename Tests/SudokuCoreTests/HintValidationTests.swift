@@ -82,7 +82,7 @@ struct HintValidationTests {
         #expect(hint != nil, "Should detect row conflict")
         if let hint {
             #expect(hint.technique == .validation, "Technique should be validation")
-            #expect(hint.explanation.count >= 2, "Row conflict should have at least 2 explanation steps")
+            #expect(hint.reasoning.components.isEmpty == false, "Row conflict should record conflict reasoning")
 
             let affectedPositions = Set(hint.actions.map(\.position))
             #expect(
@@ -113,7 +113,7 @@ struct HintValidationTests {
         #expect(hint != nil, "Should detect column conflict")
         if let hint {
             #expect(hint.technique == .validation, "Technique should be validation")
-            #expect(hint.explanation.count >= 2, "Column conflict should have at least 2 explanation steps")
+            #expect(hint.reasoning.components.isEmpty == false, "Column conflict should record conflict reasoning")
 
             let affectedPositions = Set(hint.actions.map(\.position))
             #expect(
@@ -142,7 +142,7 @@ struct HintValidationTests {
         #expect(hint != nil, "Should detect box conflict")
         if let hint {
             #expect(hint.technique == .validation, "Technique should be validation")
-            #expect(hint.explanation.count >= 2, "Box conflict should have at least 2 explanation steps")
+            #expect(hint.reasoning.components.isEmpty == false, "Box conflict should record conflict reasoning")
 
             let affectedPositions = Set(hint.actions.map(\.position))
             let expected: Set<Puzzle.Index> = [
@@ -178,7 +178,7 @@ struct HintValidationTests {
                 hint.actions[0].position == Puzzle.Index(row: 0, column: 0),
                 "Should target the cell with the wrong value"
             )
-            #expect(hint.explanation.count == 2, "Solution mismatch should have exactly 2 explanation steps")
+            #expect(hint.reasoning.focusDigits.isEmpty == false, "Solution mismatch should record the correct value in reasoning")
         }
     }
 

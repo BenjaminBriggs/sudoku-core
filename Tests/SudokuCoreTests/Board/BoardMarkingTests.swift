@@ -178,8 +178,7 @@ struct BoardMarkingTests {
                 HintAction(position: solvePos, solveAs: 9),
                 HintAction(position: ruleOutPos, ruleOut: 4),
             ],
-            technique: .nakedSingle,
-            explanation: []
+            technique: .nakedSingle
         )
         board.apply(hint: hint)
         #expect(board.cells != cellsBeforeHint)

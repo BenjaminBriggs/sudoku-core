@@ -79,20 +79,13 @@ extension HintFinder {
                         return HintStep(
                             actions: removals,
                             technique: .lockedCandidatesClaiming,
-                            explanation: lockedCandidatesClaimingExplanation(
-                                orientation: unit.orientation,
-                                digit: digit,
-                                cellsInRowOrColumn: Set(candidates),
-                                boxCellsToRemoveDigit: cellsToRemoveFrom,
-                                state: state
-                            ),
-                            reasoning: .make(
+                            reasoning: HintReasoning(
                                 actions: removals,
                                 focusDigits: [digit],
                                 units: [unit, .house(boxIndex)],
                                 components: [
-                                    .make(.base, Set(candidates), candidates: [digit], unit: unit),
-                                    .make(.eliminated, cellsToRemoveFrom, candidates: [digit], unit: .house(boxIndex))
+                                    .base(Set(candidates), candidates: [digit], unit: unit),
+                                    .eliminated(cellsToRemoveFrom, candidates: [digit], unit: .house(boxIndex))
                                 ]
                             )
                         )
@@ -124,78 +117,5 @@ extension HintFinder {
         }
 
         return firstBoxIndex
-    }
-    
-    /// Builds a multi-step explanation for a Locked Candidates Claiming hint.
-    ///
-    /// Generates three explanation steps:
-    /// 1. All candidates for the digit in the row/column fall within one box (primary highlight).
-    /// 2. The digit must be in one of those cells, so it cannot appear elsewhere in the box (primary + warning).
-    /// 3. Concludes with the candidates to remove from the box (warning highlight).
-    /// - Parameters:
-    ///   - orientation: Whether the claiming pattern was found along a row or column.
-    ///   - digit: The candidate digit confined to a single box within the unit.
-    ///   - cellsInRowOrColumn: The cells in the row or column where the digit appears as a candidate.
-    ///   - boxCellsToRemoveDigit: The cells in the box (outside the unit) that will have the digit eliminated.
-    ///   - state: An immutable snapshot of the current board.
-    /// - Returns: An array of `HintExplanationStep` values for progressive disclosure in the UI.
-    private static func lockedCandidatesClaimingExplanation(
-        orientation: Puzzle.Index.Orientation,
-        digit: Int,
-        cellsInRowOrColumn: Set<Puzzle.Index>,
-        boxCellsToRemoveDigit: Set<Puzzle.Index>,
-        state: BoardState
-    ) -> [HintExplanationStep] {
-        var steps: [HintExplanationStep] = []
-        
-        // Step 1: Introduce the concept
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("In this \(orientation.displayName), all candidates for digit \(digit) are in the same house.", bundle: .module),
-                highlightedCells: cellsInRowOrColumn.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .primary
-                    )
-                }
-            )
-        )
-        
-        // Step 2: Explain the implication
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Since \(digit) must be in one of these cells, it can't appear elsewhere in this house.", bundle: .module),
-                highlightedCells: cellsInRowOrColumn.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .primary
-                    )
-                } + boxCellsToRemoveDigit.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .warning
-                    )
-                }
-            )
-        )
-        
-        // Step 3: Show the candidates to remove
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Remove \(digit) as a candidate from these cells in the same house.", bundle: .module),
-                highlightedCells: boxCellsToRemoveDigit.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .warning
-                    )
-                }
-            )
-        )
-        
-        return steps
     }
 }

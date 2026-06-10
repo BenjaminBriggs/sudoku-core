@@ -124,21 +124,13 @@ extension HintFinder {
                     return HintStep(
                         actions: removals,
                         technique: technique,
-                        explanation: nakedSubsetExplanation(
-                            indices: subsetPositions,
-                            digits: Array(allCandidates).sorted(),
-                            orientation: unit.orientation,
-                            excludeIndices: excludeIndices,
-                            n: n,
-                            state: state
-                        ),
-                        reasoning: .make(
+                        reasoning: HintReasoning(
                             actions: removals,
                             focusDigits: Array(allCandidates).sorted(),
                             units: [unit],
                             components: [
-                                .make(.subset, subsetPositions, in: state, unit: unit),
-                                .make(.eliminated, excludeIndices, in: state, unit: unit)
+                                .subset(subsetPositions, in: state, unit: unit),
+                                .eliminated(excludeIndices, in: state, unit: unit)
                             ]
                         )
                     )
@@ -147,87 +139,5 @@ extension HintFinder {
         }
 
         return nil
-    }
-
-    /// Builds the explanation steps for a naked subset hint.
-    ///
-    /// Generates three steps: (1) highlight the subset cells with `.primary`, (2) show their
-    /// shared candidates with `.action` to explain the constraint, and (3) highlight affected
-    /// cells with `.warning` to show which candidates will be removed.
-    /// - Parameters:
-    ///   - indices: The positions of the cells forming the naked subset.
-    ///   - digits: The sorted list of shared candidate digits.
-    ///   - orientation: Whether this is a row, column, or box.
-    ///   - excludeIndices: Other cells in the unit that have candidates to remove.
-    ///   - n: The subset size (2, 3, or 4).
-    ///   - state: The current board state for pencil mark lookups.
-    /// - Returns: An array of `HintExplanationStep` describing the naked subset deduction.
-    private static func nakedSubsetExplanation(
-        indices: Set<Puzzle.Index>,
-        digits: [Int],
-        orientation: Puzzle.Index.Orientation,
-        excludeIndices: Set<Puzzle.Index>,
-        n: Int,
-        state: BoardState
-    ) -> [HintExplanationStep] {
-        var steps: [HintExplanationStep] = []
-
-        let subsetName = localisedCountName(n)
-
-        // Step 1: Identify the naked subset
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource(
-                    "Look at these \(subsetName) cells in the same \(orientation.displayName). Together, they contain only \(subsetName) candidates: \(digits.formattedList()).",
-                    bundle: .module),
-                highlightedCells: indices.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        highlightType: .primary
-                    )
-                }
-            )
-        )
-
-        // Step 2: Explain the constraint
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource(
-                    "These \(subsetName) digits (\(digits.formattedList())) must go in these \(subsetName) cells, though we don't know the exact arrangement yet.",
-                    bundle: .module),
-                highlightedCells: indices.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: state.pencilMarks[index.row][index.column],
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-
-        // Step 3: Show the implications
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource(
-                    "This means \(digits.formattedList()) cannot appear in any other cells in this \(orientation.displayName).",
-                    bundle: .module),
-                highlightedCells: indices.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: state.pencilMarks[index.row][index.column],
-                        highlightType: .action
-                    )
-                }
-                    + excludeIndices.map { index in
-                        HintExplanationStepHighlight(
-                            cell: index,
-                            candidates: state.pencilMarks[index.row][index.column],
-                            highlightType: .warning
-                        )
-                    }
-            )
-        )
-
-        return steps
     }
 }

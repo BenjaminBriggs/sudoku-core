@@ -52,19 +52,6 @@ extension HintFinder {
         return state.pencilMarks[row][col]
     }
 
-    /// Returns a localised word for the count (e.g. 2 -> "two", 3 -> "three").
-    ///
-    /// - Parameter n: The numeric count to convert.
-    /// - Returns: A `LocalizedStringResource` containing the word form of the count.
-    static func localisedCountName(_ n: Int) -> LocalizedStringResource {
-        switch n {
-        case 2: return LocalizedStringResource("two", bundle: .module)
-        case 3: return LocalizedStringResource("three", bundle: .module)
-        case 4: return LocalizedStringResource("four", bundle: .module)
-        default: return LocalizedStringResource("\(n)", bundle: .module)
-        }
-    }
-
     /// Get all constraining cells for a position using pre-computed lookup table.
     ///
     /// - Parameter position: The cell position to look up neighbours for.

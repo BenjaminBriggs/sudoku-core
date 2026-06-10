@@ -13,9 +13,8 @@ public enum SolvePathEmitter {
         public let actions: [HintAction]
         public let eliminations: Int
         public let placements: Int
-        public let explanationSteps: Int
 
-        public init(technique: HintTechnique, actions: [HintAction], explanationSteps: Int) {
+        public init(technique: HintTechnique, actions: [HintAction]) {
             self.technique = technique
             self.actions = actions
             self.eliminations = actions.reduce(0) { acc, a in
@@ -24,7 +23,6 @@ public enum SolvePathEmitter {
             self.placements = actions.reduce(0) { acc, a in
                 if case .solveAs = a.action { return acc + 1 } else { return acc }
             }
-            self.explanationSteps = explanationSteps
         }
     }
 
@@ -53,8 +51,7 @@ public enum SolvePathEmitter {
             guard let hint = HintFinder.firstHint(in: state) else { break }
             let step = SolveStep(
                 technique: hint.technique,
-                actions: hint.actions,
-                explanationSteps: hint.explanation.count
+                actions: hint.actions
             )
             steps.append(step)
             state = state.applying(hint)

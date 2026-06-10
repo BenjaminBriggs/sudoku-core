@@ -39,19 +39,13 @@ extension HintFinder {
                 return HintStep(
                     actions: actions,
                     technique: .nakedSingle,
-                    explanation: nakedSingleExplanation(
-                        index: position,
-                        digit: digit,
-                        influence: influence,
-                        state: state
-                    ),
-                    reasoning: .make(
+                    reasoning: HintReasoning(
                         actions: actions,
                         focusDigits: [digit],
                         units: [.row(row), .column(col), .house(position.houseNumber)],
                         components: [
-                            .make(.subject, [position], candidates: [digit]),
-                            .make(.constraint, influence.filter { state.grid[$0.row][$0.column] != 0 }, in: state)
+                            .subject([position], candidates: [digit]),
+                            .constraint(influence.filter { state.grid[$0.row][$0.column] != 0 }, in: state)
                         ]
                     )
                 )
@@ -59,75 +53,6 @@ extension HintFinder {
         }
 
         return nil
-    }
-    
-    /// Builds the explanation steps for a naked single hint.
-    ///
-    /// Generates up to three steps: (1) highlight the cell with `.primary`, (2) show the
-    /// neighbouring constraints with `.secondary` to explain why all other digits are eliminated,
-    /// and (3) place the digit with `.success`.
-    /// - Parameters:
-    ///   - index: The position of the naked single cell.
-    ///   - digit: The sole remaining candidate to place.
-    ///   - influence: The set of neighbouring cells that constrain this cell.
-    ///   - state: The current board state for context.
-    /// - Returns: An array of `HintExplanationStep` describing the naked single deduction.
-    private static func nakedSingleExplanation(
-        index: Puzzle.Index,
-        digit: Int,
-        influence: Set<Puzzle.Index> = [],
-        state: BoardState
-    ) -> [HintExplanationStep] {
-        var steps: [HintExplanationStep] = []
-        
-        // Step 1: Identify the cell with only one candidate
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("This cell only has one candidate", bundle: .module),
-                highlightedCells: [
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        highlightType: .primary
-                    )
-                ]
-            )
-        )
-        
-        // Step 2: Show the constraints if provided
-        if influence.isEmpty == false {
-            steps.append(
-                HintExplanationStep(
-                    text: LocalizedStringResource("We can rule out every other number by looking at the row, column, or box that affect this cell. Leaving \(digit) the only remaining option", bundle: .module),
-                    highlightedCells: [
-                        HintExplanationStepHighlight(
-                            cell: index,
-                            highlightType: .primary
-                        )
-                    ] + influence.map { constraint in
-                        HintExplanationStepHighlight(
-                            cell: constraint,
-                            highlightType: .secondary
-                        )
-                    }
-                )
-            )
-        }
-        
-        // Step 3: Place the value
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Therefore, this cell must be \(digit).", bundle: .module),
-                highlightedCells: [
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        value: digit,
-                        highlightType: .success
-                    )
-                ]
-            )
-        )
-        
-        return steps
     }
 }
 

@@ -48,7 +48,6 @@ extension HintFinder {
         // Use array instead of dictionary for digit->cells mapping (digits 1-9)
         // Index 0 is unused, indices 1-9 correspond to digits 1-9
         var digitToCells: [Set<Puzzle.Index>] = Array(repeating: Set<Puzzle.Index>(), count: 10)
-        let unitCells = Set(unit.positions)
 
         // Pre-compute grid and pencil marks for faster access
         let grid = state.grid
@@ -122,15 +121,7 @@ extension HintFinder {
                     return HintStep(
                         actions: removals,
                         technique: technique,
-                        explanation: hiddenSubsetExplanation(
-                            indices: unionCells,
-                            digits: digitCombo.sorted(),
-                            orientation: unit.orientation,
-                            unitCells: unitCells,
-                            n: n,
-                            state: state
-                        ),
-                        reasoning: .make(
+                        reasoning: HintReasoning(
                             actions: removals,
                             focusDigits: digitCombo.sorted(),
                             units: [unit],
@@ -138,7 +129,7 @@ extension HintFinder {
                             // `.subset` component (carrying each cell's real pencil marks) captures
                             // the pattern; the eliminations themselves are in `reasoning.eliminations`.
                             components: [
-                                .make(.subset, unionCells, in: state, unit: unit)
+                                .subset(unionCells, in: state, unit: unit)
                             ]
                         )
                     )
@@ -147,76 +138,5 @@ extension HintFinder {
         }
 
         return nil
-    }
-
-    /// Builds the explanation steps for a hidden subset hint.
-    ///
-    /// Generates three steps: (1) highlight the entire unit with `.primary` to focus attention,
-    /// (2) show the subset cells with `.action` to identify where the hidden digits appear,
-    /// and (3) mark non-subset candidates in those cells with `.warning` to show what will be removed.
-    /// - Parameters:
-    ///   - indices: The positions of the cells forming the hidden subset.
-    ///   - digits: The sorted list of hidden subset digits.
-    ///   - orientation: Whether this is a row, column, or box.
-    ///   - unitCells: All cells in the unit, used for the initial highlight.
-    ///   - n: The subset size (2, 3, or 4).
-    ///   - state: The current board state for pencil mark lookups.
-    /// - Returns: An array of `HintExplanationStep` describing the hidden subset deduction.
-    private static func hiddenSubsetExplanation(
-        indices: Set<Puzzle.Index>,
-        digits: [Int],
-        orientation: Puzzle.Index.Orientation,
-        unitCells: Set<Puzzle.Index>,
-        n: Int,
-        state: BoardState
-    ) -> [HintExplanationStep] {
-        var steps: [HintExplanationStep] = []
-
-        let subsetName = localisedCountName(n)
-
-        // Step 1: Focus on the unit
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Look at this \(orientation.displayName). Pay attention to where digits \(digits.formattedList()) can appear.", bundle: .module),
-                highlightedCells: unitCells.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        highlightType: .primary
-                    )
-                }
-            )
-        )
-
-        // Step 2: Identify the hidden subset
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("The digits \(digits.formattedList()) can only appear in these \(subsetName) cells in this \(orientation.displayName).", bundle: .module),
-                highlightedCells: indices.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: Set(digits),
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-
-        // Step 3: Show the implications
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Since these \(subsetName) cells must contain \(digits.formattedList()), we can remove all other candidates from them.", bundle: .module),
-                highlightedCells: indices.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: state
-                            .pencilMarks[index.row][index.column]
-                            .subtracting(Set(digits)),
-                        highlightType: .warning
-                    )
-                }
-            )
-        )
-
-        return steps
     }
 }

@@ -44,7 +44,10 @@ let package = Package(
                 .product(name: "Benchmark", package: "package-benchmark")
             ],
             path: "Benchmarks/SudokuCoreBenchmarks",
-            swiftSettings: [
+            linkerSettings: [
+                // jemalloc (via package-benchmark) is a Homebrew dylib built for the host's
+                // current macOS, which is newer than this package's deployment target. Silence
+                // the resulting "built for newer version" version-mismatch linker warning.
                 .unsafeFlags(["-Xlinker", "-w"])
             ],
             plugins: [

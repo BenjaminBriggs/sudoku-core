@@ -145,15 +145,7 @@ extension HintFinder {
                                 return HintStep(
                                     actions: removals,
                                     technique: .skyscraper,
-                                    explanation: skyscraperExplanation(
-                                        digit: digit,
-                                        skyscraperPositions: skyscraperPositions,
-                                        endPositions: [end1Pos, end2Pos],
-                                        orientation: baseOrientation,
-                                        eliminationCells: eliminationCells,
-                                        state: state
-                                    ),
-                                    reasoning: .make(
+                                    reasoning: HintReasoning(
                                         actions: removals,
                                         focusDigits: [digit],
                                         units: [
@@ -161,9 +153,9 @@ extension HintFinder {
                                             SudokuUnit(orientation: baseOrientation, index: baseLine2)
                                         ],
                                         components: [
-                                            .make(.base, skyscraperPositions.subtracting(roof), candidates: [digit]),
-                                            .make(.wing, roof, candidates: [digit]),
-                                            .make(.eliminated, eliminationCells, candidates: [digit])
+                                            .base(skyscraperPositions.subtracting(roof), candidates: [digit]),
+                                            .wing(roof, candidates: [digit]),
+                                            .eliminated(eliminationCells, candidates: [digit])
                                         ]
                                     )
                                 )
@@ -175,98 +167,5 @@ extension HintFinder {
         }
 
         return nil
-    }
-    
-    /// Generates a multi-step explanation for a Skyscraper elimination.
-    ///
-    /// Produces four explanation steps:
-    /// 1. Highlights all four skyscraper cells with `.primary` to identify the pattern.
-    /// 2. Describes how the digit appears exactly twice in two base lines with `.action` highlights.
-    /// 3. Highlights the two roof endpoints with `.action` and explains one must contain the digit.
-    /// 4. Shows elimination cells with `.warning` alongside roof cells with `.action`.
-    /// - Parameters:
-    ///   - digit: The candidate digit involved in the Skyscraper pattern.
-    ///   - skyscraperPositions: The four cells forming the Skyscraper (two base cells and two roof cells).
-    ///   - endPositions: The two roof endpoint cells of the Skyscraper.
-    ///   - orientation: Whether the base lines are rows or columns.
-    ///   - eliminationCells: The cells that can see both roof endpoints and will have the digit eliminated.
-    ///   - state: An immutable snapshot of the current board.
-    /// - Returns: An array of `HintExplanationStep` values for progressive disclosure in the UI.
-    private static func skyscraperExplanation(
-        digit: Int,
-        skyscraperPositions: Set<Puzzle.Index>,
-        endPositions: [Puzzle.Index],
-        orientation: Puzzle.Index.Orientation,
-        eliminationCells: Set<Puzzle.Index>,
-        state: BoardState
-    ) -> [HintExplanationStep] {
-        var steps: [HintExplanationStep] = []
-        
-        // Step 1: Identify the Skyscraper pattern
-        let baseText = orientation == .row ? LocalizedStringResource("rows", bundle: .module) : LocalizedStringResource("columns", bundle: .module)
-        let crossText = orientation == .row ? LocalizedStringResource("columns", bundle: .module) : LocalizedStringResource("rows", bundle: .module)
-
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Look at these cells forming a Skyscraper pattern for digit \(digit):", bundle: .module),
-                highlightedCells: skyscraperPositions.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .primary
-                    )
-                }
-            )
-        )
-        
-        // Step 2: Explain the pattern
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("The digit \(digit) appears exactly twice in two different \(baseText), with one candidate in each \(baseText) sharing the same \(crossText).", bundle: .module),
-                highlightedCells: skyscraperPositions.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-        
-        // Step 3: Highlight the roof endpoints
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("These two cells form the 'roof' of the Skyscraper. One of these cells must contain \(digit).", bundle: .module),
-                highlightedCells: endPositions.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-        
-        // Step 4: Show the implications
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Any cell that can see both 'roof' cells cannot contain \(digit), as this would create a contradiction.", bundle: .module),
-                highlightedCells: eliminationCells.map { pos in
-                    HintExplanationStepHighlight(
-                        cell: pos,
-                        candidates: [digit],
-                        highlightType: .warning
-                    )
-                } + endPositions.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-        
-        return steps
     }
 }

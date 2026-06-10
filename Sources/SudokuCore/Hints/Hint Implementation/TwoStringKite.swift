@@ -77,21 +77,14 @@ extension HintFinder {
                                     return HintStep(
                                         actions: removals,
                                         technique: .twoStringKite,
-                                        explanation: twoStringKiteExplanation(
-                                            digit: digit,
-                                            allPositions: allFour,
-                                            tipPositions: [rowTip, colTip],
-                                            boxPositions: [rowEndpoint, colEndpoint],
-                                            eliminationCells: eliminationCells
-                                        ),
-                                        reasoning: .make(
+                                        reasoning: HintReasoning(
                                             actions: removals,
                                             focusDigits: [digit],
                                             units: [.row(rowLink.cellA.row), .column(colLink.cellA.column), .house(rowEndpoint.houseNumber)],
                                             components: [
-                                                .make(.base, [rowEndpoint, colEndpoint], candidates: [digit]),
-                                                .make(.wing, [rowTip, colTip], candidates: [digit]),
-                                                .make(.eliminated, eliminationCells, candidates: [digit])
+                                                .base([rowEndpoint, colEndpoint], candidates: [digit]),
+                                                .wing([rowTip, colTip], candidates: [digit]),
+                                                .eliminated(eliminationCells, candidates: [digit])
                                             ]
                                         )
                                     )
@@ -104,88 +97,5 @@ extension HintFinder {
         }
 
         return nil
-    }
-
-    /// Generates a multi-step explanation for a Two-String Kite elimination.
-    ///
-    /// - Parameters:
-    ///   - digit: The candidate digit involved.
-    ///   - allPositions: All four cells forming the kite.
-    ///   - tipPositions: The two kite tip cells.
-    ///   - boxPositions: The two cells sharing a box.
-    ///   - eliminationCells: Cells that will have the digit eliminated.
-    /// - Returns: An array of `HintExplanationStep` values.
-    private static func twoStringKiteExplanation(
-        digit: Int,
-        allPositions: Set<Puzzle.Index>,
-        tipPositions: [Puzzle.Index],
-        boxPositions: [Puzzle.Index],
-        eliminationCells: Set<Puzzle.Index>
-    ) -> [HintExplanationStep] {
-        var steps: [HintExplanationStep] = []
-
-        // Step 1: Identify the pattern
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Look at these cells forming a Two-String Kite pattern for digit \(digit):", bundle: .module),
-                highlightedCells: allPositions.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .primary
-                    )
-                }
-            )
-        )
-
-        // Step 2: Explain the strong links
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Digit \(digit) appears exactly twice in a row and exactly twice in a column, with one cell from each sharing the same box.", bundle: .module),
-                highlightedCells: allPositions.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-
-        // Step 3: Highlight the kite tips
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("One of these two cells must contain \(digit).", bundle: .module),
-                highlightedCells: tipPositions.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-
-        // Step 4: Show eliminations
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Any cell that can see both of these cells cannot contain \(digit).", bundle: .module),
-                highlightedCells: eliminationCells.map { pos in
-                    HintExplanationStepHighlight(
-                        cell: pos,
-                        candidates: [digit],
-                        highlightType: .warning
-                    )
-                } + tipPositions.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-
-        return steps
     }
 }

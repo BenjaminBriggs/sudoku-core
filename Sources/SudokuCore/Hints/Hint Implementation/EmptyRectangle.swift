@@ -138,12 +138,6 @@ extension HintFinder {
                         return HintStep(
                             actions: actions,
                             technique: .emptyRectangle,
-                            explanation: emptyRectangleExplanation(
-                                digit: digit,
-                                boxCandidates: candidatePositions,
-                                strongLink: [connectingCell, otherLinkCell],
-                                eliminationCell: target
-                            ),
                             reasoning: emptyRectangleReasoning(
                                 actions: actions,
                                 digit: digit,
@@ -209,12 +203,6 @@ extension HintFinder {
                         return HintStep(
                             actions: actions,
                             technique: .emptyRectangle,
-                            explanation: emptyRectangleExplanation(
-                                digit: digit,
-                                boxCandidates: candidatePositions,
-                                strongLink: [connectingCell, otherLinkCell],
-                                eliminationCell: target
-                            ),
                             reasoning: emptyRectangleReasoning(
                                 actions: actions,
                                 digit: digit,
@@ -242,102 +230,15 @@ extension HintFinder {
         if let boxCell = boxCandidates.first {
             units.append(.house(boxCell.houseNumber))
         }
-        return .make(
+        return HintReasoning(
             actions: actions,
             focusDigits: [digit],
             units: units,
             components: [
-                .make(.base, boxCandidates, candidates: [digit]),
-                .make(.constraint, strongLink, candidates: [digit]),
-                .make(.eliminated, [eliminationCell], candidates: [digit])
+                .base(boxCandidates, candidates: [digit]),
+                .constraint(strongLink, candidates: [digit]),
+                .eliminated([eliminationCell], candidates: [digit])
             ]
         )
-    }
-
-    /// Generates a multi-step explanation for an Empty Rectangle elimination.
-    ///
-    /// - Parameters:
-    ///   - digit: The candidate digit involved.
-    ///   - boxCandidates: The candidate positions in the ER box.
-    ///   - strongLink: The two cells forming the conjugate pair.
-    ///   - eliminationCell: The cell from which the digit will be eliminated.
-    /// - Returns: An array of `HintExplanationStep` values.
-    private static func emptyRectangleExplanation(
-        digit: Int,
-        boxCandidates: [Puzzle.Index],
-        strongLink: [Puzzle.Index],
-        eliminationCell: Puzzle.Index
-    ) -> [HintExplanationStep] {
-        var steps: [HintExplanationStep] = []
-
-        // Step 1: Identify the ER box
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Look at the candidates for digit \(digit) in this box — they form an Empty Rectangle pattern.", bundle: .module),
-                highlightedCells: boxCandidates.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .primary
-                    )
-                }
-            )
-        )
-
-        // Step 2: Show the strong link
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("There is also a strong link for \(digit) — it appears exactly twice in this line.", bundle: .module),
-                highlightedCells: strongLink.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-
-        // Step 3: Explain the logic
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("One end of the strong link aligns with the rectangle. If \(digit) is not at that end, the rectangle forces \(digit) into a position that eliminates it from the target cell.", bundle: .module),
-                highlightedCells: strongLink.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .action
-                    )
-                } + boxCandidates.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .primary
-                    )
-                }
-            )
-        )
-
-        // Step 4: Show elimination
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Therefore, \(digit) can be eliminated from this cell.", bundle: .module),
-                highlightedCells: [
-                    HintExplanationStepHighlight(
-                        cell: eliminationCell,
-                        candidates: [digit],
-                        highlightType: .warning
-                    )
-                ] + strongLink.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [digit],
-                        highlightType: .action
-                    )
-                }
-            )
-        )
-
-        return steps
     }
 }

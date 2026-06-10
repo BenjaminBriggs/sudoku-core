@@ -150,24 +150,14 @@ extension HintFinder {
                 return HintStep(
                     actions: removals,
                     technique: .wWing,
-                    explanation: wWingExplanation(
-                        cellA: cellA, cellB: cellB,
-                        strongLink: [link.cellA, link.cellB],
-                        linkDigit: linkDigit,
-                        eliminationDigit: eliminationDigit,
-                        eliminationCells: eliminationCells,
-                        pencilMarks: pencilMarks
-                    ),
-                    reasoning: .make(
+                    reasoning: HintReasoning(
                         actions: removals,
                         focusDigits: [linkDigit, eliminationDigit],
                         components: [
-                            HintComponent(role: .wing, cells: [
-                                CellFact(position: cellA, candidates: pencilMarks[cellA.row][cellA.column]),
-                                CellFact(position: cellB, candidates: pencilMarks[cellB.row][cellB.column])
-                            ]),
-                            .make(.constraint, [link.cellA, link.cellB], candidates: [linkDigit]),
-                            .make(.eliminated, eliminationCells, candidates: [eliminationDigit])
+                            // Both bi-value cells hold exactly this candidate pair.
+                            .wing([cellA, cellB], candidates: [linkDigit, eliminationDigit]),
+                            .constraint([link.cellA, link.cellB], candidates: [linkDigit]),
+                            .eliminated(eliminationCells, candidates: [eliminationDigit])
                         ]
                     )
                 )
@@ -175,107 +165,5 @@ extension HintFinder {
         }
 
         return nil
-    }
-
-    /// Generates a multi-step explanation for a W-Wing elimination.
-    ///
-    /// - Parameters:
-    ///   - cellA: The first bi-value cell.
-    ///   - cellB: The second bi-value cell.
-    ///   - strongLink: The two cells forming the connecting strong link.
-    ///   - linkDigit: The digit the strong link is on.
-    ///   - eliminationDigit: The digit being eliminated.
-    ///   - eliminationCells: Cells from which the digit will be eliminated.
-    ///   - pencilMarks: The current pencil marks for candidate display.
-    /// - Returns: An array of `HintExplanationStep` values.
-    private static func wWingExplanation(
-        cellA: Puzzle.Index, cellB: Puzzle.Index,
-        strongLink: [Puzzle.Index],
-        linkDigit: Int, eliminationDigit: Int,
-        eliminationCells: Set<Puzzle.Index>,
-        pencilMarks: [[Set<Int>]]
-    ) -> [HintExplanationStep] {
-        var steps: [HintExplanationStep] = []
-
-        // Step 1: Identify the bi-value cells
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Look at these two cells — they both contain candidates {\(linkDigit), \(eliminationDigit)}, forming a W-Wing pattern.", bundle: .module),
-                highlightedCells: [
-                    HintExplanationStepHighlight(
-                        cell: cellA,
-                        label: LocalizedStringResource("Cell A", bundle: .module),
-                        candidates: pencilMarks[cellA.row][cellA.column],
-                        highlightType: .primary
-                    ),
-                    HintExplanationStepHighlight(
-                        cell: cellB,
-                        label: LocalizedStringResource("Cell B", bundle: .module),
-                        candidates: pencilMarks[cellB.row][cellB.column],
-                        highlightType: .primary
-                    )
-                ]
-            )
-        )
-
-        // Step 2: Show the strong link
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("These cells are connected by a strong link on digit \(linkDigit) — it appears exactly twice in a shared unit.", bundle: .module),
-                highlightedCells: strongLink.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        candidates: [linkDigit],
-                        highlightType: .action
-                    )
-                } + [
-                    HintExplanationStepHighlight(
-                        cell: cellA,
-                        candidates: pencilMarks[cellA.row][cellA.column],
-                        highlightType: .primary
-                    ),
-                    HintExplanationStepHighlight(
-                        cell: cellB,
-                        candidates: pencilMarks[cellB.row][cellB.column],
-                        highlightType: .primary
-                    )
-                ]
-            )
-        )
-
-        // Step 3: Explain the logic
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("If Cell A is \(linkDigit), Cell B must be \(eliminationDigit). If Cell A is \(eliminationDigit), the strong link forces \(linkDigit) away, so Cell B is still \(eliminationDigit). Either way, one of these cells contains \(eliminationDigit).", bundle: .module),
-                highlightedCells: [
-                    HintExplanationStepHighlight(
-                        cell: cellA,
-                        candidates: pencilMarks[cellA.row][cellA.column],
-                        highlightType: .action
-                    ),
-                    HintExplanationStepHighlight(
-                        cell: cellB,
-                        candidates: pencilMarks[cellB.row][cellB.column],
-                        highlightType: .action
-                    )
-                ]
-            )
-        )
-
-        // Step 4: Show eliminations
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Therefore, \(eliminationDigit) can be removed from any cell that sees both.", bundle: .module),
-                highlightedCells: eliminationCells.map { pos in
-                    HintExplanationStepHighlight(
-                        cell: pos,
-                        candidates: [eliminationDigit],
-                        highlightType: .warning
-                    )
-                }
-            )
-        )
-
-        return steps
     }
 }

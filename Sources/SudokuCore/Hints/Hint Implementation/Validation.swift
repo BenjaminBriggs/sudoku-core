@@ -145,27 +145,16 @@ extension HintFinder {
                         return HintStep(
                             actions: [HintAction(clearPosition: position)],
                             technique: .validation,
-                            explanation: [
-                                HintExplanationStep(
-                                    text: LocalizedStringResource("This value is incorrect. The correct value is \(correctValue).", bundle: .module),
-                                    highlightedCells: [
-                                        HintExplanationStepHighlight(
-                                            cell: position,
-                                            candidates: state.pencilMarks[position.row][position.column]
-                                        )
-                                    ]
-                                ),
-                                HintExplanationStep(
-                                    text: LocalizedStringResource("Remove this value and try again.", bundle: .module),
-                                    highlightedCells: [
-                                        HintExplanationStepHighlight(
-                                            cell: position,
-                                            value: correctValue,
-                                            highlightType: .success
-                                        )
-                                    ]
-                                )
-                            ]
+                            reasoning: HintReasoning(
+                                actions: [HintAction(clearPosition: position)],
+                                focusDigits: [correctValue],
+                                components: [
+                                    HintComponent(
+                                        role: .subject,
+                                        cells: [CellFact(position: position, value: correctValue)]
+                                    )
+                                ]
+                            )
                         )
                     }
                 }
@@ -194,117 +183,37 @@ extension HintFinder {
         state: BoardState
     ) -> HintStep {
         let uniqueActions = Array(Set(actions))
-        return HintStep(
-            actions: uniqueActions,
-            technique: .validation,
-            explanation: validationExplanation(
-                orientation: orientation,
-                digit: digit,
-                conflictCells: conflictCells,
-                solution: solution,
-                state: state
-            ),
-            reasoning: .make(
-                actions: uniqueActions,
-                focusDigits: [digit],
-                components: [
-                    .make(.constraint, conflictCells, in: state)
-                ]
-            )
-        )
-    }
 
-    /// Builds localised explanation steps for a validation conflict.
-    ///
-    /// Generates 2-3 steps:
-    /// 1. Identifies the conflicting digit and orientation (default highlights).
-    /// 2. Explains the violated Sudoku rule (default highlights).
-    /// 3. If a solution is available and there are exactly 2 conflicting cells,
-    ///    indicates which placement is correct; otherwise suggests removing one.
-    ///
-    /// - Parameters:
-    ///   - orientation: The unit type (row, column, or house) where the conflict was found.
-    ///   - digit: The duplicated digit causing the conflict.
-    ///   - conflictCells: The set of cell positions involved in the conflict.
-    ///   - solution: The puzzle solution, if available, for identifying the correct placement.
-    ///   - state: The current board state snapshot.
-    /// - Returns: An array of `HintExplanationStep` values describing the conflict.
-    private static func validationExplanation(
-        orientation: Puzzle.Index.Orientation,
-        digit: Int,
-        conflictCells: Set<Puzzle.Index>,
-        solution: [[Int]]? = nil,
-        state: BoardState
-    ) -> [HintExplanationStep] {
-        var steps: [HintExplanationStep] = []
-
-        // Step 1: Identify the conflict
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("There's a conflict with digit \(digit) in this \(orientation.displayName).", bundle: .module),
-                highlightedCells: conflictCells.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        value: digit
-                    )
-                }
-            )
-        )
-
-        // Step 2: Explain the rule being violated
-        steps.append(
-            HintExplanationStep(
-                text: LocalizedStringResource("Each \(orientation.displayName) can only contain the digit \(digit) once.", bundle: .module),
-                highlightedCells: conflictCells.map { index in
-                    HintExplanationStepHighlight(
-                        cell: index,
-                        value: digit
-                    )
-                }
-            )
-        )
-
-        // Step 3: If solution is available, suggest which one is correct
-        if let solution = solution, conflictCells.count == 2 {
-            let correctCell = conflictCells.first { index in
-                solution[index.row][index.column] == digit
+        // Record the conflicting unit so presentation can name the orientation.
+        var units: [SudokuUnit] = []
+        if let anchor = conflictCells.first {
+            let lineIndex: Int
+            switch orientation {
+            case .row: lineIndex = anchor.row
+            case .column: lineIndex = anchor.column
+            case .house: lineIndex = anchor.houseNumber
             }
+            units = [SudokuUnit(orientation: orientation, index: lineIndex)]
+        }
 
-            if let correctCell = correctCell {
-                let incorrectCells = conflictCells.filter { $0 != correctCell }
-
-                steps.append(
-                    HintExplanationStep(
-                        text: LocalizedStringResource("The correct placement for \(digit) is at \(correctCell.description).", bundle: .module),
-                        highlightedCells: [
-                            HintExplanationStepHighlight(
-                                cell: correctCell,
-                                value: digit
-                            )
-                        ] + incorrectCells.map { index in
-                            HintExplanationStepHighlight(
-                                cell: index,
-                                candidates: state.pencilMarks[index.row][index.column]
-                            )
-                        }
-                    )
-                )
-            }
-        } else {
-            // Without a solution, suggest removing one of the conflicts
-            steps.append(
-                HintExplanationStep(
-                    text: LocalizedStringResource("Remove \(digit) from one of these positions to resolve the conflict.", bundle: .module),
-                    highlightedCells: conflictCells.map { index in
-                        HintExplanationStepHighlight(
-                            cell: index,
-                            candidates: state.pencilMarks[index.row][index.column]
-                        )
-                    }
-                )
+        var components: [HintComponent] = [.constraint(conflictCells, in: state)]
+        // When the solution is known, the correct placement is a fact of the deduction.
+        if let solution, conflictCells.count == 2,
+           let correctCell = conflictCells.first(where: { solution[$0.row][$0.column] == digit }) {
+            components.append(
+                HintComponent(role: .subject, cells: [CellFact(position: correctCell, value: digit)])
             )
         }
 
-        return steps
+        return HintStep(
+            actions: uniqueActions,
+            technique: .validation,
+            reasoning: HintReasoning(
+                actions: uniqueActions,
+                focusDigits: [digit],
+                units: units,
+                components: components
+            )
+        )
     }
 }
