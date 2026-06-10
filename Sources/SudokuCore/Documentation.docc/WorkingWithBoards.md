@@ -14,7 +14,7 @@ The most common way to create a board:
 
 ```swift
 let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 45...55)
-let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+let info = try SudokuDifficultyCalculator.calculateDifficulty(for: starting)
 let puzzle = Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
 let board = Board(puzzle: puzzle)
 ```
@@ -152,14 +152,10 @@ let row0 = board.cells.filter { $0.position.row == 0 }
 
 ### Basic Undo
 
-Revert the last change:
+Revert the last change (does nothing if there is no history):
 
 ```swift
-do {
-    try board.undo()
-} catch {
-    print("Nothing to undo")
-}
+board.undo()
 ```
 
 ### Undo to Checkpoint
@@ -167,26 +163,30 @@ do {
 Go back to a specific state:
 
 ```swift
-// Save current state as checkpoint
-let checkpoint = board.undoStack.last
+// Save current state as a checkpoint
+let checkpoint = board.makeCheckpoint()
 
 // Make some moves...
 board.mark(positions: [pos1], as: 5)
 board.mark(positions: [pos2], as: 3)
 
-// Undo back to checkpoint
-if let checkpoint {
-    try board.undo(to: checkpoint)
-}
+// Undo back to the checkpoint
+try board.undo(to: checkpoint)
 ```
+
+`undo(to:)` throws ``UndoError/stepNotFound`` if the step is not in the undo history.
 
 ### Check Undo Availability
 
 ```swift
 if board.canUndo {
-    try board.undo()
+    board.undo()
 }
 ```
+
+### Hints Are Atomic
+
+Applying a hint with ``Board/apply(hint:)`` records a single undo step, no matter how many actions the hint contains — one `undo()` reverts the whole hint.
 
 ## Validation and Completion
 

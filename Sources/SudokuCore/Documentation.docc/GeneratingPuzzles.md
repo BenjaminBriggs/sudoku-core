@@ -17,7 +17,7 @@ let (solution, startingState) = await SudokuGenerator.generatePuzzle(
     targetsEmptyCells: 45...55
 )
 
-let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
+let info = try SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
 let puzzle = Puzzle(
     solution: solution,
     startingState: startingState,
@@ -77,7 +77,7 @@ func generatePuzzleSet(count: Int, targets: ClosedRange<Int>) async throws -> [P
 
     for _ in 0..<count {
         let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: targets)
-        let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+        let info = try SudokuDifficultyCalculator.calculateDifficulty(for: starting)
         puzzles.append(Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty))
     }
 
@@ -95,7 +95,7 @@ let puzzles = try await generatePuzzleSet(count: 100, targets: 45...50)
 Use ``SudokuDifficultyCalculator`` to rate puzzles:
 
 ```swift
-let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
+let info = try SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
 
 print("HoDoKu score: \(info.hodokuRating ?? 0)")
 print("SE rating: \(info.seRating ?? 0)")
@@ -160,7 +160,7 @@ func generateValidatedPuzzle(
         let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: targets)
 
         if Validator.hasUniqueSolution(starting) {
-            if let info = try? await SudokuDifficultyCalculator.calculateDifficulty(for: starting) {
+            if let info = try? SudokuDifficultyCalculator.calculateDifficulty(for: starting) {
                 return Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
             }
         }
@@ -182,7 +182,7 @@ func generatePuzzlesConcurrently(count: Int) async throws -> [Puzzle] {
         for _ in 0..<count {
             group.addTask {
                 let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 40...50)
-                let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+                let info = try SudokuDifficultyCalculator.calculateDifficulty(for: starting)
                 return Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
             }
         }
@@ -212,7 +212,7 @@ class PuzzleFactory {
     func generatePuzzle() async throws -> Puzzle {
         let solution = solutionCache.randomElement()!
         let starting = await SudokuGenerator.createPuzzle(from: solution, targetEmpty: 50)
-        let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+        let info = try SudokuDifficultyCalculator.calculateDifficulty(for: starting)
         return Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
     }
 }
@@ -283,7 +283,7 @@ Ensure puzzles use desired techniques:
 func generatePuzzleWithTechnique(_ technique: HintTechnique) async -> Puzzle? {
     for _ in 0..<100 {
         let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 45...55)
-        guard let info = try? await SudokuDifficultyCalculator.calculateDifficulty(for: starting) else { continue }
+        guard let info = try? SudokuDifficultyCalculator.calculateDifficulty(for: starting) else { continue }
         let puzzle = Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
         if puzzle.difficulty.hardestTechnique == technique { return puzzle }
     }

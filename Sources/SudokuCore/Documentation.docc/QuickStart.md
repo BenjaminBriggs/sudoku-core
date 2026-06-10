@@ -25,7 +25,7 @@ let (solution, startingState) = await SudokuGenerator.generatePuzzle(
     targetsEmptyCells: 45...55
 )
 
-let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
+let info = try SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
 let puzzle = Puzzle(
     solution: solution,
     startingState: startingState,
@@ -54,7 +54,7 @@ board.mark(positions: [position], as: 5)
 board.pencil(positions: [position], as: 7)
 
 // Undo a move
-try board.undo()
+board.undo()
 ```
 
 ### Step 5: Check for Completion
@@ -84,12 +84,11 @@ let board = Board(
 Help players when they're stuck:
 
 ```swift
-// Find the next available hint (try simpler techniques first)
-let techniques: [HintTechnique] = [.nakedSingle, .hiddenSingle]
-if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.state) }).first {
-    // Show the hint to the player
-    print(hint.title)
-    print(hint.description)
+// Find the easiest available hint
+if let hint = HintFinder.firstHint(in: board.state) {
+    // Present the hint to the player using its technique and reasoning
+    print(hint.technique)
+    print(hint.reasoning.focusDigits)
 
     // Apply the hint if desired
     board.apply(hint: hint)

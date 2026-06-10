@@ -5,11 +5,7 @@
 //  Created by Benjamin Briggs on 03/02/2025.
 //
 import Foundation
-import SwiftUI
-
-#if canImport(UIKit)
-    import UIKit
-#endif
+import Observation
 
 /// Represents the game state for a Sudoku puzzle.
 ///
@@ -41,7 +37,7 @@ import SwiftUI
 /// board.mark(positions: [position], as: 5)
 ///
 /// // Undo if needed
-/// try board.undo()
+/// board.undo()
 ///
 /// // Check completion
 /// if board.isSolved {

@@ -4,13 +4,22 @@ Provide intelligent hints to help players solve puzzles using recognized Sudoku 
 
 ## Overview
 
-SudokuCore includes a comprehensive hint system that can identify and explain solving techniques from basic singles to advanced patterns like X-Wing and Y-Wing. The system finds the easiest applicable technique and provides clear explanations.
+SudokuCore includes a comprehensive hint system that can identify solving techniques from basic singles to advanced patterns like X-Wing and W-Wing. The system finds the easiest applicable technique and returns the actions to apply plus a structured ``HintReasoning`` record of *why* the deduction holds. Human-facing explanation text is built from the reasoning outside core, in the app layer.
 
 ## Finding Hints
 
 ### Basic Usage
 
-Find the next available hint for the current board state:
+Find the easiest available hint for the current board state:
+
+```swift
+if let hint = HintFinder.firstHint(in: board.state) {
+    print(hint.technique)         // e.g. .hiddenSingle
+    print(hint.debugDescription)  // "Hint(Hidden Single, [Hint add 7 at (5,3)])"
+}
+```
+
+Or check specific techniques:
 
 ```swift
 let techniques: [HintTechnique] = [
@@ -21,8 +30,7 @@ let techniques: [HintTechnique] = [
 ]
 
 if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.state) }).first {
-    print(hint.title)
-    print(hint.description)
+    print(hint.technique)
 }
 ```
 
@@ -36,7 +44,8 @@ if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.sta
 
     // Then apply it
     board.apply(hint: hint)
-    // Note: board.hintsUsed is automatically incremented
+    // board.hintsUsed is automatically incremented, and the whole hint —
+    // however many actions it contains — is recorded as a single undo step.
 }
 ```
 
@@ -80,22 +89,26 @@ A ``HintStep`` contains:
 ```swift
 struct HintStep {
     let technique: HintTechnique  // Which technique applies
-    let title: String             // Human-readable title
-    let description: String       // Detailed explanation
     let actions: [HintAction]     // What to do
+    let reasoning: HintReasoning  // Why the deduction holds
 }
 ```
 
 ### Hint Actions
 
-Each action specifies what to do with a cell:
+Each ``HintAction`` pairs a position with what to do there:
 
 ```swift
-enum HintAction {
-    case clear                    // Clear the cell
-    case pencilIn(Int)           // Add a pencil mark
-    case ruleOut(Int)            // Eliminate a candidate
-    case solveAs(Int)            // Place this value
+struct HintAction {
+    let position: Puzzle.Index
+    let action: ActionType
+
+    enum ActionType {
+        case solveAs(Int)        // Place this value
+        case ruleOut(Int)        // Eliminate a candidate
+        case pencilIn(Int)       // Add a pencil mark
+        case clear               // Clear the cell
+    }
 }
 ```
 
@@ -176,20 +189,36 @@ if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.sta
 }
 ```
 
-## Understanding Hint Descriptions
+## Hint Reasoning
 
-Hints include detailed explanations:
+Every hint carries a ``HintReasoning`` — a structured, `Codable` record of the deduction's premises. It captures the focus digit(s), the participating units, and labelled groups of cells (``HintComponent``) such as the fish base and cover, fins, wing pivots, or the cells being eliminated from.
 
 ```swift
-let hint = HintFinder.findHint(for: .nakedSingle, in: board.state)!
+let hint = HintFinder.findHint(for: .finnedXWing, in: board.state)!
 
-print(hint.title)
-// "Naked Single"
+print(hint.reasoning.focusDigits)     // [4]
+print(hint.reasoning.units)           // The rows/columns forming the pattern
 
-print(hint.description)
-// "The cell at (5,3) has only one possible candidate: 7.
-//  All other values are eliminated by existing values in
-//  row 5, column 3, or house 4."
+for component in hint.reasoning.components {
+    print(component.role)             // .base, .cover, .fin, .eliminated, ...
+    print(component.cells.map(\.position))
+}
+```
+
+Use the reasoning to build hint presentation in your app — highlighting, narration, or seeding a generative explanation. Core deliberately contains no explanation copy.
+
+### Validating Stored Hints
+
+``HintReasoning/inconsistencies(in:)`` checks whether the recorded premises still hold against a board state, which tells you if a previously found hint is still applicable:
+
+```swift
+let problems = hint.reasoning.inconsistencies(in: board.state)
+if problems.isEmpty {
+    board.apply(hint: hint)
+} else {
+    // The board has changed since the hint was found — find a fresh one
+    print(problems)
+}
 ```
 
 ## Performance Considerations
@@ -241,28 +270,29 @@ Let players control hint behavior:
 ```swift
 struct HintSettings {
     var autoApply: Bool = false           // Apply hints automatically
-    var showExplanation: Bool = true      // Show detailed explanation
-    var maxDifficulty: Int = 3            // Limit technique complexity
+    var maxDifficulty: Int = 90           // Limit technique complexity
     var highlightCells: Bool = true       // Color relevant cells
 }
 
 func provideHint(for board: Board, settings: HintSettings) -> HintStep? {
-    let hint = HintFinder.findHint(
-        for: board,
-        in: techniques[settings.maxDifficulty]
-    )
-
-    guard let hint else { return nil }
+    let allowed = HintTechnique.orderedCases.filter {
+        $0.difficulty <= settings.maxDifficulty
+    }
+    let state = board.state
+    guard let hint = allowed
+        .compactMap({ HintFinder.findHint(for: $0, in: state) })
+        .first
+    else { return nil }
 
     if settings.highlightCells {
-        // Color cells...
+        // Color cells using hint.reasoning.components...
     }
 
     if settings.autoApply {
         board.apply(hint: hint)
     }
 
-    return settings.showExplanation ? hint : nil
+    return hint
 }
 ```
 

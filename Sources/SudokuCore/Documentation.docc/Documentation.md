@@ -8,7 +8,7 @@ SudokuCore provides everything needed to build a complete Sudoku application, fr
 
 - **Game State Management**: The ``Board`` class manages the entire game state with undo/redo support
 - **Puzzle Generation**: Create puzzles at various difficulty levels with guaranteed unique solutions
-- **Hint System**: Find and explain solving techniques from basic to advanced patterns
+- **Hint System**: Find solving techniques from basic to advanced patterns, each with a structured ``HintReasoning`` record for app-side presentation
 - **Difficulty Rating**: Calculate puzzle difficulty using industry-standard HoDoKu and Sudoku Explainer ratings
 - **Validation**: Check puzzle validity, solution uniqueness, and player progress
 
@@ -34,8 +34,11 @@ SudokuCore provides everything needed to build a complete Sudoku application, fr
 - ``Board/pencil(positions:as:)``
 - ``Board/advancedPencil(positions:as:)``
 - ``Board/clearCell(at:)``
+- ``Board/color(positions:as:)``
 - ``Board/undo()``
-- ``Board/UndoStep``
+- ``Board/undo(to:)``
+- ``Board/makeCheckpoint()``
+- ``UndoStep``
 
 ### Puzzle Generation
 
@@ -51,6 +54,11 @@ SudokuCore provides everything needed to build a complete Sudoku application, fr
 - ``HintTechnique``
 - ``HintStep``
 - ``HintAction``
+- ``HintReasoning``
+- ``HintComponent``
+- ``CellFact``
+- ``CandidateRef``
+- ``BoardState``
 
 ### Advanced Topics
 

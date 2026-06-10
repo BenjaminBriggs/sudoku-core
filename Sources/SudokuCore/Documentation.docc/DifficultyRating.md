@@ -14,7 +14,7 @@ The HoDoKu rating is a cumulative score that sums the points for every solving t
 
 ```swift
 let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 45...55)
-let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+let info = try SudokuDifficultyCalculator.calculateDifficulty(for: starting)
 print("HoDoKu score: \(info.hodokuRating ?? 0)")
 // Example output: "HoDoKu score: 450"
 ```
@@ -33,17 +33,17 @@ The ``PuzzleDifficulty`` documentation defines these ranges:
 
 #### Point Values
 
-Each technique contributes points to the cumulative score:
+Each technique contributes a fixed number of points to the cumulative score, regardless of how many eliminations the step produces:
 
-- **Naked Single**: 4 points
-- **Hidden Single**: 20 points
-- **Locked Candidates**: 40 points
-- **Naked Pair**: 60 points
-- **X-Wing**: 140 points
-- **Swordfish**: 150 points
-- **Y-Wing**: 160 points
+- **Naked Single**: 10 points
+- **Hidden Single**: 12 points
+- **Locked Candidates**: 20 points
+- **Naked Pair**: 20 points
+- **X-Wing**: 60 points
+- **Swordfish**: 90 points
+- **Y-Wing**: 100 points
 
-See ``HintTechnique`` for complete technique information.
+See ``HintTechnique/hodokuPoints`` for the complete list.
 
 ### Sudoku Explainer Rating (Peak Difficulty)
 
@@ -72,7 +72,7 @@ Rate a generated starting grid and assemble a ``Puzzle``:
 
 ```swift
 let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 50...55)
-let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+let info = try SudokuDifficultyCalculator.calculateDifficulty(for: starting)
 let puzzle = Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
 
 print("Level: \(puzzle.difficulty.level)")
@@ -90,7 +90,7 @@ let startingState: [[Int]] = [
     // Your 9x9 puzzle grid
 ]
 
-let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
+let info = try SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
 print("Calculated difficulty: \(info.score)")
 ```
 
@@ -100,7 +100,7 @@ The ``PuzzleDifficulty/hardestTechnique`` indicates the most advanced solving te
 
 ```swift
 let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 55...60)
-let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+let info = try SudokuDifficultyCalculator.calculateDifficulty(for: starting)
 let hardest = info.hardestTechnique ?? .hiddenSingle
 
 switch hardest {
@@ -142,7 +142,7 @@ Create puzzles with specific difficulty characteristics:
 func generatePuzzleWithConstraints() async -> Puzzle? {
     for _ in 0..<50 {
         let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 48...52)
-        guard let info = try? await SudokuDifficultyCalculator.calculateDifficulty(for: starting) else { continue }
+        guard let info = try? SudokuDifficultyCalculator.calculateDifficulty(for: starting) else { continue }
         let puzzle = Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
 
         // Want a puzzle in the 700-800 HoDoKu range
@@ -192,11 +192,11 @@ The cumulative score reflects all techniques used:
 
 ```swift
 // A puzzle might use:
-// - 15 naked singles (15 × 4 = 60)
-// - 8 hidden singles (8 × 20 = 160)
-// - 3 naked pairs (3 × 60 = 180)
-// - 1 X-Wing (1 × 140 = 140)
-// Total HoDoKu score = 540 (Intermediate)
+// - 30 naked singles (30 × 10 = 300)
+// - 8 hidden singles (8 × 12 = 96)
+// - 3 naked pairs (3 × 20 = 60)
+// - 1 X-Wing (1 × 60 = 60)
+// Total HoDoKu score = 516 (Intermediate)
 ```
 
 ### Empty Cell Influence

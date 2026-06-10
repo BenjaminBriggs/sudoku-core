@@ -13,17 +13,6 @@ extension Puzzle.Index {
         case column
         case house
 
-        public var displayName: String {
-            switch self {
-            case .row:
-                return String(localized: "row", bundle: .module)
-            case .column:
-                return String(localized: "column", bundle: .module)
-            case .house:
-                return String(localized: "house", bundle: .module)
-            }
-        }
-
         public var otherOrientations: [Orientation] {
             switch self {
             case .column:   [.house, .row]

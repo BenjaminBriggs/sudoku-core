@@ -5,7 +5,6 @@ import PackageDescription
 
 let package = Package(
     name: "SudokuCore",
-    defaultLocalization: "en-GB",
     platforms: [.iOS(.v18), .macOS(.v15)],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
@@ -28,8 +27,7 @@ let package = Package(
                 .product(name: "Collections", package: "swift-collections"),
                 .product(name: "Numerics", package: "swift-numerics"),
                 .product(name: "Algorithms", package: "swift-algorithms")
-            ],
-            resources: [.process("Localizable.xcstrings")]),
+            ]),
         .testTarget(
             name: "SudokuCoreTests",
             dependencies: ["SudokuCore"],

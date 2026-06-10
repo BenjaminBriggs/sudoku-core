@@ -274,7 +274,7 @@ func generateQualityPuzzle() async -> Puzzle? {
         let givenCount = starting.flatMap { $0 }.filter { $0 != 0 }.count
         guard givenCount >= 17 else { continue }
 
-        if let info = try? await SudokuDifficultyCalculator.calculateDifficulty(for: starting) {
+        if let info = try? SudokuDifficultyCalculator.calculateDifficulty(for: starting) {
             return Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
         }
     }

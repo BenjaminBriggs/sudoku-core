@@ -11,23 +11,6 @@ import Testing
 
 struct PuzzleIndexOrientationTests {
 
-    // MARK: - Orientation displayName Tests
-
-    @Test("Orientation.displayName returns correct string for .row")
-    func testOrientationDisplayNameRow() {
-        #expect(Puzzle.Index.Orientation.row.displayName == "row")
-    }
-
-    @Test("Orientation.displayName returns correct string for .column")
-    func testOrientationDisplayNameColumn() {
-        #expect(Puzzle.Index.Orientation.column.displayName == "column")
-    }
-
-    @Test("Orientation.displayName returns correct string for .house")
-    func testOrientationDisplayNameHouse() {
-        #expect(Puzzle.Index.Orientation.house.displayName == "house")
-    }
-
     // MARK: - cells(in:) Tests
 
     @Test("cells(in: .row) returns all indices with same row")
