@@ -94,6 +94,30 @@ let info = try SudokuDifficultyCalculator.calculateDifficulty(for: startingState
 print("Calculated difficulty: \(info.score)")
 ```
 
+## The Rating Pipeline
+
+``SudokuDifficultyCalculator`` is a convenience over lower-level types you can use directly:
+
+1. ``SolvePathEmitter`` simulates a human solve, applying the easiest applicable hint at each step and recording a technique-annotated path.
+2. ``HoDoKuCalculator`` sums fixed per-technique points over that path (cumulative effort).
+3. ``SECalculator`` reports the hardest technique on the path (peak difficulty).
+4. ``TimeEstimator`` converts a HoDoKu rating into a baseline time estimate.
+
+Use them directly when you want the solve path itself or both ratings without re-solving:
+
+```swift
+let path = SolvePathEmitter.emit(from: startingState)
+
+for step in path.steps {
+    print("\(step.technique): \(step.placements) placements, \(step.eliminations) eliminations")
+}
+
+let hodoku = HoDoKuCalculator.compute(from: path)
+let se = SECalculator.compute(from: path)
+print("HoDoKu \(hodoku.rating) (\(hodoku.classLabel)), SE \(se.rating)")
+print(hodoku.breakdown)  // techniqueId -> total points
+```
+
 ## Hardest Technique
 
 The ``PuzzleDifficulty/hardestTechnique`` indicates the most advanced solving technique required:
@@ -210,24 +234,21 @@ More empty cells generally increase difficulty, but technique requirements matte
 
 ## Player Performance vs. Puzzle Difficulty
 
-Distinguish between puzzle difficulty (intrinsic) and player performance:
+Puzzle difficulty is intrinsic; player performance is how well a particular solve went. ``PerformanceScoreCalculator`` combines the two into a score (100–100,000) with a full breakdown of the applied multipliers and penalties:
 
 ```swift
-// Intrinsic difficulty (from puzzle)
-let puzzleDifficulty = puzzle.difficulty.score
-
-// Player performance (from board)
-let playerErrors = board.incorrectMoves
-let hintsUsed = board.hintsUsed
-let timeSpent = Date().timeIntervalSince(startTime)
-
-// Performance score (custom calculation)
-let performanceScore = calculatePerformanceScore(
-    difficulty: puzzleDifficulty,
-    errors: playerErrors,
-    hints: hintsUsed,
-    time: timeSpent
+let result = PerformanceScoreCalculator.calculateScore(
+    baseDifficulty: puzzle.difficulty.score,        // HoDoKu rating
+    elapsedTime: Date().timeIntervalSince(startTime),
+    hintsUsed: board.hintsUsed,
+    errorCount: board.incorrectMoves,
+    noteUpdates: board.noteUpdates
 )
+
+print("Score: \(result.score)")
+print("Time multiplier: \(result.timeMultiplier)")
+print("Hint penalty: \(result.hintPenalty)")
+print("Perfect game: \(result.perfectBonus)")
 ```
 
 ## Validating Difficulty
@@ -277,22 +298,25 @@ func analyzeTechniques(for puzzle: Puzzle) async -> [HintTechnique: Int] {
 }
 ```
 
-### Difficulty Calibration
+### Personalized Time Estimates
 
-Collect data to calibrate difficulty ratings:
+``PersonalizedCalibrator`` learns how fast a particular player is relative to the baseline curve and adjusts time estimates accordingly. Feed it completed solves and ask it to predict:
 
 ```swift
-struct SolveData: Codable {
-    let puzzleId: String
-    let difficulty: PuzzleDifficulty
-    let solveTime: TimeInterval
-    let hintsUsed: Int
-    let errors: Int
-    let completed: Bool
-}
+var calibrator = PersonalizedCalibrator()
 
-// Use collected data to adjust difficulty estimates
+// After each completed puzzle, record the observed time
+calibrator.update(rating: puzzle.difficulty.score, timeSeconds: 540)
+
+// Predict the player's time for the next puzzle
+let estimate = calibrator.predict(for: 800)
+print("Expect ~\(estimate.seconds)s (\(estimate.rangeLower)–\(estimate.rangeUpper)s)")
+print("Player speed factor: \(estimate.factor)")  // <1 faster, >1 slower than baseline
 ```
+
+The calibrator keeps a bounded window of recent samples (default 100), clamps outliers, and widens its predicted range where the player's history is noisy. It is not `Codable` — store the raw (rating, time, date) observations in your player profile and replay them through ``PersonalizedCalibrator/update(rating:timeSeconds:at:)`` when restoring.
+
+For a non-personalized baseline, use ``TimeEstimator/baselineSeconds(fromHoDoKu:)``.
 
 ## Next Steps
 

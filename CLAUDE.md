@@ -9,8 +9,9 @@ swift build                  # Debug build
 swift build -c release       # Release build
 swift test                   # Run all tests
 swift test --filter SudokuCoreTests.BoardTests  # Run a single test suite
-swift package --disable-sandbox preview-documentation --target SudokuCore  # Preview docs
 ```
+
+Documentation builds via Xcode (Product > Build Documentation); the swift-docc-plugin is not a package dependency.
 
 ### Benchmarks
 
@@ -21,16 +22,19 @@ swift build --product SudokuCoreBenchmarks
 
 ## Architecture
 
-SudokuCore is a Swift 6 package (iOS 18+/macOS 15+) providing Sudoku game mechanics, puzzle generation, hint solving, and difficulty rating. Localization is en-GB.
+SudokuCore is a Swift 6 package (iOS 18+/macOS 15+) providing Sudoku game mechanics, puzzle generation, hint solving, and difficulty rating.
 
 ### Module Layout (Sources/SudokuCore/)
 
 - **CoreModels/** — Foundation types: `Puzzle` (immutable definition with solution, startingState, difficulty), `Puzzle.Index` (row/col position), `PuzzleDifficulty`, `UndoStep`, `Solution` (typealias for `[[Int]]`)
 - **Board/** — `Board` is the main `@Observable @MainActor` class managing gameplay state. Contains 81 `Board.Cell` objects in a flat row-major array. Functionality split across extensions: `Board+Marking`, `Board+UndoRedo`, `Board+Validation`, `Board+Checking`, `Board+Helpers`
 - **Generation/** — Puzzle creation pipeline: `SolutionGenerator` (backtracking with bitset optimization) → `SudokuGenerator` (cell removal with uniqueness validation) → `SudokuDifficultyCalculator` → `PuzzleCreator` (orchestrator). Also includes `SudokuValidator` and `SudokuSolver`
-- **Hints/** — 18+ solving techniques from naked singles to finned fish patterns. `HintFinder` dispatches to technique implementations in `Hint Implementation/`. Uses `BoardState` (immutable snapshot) and returns `HintStep` with `HintAction` items and localized `HintExplanationStep` explanations
+- **Hints/** — 18+ solving techniques from naked singles to finned fish patterns. `HintFinder` dispatches to technique implementations in `Hint Implementation/`. Uses `BoardState` (immutable snapshot) and returns `HintStep` with `HintAction` items and a machine-readable `HintReasoning` record of the deduction
 - **Rating/** — Dual rating system: `HoDoKuCalculator` (cumulative effort) and `SECalculator` (peak difficulty). `SolvePathEmitter` generates technique-annotated solve paths. `PersonalizedCalibrator` adjusts for player skill
-- **Models/** — `PuzzleManifest`, `MonthlyPuzzleManifest`, `PuzzleServerConfig`
+
+### Scope
+
+The logic to play Sudoku — board state, generation, rating, validation — the hints, and utilities that make those easier. Human-facing explanation text lives in the Magic-Sudoku repo's `HintExplainer` package (built from `HintReasoning`); puzzle retrieval lives in its `PuzzleDistribution` package.
 
 ### Key Patterns
 

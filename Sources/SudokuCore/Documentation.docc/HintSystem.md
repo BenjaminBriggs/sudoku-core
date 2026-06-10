@@ -130,6 +130,43 @@ for action in hint.actions {
 }
 ```
 
+## Detecting Player Mistakes
+
+The `.validation` technique doesn't advance the solve — it finds what's wrong. It checks, in priority order: duplicate digits in a row, then a column, then a box, and finally (when the board has a solution) any filled cell that disagrees with it.
+
+```swift
+if let mistake = HintFinder.findHint(for: .validation, in: board.state) {
+    // Each action is a .clear for an offending cell
+    for action in mistake.actions {
+        print("Conflict at \(action.position)")
+    }
+    board.apply(hint: mistake)  // Clears the offending cells
+}
+```
+
+`.validation` has difficulty 0, so it sorts first in `HintTechnique.orderedCases` — when the board contains an error, ``HintFinder/firstHint(in:)`` returns the mistake before suggesting any solving technique. A player who asks for a hint on a broken board is told what to fix first.
+
+The hint's reasoning records the conflicting cells as a `.constraint` component and, when the solution is known, which of the two duplicates is actually correct as the `.subject`.
+
+## Parsing Board States from Strings
+
+``BoardStateParser`` builds a ``BoardState`` from a string — useful for tests, imports, and sharing positions. It auto-detects the format:
+
+```swift
+// Plain 81-character grid (0 or . for empty)
+let state = try BoardStateParser.parse("020005060890007003...")
+
+// Sudoku Coach exports (SCv7_...) are detected automatically,
+// including in-progress positions with pencil marks
+let imported = try BoardStateParser.parse("SCv7_32_f2e6ajib18...")
+
+if let format = BoardStateParser.detectFormat(input) {
+    print(format)  // .gridString81, .sudokuCoach, .sudokuCoachProgress
+}
+```
+
+Parsing failures throw ``BoardStateParseError``.
+
 ## Progressive Hint System
 
 Implement a progressive hint system that starts with easier techniques:

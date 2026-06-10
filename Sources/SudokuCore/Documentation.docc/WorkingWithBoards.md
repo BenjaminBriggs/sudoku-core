@@ -188,6 +188,18 @@ if board.canUndo {
 
 Applying a hint with ``Board/apply(hint:)`` records a single undo step, no matter how many actions the hint contains — one `undo()` reverts the whole hint.
 
+### Recovering from Mistakes
+
+Every undo step records whether the board still matched the solution at that point. ``Board/recoverToLastCorrectState()`` walks the history backwards and rewinds to the most recent state where the player hadn't made an error:
+
+```swift
+if board.isSolvable == false {
+    try board.recoverToLastCorrectState()
+}
+```
+
+This is a heavier intervention than clearing a single bad cell — pair it with the `.validation` hint technique (see <doc:HintSystem>) for pinpointing individual mistakes.
+
 ## Validation and Completion
 
 ### Check Validity
@@ -238,12 +250,53 @@ print("Note updates: \(board.noteUpdates)")
 
 ## State Persistence
 
+### Saving an In-Progress Game
+
+``BoardRestoration`` captures everything a saved game needs — values, both kinds of pencil marks, ruled-out candidates, cell colours, the undo history, and statistics. The board exposes matching snapshot properties to build one:
+
+```swift
+let saved = BoardRestoration(
+    currentState: board.currentGrid,
+    simplePencilMarks: board.simplePencilMarks,
+    advancedPencilMarks: board.advancedPencilMarks,
+    backgroundColors: board.backgroundColors,
+    ruledOutCandidates: board.ruledOutCandidates,
+    undoStack: board.undoStack,
+    solution: board.solution ?? [],
+    hintsUsed: board.hintsUsed,
+    incorrectMoves: board.incorrectMoves,
+    noteUpdates: board.noteUpdates,
+    elapsedTime: elapsedTime
+)
+```
+
+`BoardRestoration` itself is not `Codable`, so map it to your app's persistence model. ``UndoStep`` *is* `Codable`, so the undo history can be stored directly.
+
+### Restoring
+
+Recreate the board from the puzzle, then apply the saved state with ``Board/restore(_:)``:
+
+```swift
+let board = Board(puzzle: puzzle)
+board.restore(saved)
+```
+
+Restoration reapplies all cell state and recomputes validation and completion tracking.
+
+### Restarting
+
+``Board/resetToInitialState()`` clears all player state — values, marks, colours, undo history, and statistics — back to the given cells:
+
+```swift
+board.resetToInitialState()
+```
+
 ### Export Current State
 
 Get the current grid as an array:
 
 ```swift
-let currentState = board.cells.solution  // [[Int]] 9x9 array
+let currentState = board.currentGrid  // [[Int]] 9x9 array
 ```
 
 ### Export as String

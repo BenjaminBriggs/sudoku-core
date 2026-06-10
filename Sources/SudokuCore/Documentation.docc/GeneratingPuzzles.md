@@ -8,9 +8,31 @@ SudokuCore includes a powerful puzzle generator that creates well-formed Sudoku 
 
 ## Basic Generation
 
-### Generate a Puzzle
+### One-Call Creation with PuzzleCreator
 
-Create a starting grid and assemble a rated ``Puzzle``:
+``PuzzleCreator`` orchestrates the whole pipeline — generation, uniqueness validation, and difficulty rating — in one call. To target a specific difficulty level:
+
+```swift
+let puzzle = try await PuzzleCreator.createPuzzleWithDifficulty(.hard)
+
+print("Created \(puzzle.difficulty.level) puzzle")
+print("Difficulty score: \(puzzle.difficulty.score)")
+```
+
+It generates candidate puzzles (up to `maxAttempts`, default 20), keeps the closest match to the requested level, and falls back to a basic puzzle if no reasonable match is found. If you already have a solution and starting grid, rate and assemble them with:
+
+```swift
+let puzzle = try await PuzzleCreator.createPuzzle(
+    solution: solution,
+    startingState: startingState
+)
+```
+
+Prefer ``PuzzleCreator`` unless you need control over an individual pipeline stage — the sections below break the same pipeline into its parts.
+
+### Generate a Puzzle Step by Step
+
+Create a starting grid and assemble a rated ``Puzzle`` manually:
 
 ```swift
 let (solution, startingState) = await SudokuGenerator.generatePuzzle(
@@ -149,7 +171,7 @@ if isValid && hasUniqueSolution {
 
 ### Custom Validation
 
-Validate during generation:
+``PuzzleCreator/createPuzzleWithDifficulty(_:maxAttempts:)`` already validates uniqueness and rates each candidate, so reach for it first. Write your own loop only when you need a constraint it doesn't offer — for example, a custom empty-cell range:
 
 ```swift
 func generateValidatedPuzzle(

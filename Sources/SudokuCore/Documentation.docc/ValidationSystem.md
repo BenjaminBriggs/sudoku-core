@@ -257,6 +257,22 @@ let options = allOptions[position.row][position.column]
 print("Valid candidates: \(options)")
 ```
 
+## Solving Arbitrary Grids
+
+``SudokuSolver`` is a constraint-propagation solver (arc consistency with domain splitting) for any grid — no human-style techniques involved. Use it when you need *a* solution rather than a rated solve path:
+
+```swift
+let (solution, callCount) = SudokuSolver.solve(grid: startingState)
+
+if let solution {
+    print("Solved in \(callCount) propagation calls")
+} else {
+    print("No solution exists")
+}
+```
+
+`callCount` is a rough work measure — higher means more backtracking was needed. For uniqueness checking prefer ``Validator/hasUniqueSolution(_:)``, and for human-style difficulty use ``SudokuDifficultyCalculator`` (which falls back to `SudokuSolver` only when hint techniques can't finish a puzzle).
+
 ## Validation During Generation
 
 Ensure generated puzzles meet quality standards:

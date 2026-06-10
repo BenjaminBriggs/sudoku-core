@@ -1,12 +1,16 @@
 # SudokuCore
 
-A comprehensive Swift package for building Sudoku applications on iOS and macOS.
+The Sudoku engine for iOS and macOS: everything needed to play, generate, rate, and hint Sudoku puzzles.
+
+## Scope
+
+SudokuCore owns the logic of Sudoku — game state, puzzle generation, difficulty rating, validation, hint finding — and the utilities that support them.
 
 ## Features
 
 - **Complete Game State Management**: Observable `Board` class with automatic validation and undo/redo
 - **Puzzle Generation**: Create puzzles at any difficulty with guaranteed unique solutions
-- **Intelligent Hints**: Find and explain solving techniques from basic to advanced
+- **Intelligent Hints**: Find solving techniques from basic to advanced, each with a structured reasoning record
 - **Difficulty Rating**: Industry-standard HoDoKu and Sudoku Explainer ratings
 - **Validation**: Check puzzles for validity, solution uniqueness, and player progress
 - **SwiftUI Ready**: Built with `@Observable` for seamless SwiftUI integration
@@ -49,7 +53,7 @@ let (solution, startingState) = await SudokuGenerator.generatePuzzle(
 )
 
 // Compute difficulty and assemble a Puzzle
-let difficulty = try await SudokuDifficultyCalculator
+let difficulty = try SudokuDifficultyCalculator
     .calculateDifficulty(for: startingState)
 let puzzle = Puzzle(
     solution: solution,
@@ -64,15 +68,14 @@ let board = Board(puzzle: puzzle)
 let position = Puzzle.Index(row: 0, column: 0)
 board.mark(positions: [position], as: 5)
 
-// Get a hint (prefer simple techniques first)
-let techniques: [HintTechnique] = [.nakedSingle, .hiddenSingle]
-if let hint = techniques.compactMap({ HintFinder.findHint(for: $0, in: board.state) }).first {
-    print("\(hint.title): \(hint.description)")
+// Get the easiest available hint
+if let hint = HintFinder.firstHint(in: board.state) {
+    print("\(hint.technique): \(hint.actions)")
     board.apply(hint: hint)
 }
 
 // Undo
-try board.undo()
+board.undo()
 
 // Check completion
 if board.isSolved {
@@ -85,7 +88,6 @@ if board.isSolved {
 ```swift
 // 81-character string (0 = empty, 1-9 = values)
 let puzzleString = "800050040100007209600020030000004965750390021900650007590703610400000800203908000"
-
 let board = Board(difficulty: .easy, string: puzzleString)
 ```
 
@@ -97,11 +99,7 @@ In Xcode:
 1. Select Product > Build Documentation (⌃⌘⇧D)
 2. Documentation opens in Xcode's Documentation Viewer
 
-Or use the command line:
-
-```bash
-swift package --disable-sandbox preview-documentation --target SudokuCore
-```
+(The swift-docc-plugin is not a package dependency, so documentation builds through Xcode rather than the command line.)
 
 ### Topics Covered
 
@@ -178,7 +176,7 @@ let techniques: [HintTechnique] = [
 if let hint = techniques
     .compactMap({ HintFinder.findHint(for: $0, in: board.state) })
     .first {
-    // Show hint UI
+    // Present the hint using its technique and reasoning
     showHint(hint)
 
     // Apply if player wants
@@ -188,32 +186,14 @@ if let hint = techniques
 
 ### Difficulty-Based Generation
 
-```swift
-func emptyCellRange(for difficulty: PuzzleDifficulty.Level) -> ClosedRange<Int> {
-    switch difficulty {
-    case .easy: return 35...45
-    case .medium: return 45...50
-    case .hard: return 50...55
-    case .expert: return 55...60
-    case .professional: return 60...65
-    case .custom: return 40...50
-    }
-}
+`PuzzleCreator` runs the whole generate–validate–rate pipeline and targets a difficulty level:
 
+```swift
 func generatePuzzleSet(difficulty: PuzzleDifficulty.Level, count: Int) async throws -> [Puzzle] {
     var puzzles: [Puzzle] = []
 
     for _ in 0..<count {
-        let (solution, starting) = await SudokuGenerator.generatePuzzle(
-            targetsEmptyCells: emptyCellRange(for: difficulty)
-        )
-        let info = try await SudokuDifficultyCalculator.calculateDifficulty(for: starting)
-        let puzzle = Puzzle(
-            solution: solution,
-            startingState: starting,
-            difficulty: info.puzzleDifficulty
-        )
-        puzzles.append(puzzle)
+        puzzles.append(try await PuzzleCreator.createPuzzleWithDifficulty(difficulty))
     }
 
     return puzzles
