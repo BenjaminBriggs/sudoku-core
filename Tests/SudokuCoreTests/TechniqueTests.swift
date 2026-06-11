@@ -19,6 +19,22 @@ struct TechniqueTests {
         #expect(String(decoding: data, as: UTF8.self) == "\"finnedXWing\"")
     }
 
+    @Test("firstHint respects difficulty order even with unsorted input")
+    func firstHintOrdersUnsortedTechniques() throws {
+        struct AlwaysFinds: HintTechnique {
+            let info: TechniqueInfo
+            func findHint(in state: BoardState) -> HintStep? {
+                HintStep(actions: [], technique: info)
+            }
+        }
+        let easy = AlwaysFinds(info: TechniqueInfo(id: "test.easy", difficulty: 10))
+        let hard = AlwaysFinds(info: TechniqueInfo(id: "test.hard", difficulty: 50))
+
+        let state = BoardState.fromGrid(Puzzle.example().startingState)
+        let hint = try #require(HintFinder.firstHint(in: state, using: [hard, easy]))
+        #expect(hint.technique.id == easy.info.id)
+    }
+
     @Test("Classic constants preserve enum metadata")
     func classicMetadata() {
         #expect(TechniqueInfo.nakedSingle.difficulty == 10)

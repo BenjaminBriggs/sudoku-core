@@ -93,7 +93,19 @@ extension HintFinder {
         in state: BoardState,
         using techniques: [any HintTechnique] = ClassicTechniques.all
     ) -> HintStep? {
-        for technique in techniques.sorted(by: { $0.info.difficulty < $1.info.difficulty }) {
+        // The default set (and most caller-built sets) is already in difficulty
+        // order — skip the per-call sort allocation on that hot path.
+        var isOrdered = true
+        for index in 1..<max(techniques.count, 1)
+        where techniques[index - 1].info.difficulty > techniques[index].info.difficulty {
+            isOrdered = false
+            break
+        }
+        let ordered =
+            isOrdered
+            ? techniques
+            : techniques.sorted { $0.info.difficulty < $1.info.difficulty }
+        for technique in ordered {
             if let hint = technique.findHint(in: state) {
                 return hint
             }
