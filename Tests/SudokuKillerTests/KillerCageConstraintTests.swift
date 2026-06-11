@@ -48,6 +48,26 @@ struct KillerCageConstraintTests {
         #expect(cage.violations(in: state).isEmpty)
     }
 
+    @Test("Unreachable remaining sum is a violation")
+    func unreachableSum() {
+        // Cage sum 24 over 3 cells; placing 1 leaves 23 over 2 cells — impossible
+        // (max is 8+9=17), but placedSum < sum so naive bounds checks miss it.
+        let bigCage = KillerCage(
+            cells: [.init(row: 0, column: 0), .init(row: 0, column: 1), .init(row: 0, column: 2)],
+            sum: 24
+        )
+        let state = BoardState.fromGrid(grid([(0, 0, 1)]))
+        #expect(bigCage.violations(in: state).isEmpty == false)
+    }
+
+    @Test("Remaining sum too small for distinct digits is a violation")
+    func tooSmallSum() {
+        // Sum 6 over 3 cells is exactly {1,2,3}; placing 5 leaves 1 over 2 cells —
+        // impossible, yet placedSum + emptyCount (5+2=7) only just exceeds 6.
+        let state = BoardState.fromGrid(grid([(0, 0, 5)]))
+        #expect(cage.violations(in: state).isEmpty == false)
+    }
+
     @Test("Pruning keeps only combination digits")
     func pruneToCombinations() {
         let state = BoardState.fromGrid(grid([]))

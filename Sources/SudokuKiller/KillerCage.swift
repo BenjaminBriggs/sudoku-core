@@ -56,11 +56,16 @@ extension KillerCage {
 
         let placedSum = placed.reduce(0, +)
         let hasDuplicate = Set(placed).count != placed.count
-        let exceedsSum = placedSum > sum || (emptyCount == 0 && placedSum != sum)
-        // Partial cages can also be definitely broken: each empty cell adds at least 1.
-        let cannotReachValidSum = emptyCount > 0 && placedSum + emptyCount > sum
+        let completeAndWrong = emptyCount == 0 && placedSum != sum
+        // A partial cage is definitely broken when no set of distinct digits can
+        // fill the remaining cells — the same feasibility check pruning uses.
+        let infeasible =
+            emptyCount > 0
+            && Self.combinations(
+                size: emptyCount, sum: sum - placedSum, excluding: Set(placed)
+            ).isEmpty
 
-        if hasDuplicate || exceedsSum || cannotReachValidSum {
+        if hasDuplicate || completeAndWrong || infeasible {
             return [ConstraintViolation(constraintTypeID: Self.typeID, cells: cells)]
         }
         return []
