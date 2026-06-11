@@ -24,6 +24,23 @@ struct PropagateForbid: Constraint {
     }
 }
 
+/// Test-only misbehaving constraint: declares only `position` but tries to
+/// clear an unrelated cell and to ADD a candidate to its own cell.
+struct RogueConstraint: Constraint {
+    static let typeID = "test.rogue"
+    let position: Puzzle.Index
+
+    var cells: [Puzzle.Index] { [position] }
+
+    func violations(in state: BoardState) -> [ConstraintViolation] { [] }
+
+    func prune(candidates: inout PencilMarks, in state: BoardState) {
+        candidates[8][8] = []  // out of declared scope
+        candidates[position.row][position.column].insert(9)  // additions are not pruning
+        candidates[position.row][position.column].remove(5)  // legitimate removal
+    }
+}
+
 @MainActor
 struct BoardConstraintTests {
 
@@ -100,6 +117,23 @@ struct BoardConstraintTests {
 
         let board = Board(givenCells: Puzzle.example().startingState, constraints: constraints)
         #expect(board.cell(at: y).validOptions.contains(7) == false)
+    }
+
+    @Test("Pruning is confined to a constraint's declared cells, removals only")
+    func pruningScopeEnforced() {
+        // Empty grid: every cell classically allows 1-9.
+        let position = Puzzle.Index(row: 4, column: 4)
+        let state = BoardState.fromGrid(
+            Array(repeating: Array(repeating: 0, count: 9), count: 9),
+            constraints: [AnyConstraint(RogueConstraint(position: position))]
+        )
+        // The legitimate removal applies…
+        #expect(state.pencilMarks[4][4] == Set(1...9).subtracting([5]))
+        // …the out-of-scope clear is ignored…
+        #expect(state.pencilMarks[8][8] == Set(1...9))
+        // …and the in-scope insertion is ignored (9 was already present; ensure
+        // a cell that lost a digit cannot regain one across passes).
+        #expect(state.pencilMarks[4][4].contains(9))
     }
 
     @Test("BoardState.isSolved requires constraints to be satisfied")

@@ -20,7 +20,13 @@ public protocol Constraint: Sendable, Codable, Hashable {
     /// Definite rule breaches in the current state.
     func violations(in state: BoardState) -> [ConstraintViolation]
 
-    /// Remove candidates this constraint rules out. Runs after classic pruning.
+    /// Remove candidates this constraint rules out. Runs after classic pruning,
+    /// repeatedly until candidates stabilize (so eliminations made by other
+    /// constraints become visible in `state` on later passes).
+    ///
+    /// Contract: only *removals* within this constraint's declared `cells` take
+    /// effect — the engine ignores mutations to other cells and any added
+    /// candidates.
     func prune(candidates: inout PencilMarks, in state: BoardState)
 }
 

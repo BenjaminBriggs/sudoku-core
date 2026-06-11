@@ -34,7 +34,15 @@ extension BoardState {
             )
             let before = candidates
             for constraint in constraints {
-                constraint.base.prune(candidates: &candidates, in: snapshot)
+                // Constraints propose; the engine applies. Only removals within
+                // the constraint's declared cells take effect, so a misbehaving
+                // conformer cannot touch unrelated cells or add candidates.
+                var proposed = candidates
+                constraint.base.prune(candidates: &proposed, in: snapshot)
+                for cell in constraint.base.cells {
+                    candidates[cell.row][cell.column]
+                        .formIntersection(proposed[cell.row][cell.column])
+                }
             }
             if candidates == before { return }
         }

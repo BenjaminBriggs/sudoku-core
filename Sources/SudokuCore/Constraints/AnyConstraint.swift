@@ -19,6 +19,10 @@ public struct AnyConstraint: Sendable, Hashable {
     private let hashInto: @Sendable (inout Hasher) -> Void
 
     public init<C: Constraint>(_ constraint: C) {
+        precondition(
+            constraint.cells.allSatisfy { (0..<9).contains($0.row) && (0..<9).contains($0.column) },
+            "Constraint \"\(C.typeID)\" declares cells outside the 9×9 grid"
+        )
         self.base = constraint
         self.typeID = C.typeID
         self.encodeBody = { encoder in try constraint.encode(to: encoder) }
