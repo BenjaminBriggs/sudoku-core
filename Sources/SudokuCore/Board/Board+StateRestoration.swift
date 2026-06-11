@@ -117,6 +117,12 @@ extension Board {
             }
         }
         refreshDerivedState()
+        // Persisted marks may predate the puzzle's constraints (or have been
+        // saved by an older client) — drop anything the constraints forbid.
+        // Classic-only boards keep their marks verbatim, as before.
+        if constraints.isEmpty == false {
+            eliminatePencilMarks()
+        }
     }
 }
 

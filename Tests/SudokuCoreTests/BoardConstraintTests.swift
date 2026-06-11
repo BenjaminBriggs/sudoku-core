@@ -119,6 +119,35 @@ struct BoardConstraintTests {
         #expect(board.cell(at: y).validOptions.contains(7) == false)
     }
 
+    @Test("Restoration filters pencil marks forbidden by constraints")
+    func restoreFiltersConstraintForbiddenMarks() {
+        // Constraint forbids 2 at (0,1); persisted marks there claim {2, 3}.
+        // Classic rules allow {2, 3, 7} at (0,1), so 3 must survive the filter.
+        let position = Puzzle.Index(row: 0, column: 1)
+        let constraint = AnyConstraint(ForbidDigit(position: position, digit: 2))
+        let board = Board(puzzle: examplePuzzle(with: constraint))
+
+        var marks: [[Set<Int>]] = Array(repeating: Array(repeating: [], count: 9), count: 9)
+        marks[position.row][position.column] = [2, 3]
+        let empty: [[Set<Int>]] = Array(repeating: Array(repeating: [], count: 9), count: 9)
+
+        board.restore(
+            currentState: Puzzle.example().startingState,
+            simplePencilMarks: marks,
+            advancedPencilMarks: empty,
+            backgroundColors: Array(repeating: Array(repeating: 0, count: 9), count: 9),
+            ruledOutCandidates: empty,
+            undoStack: [],
+            solution: Puzzle.example().solution,
+            hintsUsed: 0,
+            incorrectMoves: 0
+        )
+
+        let restored = board.cell(at: position).simplePencilMarks
+        #expect(restored.contains(2) == false)
+        #expect(restored.contains(3))
+    }
+
     @Test("Stale violations clear when constraints are removed")
     func staleViolationsCleared() {
         let constraint = AnyConstraint(ForbidDigit(position: .init(row: 0, column: 1), digit: 2))
