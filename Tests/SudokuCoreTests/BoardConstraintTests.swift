@@ -119,6 +119,18 @@ struct BoardConstraintTests {
         #expect(board.cell(at: y).validOptions.contains(7) == false)
     }
 
+    @Test("Stale violations clear when constraints are removed")
+    func staleViolationsCleared() {
+        let constraint = AnyConstraint(ForbidDigit(position: .init(row: 0, column: 1), digit: 2))
+        let board = Board(puzzle: examplePuzzle(with: constraint))
+        board.mark(positions: [.init(row: 0, column: 1)], as: 2)
+        #expect(board.constraintViolations.isEmpty == false)
+
+        board.constraints = []
+        board.updateCellValidation()
+        #expect(board.constraintViolations.isEmpty)
+    }
+
     @Test("Pruning is confined to a constraint's declared cells, removals only")
     func pruningScopeEnforced() {
         // Empty grid: every cell classically allows 1-9.

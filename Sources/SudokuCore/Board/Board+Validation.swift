@@ -13,6 +13,7 @@ extension Board {
 
     internal func updateCellValidation(grid: [[Int]]) {
         var validOptions = Validator.validOptions(for: grid)
+        constraintViolations = []
         if constraints.isEmpty == false {
             BoardState.pruneToFixpoint(
                 candidates: &validOptions, grid: grid,
