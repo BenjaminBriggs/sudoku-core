@@ -30,3 +30,6 @@ Package.resolved
 
 # Worktrees
 .worktrees/
+
+# Development-process artifacts (specs/plans for agent workflows, not for humans)
+docs/superpowers/
