@@ -7,6 +7,12 @@ import Foundation
 /// Stable identifier for a solving technique. Encodes as a bare string, matching
 /// the legacy `HintTechnique` enum's raw-value encoding, so shipped puzzle JSON
 /// keeps decoding. Raw values for classic techniques must never change.
+///
+/// Ids are not validated and nothing prevents collisions — a technique minted
+/// with a classic id (e.g. `"nakedSingle"`) silently shadows the built-in in
+/// id-based lookups and rating maps. Namespace your own ids with a module
+/// prefix, as the killer module does (`killer.cageLastCell`); bare camel-case
+/// names are reserved for classic techniques.
 public struct TechniqueID: RawRepresentable, Hashable, Sendable,
     ExpressibleByStringLiteral, CustomStringConvertible
 {

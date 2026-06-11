@@ -357,3 +357,4 @@ func provideHint(for board: Board, settings: HintSettings) -> HintStep? {
 - Learn about <doc:DifficultyRating> to understand how techniques affect difficulty
 - Explore <doc:WorkingWithBoards> for more board operations
 - Read about <doc:GeneratingPuzzles> to create puzzles requiring specific techniques
+- See <doc:ExtendingWithVariants> for variant rules, constraints, and variant techniques

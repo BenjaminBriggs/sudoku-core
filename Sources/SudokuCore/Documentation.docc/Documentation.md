@@ -59,11 +59,6 @@ SudokuCore is the engine behind a Sudoku application: the game logic, puzzle gen
 - ``TechniqueInfo``
 - ``TechniqueID``
 - ``ClassicTechniques``
-- ``Constraint``
-- ``AnyConstraint``
-- ``ConstraintRegistry``
-- ``ConstraintViolation``
-- ``PuzzlePresentation``
 - ``HintStep``
 - ``HintAction``
 - ``HintReasoning``
@@ -74,6 +69,17 @@ SudokuCore is the engine behind a Sudoku application: the game logic, puzzle gen
 - ``BoardState``
 - ``BoardStateParser``
 - ``BoardStringFormat``
+
+### Variants and Constraints
+
+- <doc:ExtendingWithVariants>
+- ``Constraint``
+- ``AnyConstraint``
+- ``ConstraintRegistry``
+- ``ConstraintViolation``
+- ``ConstraintDecodingError``
+- ``UnknownConstraint``
+- ``PuzzlePresentation``
 
 ### Rating and Performance
 
