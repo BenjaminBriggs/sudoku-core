@@ -31,4 +31,12 @@ struct KillerCageMathTests {
         #expect(KillerCage.combinations(size: 3, sum: 5, excluding: []).isEmpty)
         #expect(KillerCage.combinations(size: 1, sum: 5, excluding: []) == [Set([5])])
     }
+
+    @Test("Non-positive sizes have no combinations")
+    func nonPositiveSize() {
+        // Without the guard, (size: 0, sum: 0) yields [[]] whose union is the
+        // empty set — a candidate-clearing trap for callers.
+        #expect(KillerCage.combinations(size: 0, sum: 0, excluding: []).isEmpty)
+        #expect(KillerCage.combinations(size: -1, sum: 5, excluding: []).isEmpty)
+    }
 }

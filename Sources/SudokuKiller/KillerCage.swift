@@ -17,8 +17,9 @@ public struct KillerCage: Constraint {
     }
 
     /// All sets of `size` distinct digits from 1...9, none in `excluding`,
-    /// summing to `sum`.
+    /// summing to `sum`. Non-positive sizes have no combinations.
     static func combinations(size: Int, sum: Int, excluding: Set<Int>) -> [Set<Int>] {
+        guard size > 0 else { return [] }
         let available = (1...9).filter { excluding.contains($0) == false }
         var results: [Set<Int>] = []
         var current: [Int] = []
