@@ -91,6 +91,10 @@ extension KillerCage {
             sum: sum - placedSum,
             excluding: placedDigits
         )
+        // An infeasible cage is a violation, not an elimination: clearing the
+        // cells to an empty candidate set would silently brick the board.
+        guard combos.isEmpty == false else { return }
+
         let allowed = combos.reduce(into: Set<Int>()) { $0.formUnion($1) }
         for cell in emptyCells {
             candidates[cell.row][cell.column].formIntersection(allowed)

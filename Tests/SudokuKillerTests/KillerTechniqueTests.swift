@@ -74,6 +74,19 @@ struct KillerTechniqueTests {
         #expect(hint.reasoning.eliminations.count == hint.actions.count)
     }
 
+    @Test("CageCombinations does not eliminate from infeasible cages")
+    func combinationsInfeasible() {
+        // Remaining sum unreachable: eliminating "everything" would brick the
+        // board; validation reports the breach instead.
+        let cage = KillerCage(
+            cells: [.init(row: 0, column: 0), .init(row: 0, column: 1), .init(row: 0, column: 2)],
+            sum: 24
+        )
+        var state = BoardState.fromGrid(grid([(0, 0, 1)]))
+        state.constraints = [AnyConstraint(cage)]
+        #expect(CageCombinations().findHint(in: state) == nil)
+    }
+
     @Test("CageCombinations returns nil when pencil marks already match")
     func combinationsNil() {
         let cage = KillerCage(

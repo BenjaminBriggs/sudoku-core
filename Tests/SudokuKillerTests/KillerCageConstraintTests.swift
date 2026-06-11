@@ -81,6 +81,17 @@ struct KillerCageConstraintTests {
         #expect(candidates[1][0] == Set(1...9))
     }
 
+    @Test("Pruning leaves candidates untouched when the cage is infeasible")
+    func pruneInfeasibleCage() {
+        // 5 placed: remaining sum 1 over 2 cells is impossible. The violation is
+        // the signal; pruning must not clear the cells to an empty candidate set.
+        let state = BoardState.fromGrid(grid([(0, 0, 5)]))
+        var candidates = state.validOptions
+        let before = candidates
+        cage.prune(candidates: &candidates, in: state)
+        #expect(candidates == before)
+    }
+
     @Test("Pruning respects placed cage digits")
     func pruneWithPlacement() {
         let state = BoardState.fromGrid(grid([(0, 0, 1)]))

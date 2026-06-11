@@ -99,6 +99,9 @@ public struct CageCombinations: HintTechnique {
                 sum: cage.sum - placedSum,
                 excluding: placedDigits
             )
+            // An infeasible cage is validation's job; eliminating every candidate
+            // would brick the board.
+            guard combos.isEmpty == false else { continue }
             let allowed = combos.reduce(into: Set<Int>()) { $0.formUnion($1) }
 
             var actions: [HintAction] = []
