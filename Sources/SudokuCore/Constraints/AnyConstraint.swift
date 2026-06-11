@@ -39,6 +39,28 @@ public struct AnyConstraint: Sendable, Hashable {
     }
 }
 
+extension AnyConstraint {
+    /// Set to `true` in a decoder's `userInfo` to preserve unregistered
+    /// constraint types as inert `UnknownConstraint`s instead of throwing.
+    /// Use for forward compatibility (data authored by newer clients); the
+    /// preserved constraint enforces nothing but re-encodes verbatim.
+    ///
+    /// Strict decoding (the default) throws `ConstraintDecodingError.unknownType`
+    /// for any type not registered with `ConstraintRegistry` — register variant
+    /// modules (e.g. `KillerSudoku.register()`) before decoding puzzles.
+    public static let lenientDecodingUserInfoKey = CodingUserInfoKey(
+        rawValue: "SudokuCore.AnyConstraint.lenientDecoding")!
+
+    /// Wraps an `UnknownConstraint`, keeping its original type key for encoding.
+    init(preserving unknown: UnknownConstraint) {
+        self.base = unknown
+        self.typeID = unknown.originalTypeID
+        self.encodeBody = { encoder in try unknown.encode(to: encoder) }
+        self.isEqualTo = { other in (other as? UnknownConstraint) == unknown }
+        self.hashInto = { hasher in hasher.combine(unknown) }
+    }
+}
+
 extension AnyConstraint: Codable {
     private enum CodingKeys: String, CodingKey {
         case type
@@ -49,6 +71,12 @@ extension AnyConstraint: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let typeID = try container.decode(String.self, forKey: .type)
         guard let decode = ConstraintRegistry.decoder(for: typeID) else {
+            if decoder.userInfo[Self.lenientDecodingUserInfoKey] as? Bool == true {
+                let payload = try JSONValue(from: container.superDecoder(forKey: .payload))
+                self = AnyConstraint(
+                    preserving: UnknownConstraint(originalTypeID: typeID, payload: payload))
+                return
+            }
             throw ConstraintDecodingError.unknownType(typeID)
         }
         self = try decode(container.superDecoder(forKey: .payload))

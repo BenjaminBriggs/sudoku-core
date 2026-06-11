@@ -57,6 +57,37 @@ struct ConstraintTests {
         }
     }
 
+    @Test("Lenient decoding preserves unknown constraint types verbatim")
+    func lenientDecodePreservesUnknown() throws {
+        let json = Data(
+            #"{"type":"future.thermometer","payload":{"cells":[{"row":1,"column":2}],"bulbFirst":true}}"#
+            .utf8)
+
+        let decoder = JSONDecoder()
+        decoder.userInfo[AnyConstraint.lenientDecodingUserInfoKey] = true
+        let constraint = try decoder.decode(AnyConstraint.self, from: json)
+
+        let unknown = try #require(constraint.base as? UnknownConstraint)
+        #expect(unknown.originalTypeID == "future.thermometer")
+        // Inert: no cells, no violations, no pruning surface.
+        #expect(unknown.cells.isEmpty)
+        #expect(unknown.violations(in: BoardState.fromGrid(Puzzle.example().startingState)).isEmpty)
+
+        // Round-trips byte-for-byte in structure: type key and payload survive.
+        let reencoded = try JSONEncoder().encode(constraint)
+        let original = try JSONSerialization.jsonObject(with: json) as? NSDictionary
+        let roundTripped = try JSONSerialization.jsonObject(with: reencoded) as? NSDictionary
+        #expect(roundTripped == original)
+    }
+
+    @Test("Strict decoding still throws for unknown types even after lenient use")
+    func strictRemainsDefault() {
+        let json = Data(#"{"type":"future.thermometer","payload":{}}"#.utf8)
+        #expect(throws: ConstraintDecodingError.self) {
+            _ = try JSONDecoder().decode(AnyConstraint.self, from: json)
+        }
+    }
+
     @Test("Equality and hashing reflect the wrapped value")
     func equality() {
         let a = AnyConstraint(ForbidDigit(position: .init(row: 1, column: 1), digit: 2))
