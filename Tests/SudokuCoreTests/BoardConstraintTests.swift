@@ -3,6 +3,27 @@ import Testing
 
 @testable import SudokuCore
 
+/// Test-only constraint that reacts to another constraint's pruning:
+/// once `watched` can no longer be `watchedDigit`, it forbids `digit` in `position`.
+/// Requires fixpoint pruning to fire — a single pass over a stale snapshot misses it.
+struct PropagateForbid: Constraint {
+    static let typeID = "test.propagateForbid"
+    let watched: Puzzle.Index
+    let watchedDigit: Int
+    let position: Puzzle.Index
+    let digit: Int
+
+    var cells: [Puzzle.Index] { [watched, position] }
+
+    func violations(in state: BoardState) -> [ConstraintViolation] { [] }
+
+    func prune(candidates: inout PencilMarks, in state: BoardState) {
+        if state.pencilMarks[watched.row][watched.column].contains(watchedDigit) == false {
+            candidates[position.row][position.column].remove(digit)
+        }
+    }
+}
+
 @MainActor
 struct BoardConstraintTests {
 
@@ -59,6 +80,26 @@ struct BoardConstraintTests {
         let constraint = AnyConstraint(ForbidDigit(position: .init(row: 0, column: 1), digit: 2))
         let board = Board(puzzle: examplePuzzle(with: constraint))
         #expect(board.state.constraints == [constraint])
+    }
+
+    @Test("Constraint pruning runs to a fixpoint across constraints")
+    func fixpointPruning() {
+        // Premises: in example().startingState, classic rules allow 2 at (0,1)
+        // and 7 at (2,2) — verified against row/column/house contents.
+        let x = Puzzle.Index(row: 0, column: 1)
+        let y = Puzzle.Index(row: 2, column: 2)
+        let constraints = [
+            // Order chosen so the dependent constraint runs FIRST: only a second
+            // pass over the updated snapshot can see ForbidDigit's elimination.
+            AnyConstraint(PropagateForbid(watched: x, watchedDigit: 2, position: y, digit: 7)),
+            AnyConstraint(ForbidDigit(position: x, digit: 2)),
+        ]
+        let state = BoardState.fromGrid(Puzzle.example().startingState, constraints: constraints)
+        #expect(state.pencilMarks[x.row][x.column].contains(2) == false)
+        #expect(state.pencilMarks[y.row][y.column].contains(7) == false)
+
+        let board = Board(givenCells: Puzzle.example().startingState, constraints: constraints)
+        #expect(board.cell(at: y).validOptions.contains(7) == false)
     }
 
     @Test("BoardState.isSolved requires constraints to be satisfied")

@@ -14,20 +14,14 @@ extension BoardState {
         _ grid: [[Int]], constraints: [AnyConstraint] = []
     ) -> BoardState {
         var options = Validator.validOptions(for: grid)
-        var state = BoardState(
+        BoardState.pruneToFixpoint(
+            candidates: &options, grid: grid, solution: nil, constraints: constraints)
+        return BoardState(
             grid: grid,
             pencilMarks: options,
             validOptions: options,
             constraints: constraints
         )
-        if constraints.isEmpty == false {
-            for constraint in constraints {
-                constraint.base.prune(candidates: &options, in: state)
-            }
-            state.pencilMarks = options
-            state.validOptions = options
-        }
-        return state
     }
 
     /// True when every cell is non-zero, there are no classic conflicts,
@@ -67,17 +61,10 @@ extension BoardState {
         // Elimination-only hints leave the grid untouched, so the valid options
         // derived from it are unchanged — skip the full recompute.
         var validOptions = gridChanged ? Validator.validOptions(for: newGrid) : self.validOptions
-        if gridChanged && self.constraints.isEmpty == false {
-            let snapshot = BoardState(
-                grid: newGrid,
-                pencilMarks: validOptions,
-                validOptions: validOptions,
-                solution: self.solution,
-                constraints: self.constraints
-            )
-            for constraint in self.constraints {
-                constraint.base.prune(candidates: &validOptions, in: snapshot)
-            }
+        if gridChanged {
+            BoardState.pruneToFixpoint(
+                candidates: &validOptions, grid: newGrid,
+                solution: self.solution, constraints: self.constraints)
         }
         var merged = newPencilMarks
         for row in 0..<9 {

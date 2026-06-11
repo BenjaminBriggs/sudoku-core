@@ -14,6 +14,9 @@ extension Board {
     internal func updateCellValidation(grid: [[Int]]) {
         var validOptions = Validator.validOptions(for: grid)
         if constraints.isEmpty == false {
+            BoardState.pruneToFixpoint(
+                candidates: &validOptions, grid: grid,
+                solution: solution, constraints: constraints)
             let snapshot = BoardState(
                 grid: grid,
                 pencilMarks: validOptions,
@@ -21,9 +24,6 @@ extension Board {
                 solution: solution,
                 constraints: constraints
             )
-            for constraint in constraints {
-                constraint.base.prune(candidates: &validOptions, in: snapshot)
-            }
             constraintViolations = constraints.flatMap { $0.base.violations(in: snapshot) }
         }
         for (index, cell) in self.cells.enumerated() {
