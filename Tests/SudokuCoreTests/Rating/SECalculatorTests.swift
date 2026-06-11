@@ -24,7 +24,7 @@ struct SECalculatorTests {
         grid[8][8] = 0  // one naked single
 
         let result = SECalculator.compute(for: grid)
-        #expect(result.rating == HintTechnique.nakedSingle.seStepValue)
+        #expect(result.rating == (TechniqueInfo.nakedSingle.seStepValue ?? 0))
         #expect(result.hardestTechniqueName == "Single")
         #expect(result.maxStepIndex == 0)
         #expect(result.pathSummary["Single"] == 1)

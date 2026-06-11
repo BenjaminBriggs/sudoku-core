@@ -45,7 +45,7 @@ public enum SudokuDifficultyCalculator {
 
         // Build a solve path once and derive metrics from it
         let path = SolvePathEmitter.emit(from: initialGrid)
-        var techniquesUsed: [HintTechnique] = path.steps.map { $0.technique }
+        var techniquesUsed: [TechniqueInfo] = path.steps.map { $0.technique }
         var iterationCount: Int = path.iterationCount
         var state = path.finalState
         var wasSolved: Bool = path.solved
@@ -94,7 +94,7 @@ public enum SudokuDifficultyCalculator {
     /// Uses the HoDoKu cumulative effort score to classify difficulty level
     private static func calculateDifficultyMetrics(
         wasSolved: Bool,
-        techniquesUsed: [HintTechnique],
+        techniquesUsed: [TechniqueInfo],
         iterationCount: Int,
         seRating: Double?,
         hodokuRating: Int?,
@@ -157,7 +157,7 @@ public enum SudokuDifficultyCalculator {
         public let score: Double
 
         /// All techniques that were used to solve the puzzle
-        public let techniquesUsed: [HintTechnique]
+        public let techniquesUsed: [TechniqueInfo]
 
         /// Number of iterations needed to solve
         public let iterationCount: Int
@@ -171,14 +171,14 @@ public enum SudokuDifficultyCalculator {
         public let estimatedTimeSeconds: Int?
 
         /// The most advanced technique used (ignores `.unknown` fallback marker)
-        public var hardestTechnique: HintTechnique? {
+        public var hardestTechnique: TechniqueInfo? {
             let filtered = techniquesUsed.filter { $0 != .unknown }
             return filtered.max(by: { $0.difficulty < $1.difficulty })
         }
 
         /// Frequency of each technique used
-        public var techniqueFrequency: [HintTechnique: Int] {
-            var frequency: [HintTechnique: Int] = [:]
+        public var techniqueFrequency: [TechniqueInfo: Int] {
+            var frequency: [TechniqueInfo: Int] = [:]
             for technique in techniquesUsed {
                 frequency[technique, default: 0] += 1
             }
@@ -188,7 +188,7 @@ public enum SudokuDifficultyCalculator {
         public init(
             level: PuzzleDifficulty.Level,
             score: Double,
-            techniquesUsed: [HintTechnique],
+            techniquesUsed: [TechniqueInfo],
             iterationCount: Int,
             wasSolved: Bool,
             seRating: Double? = nil,
@@ -206,7 +206,7 @@ public enum SudokuDifficultyCalculator {
         }
 
         public var puzzleDifficulty: PuzzleDifficulty {
-            let fallback: HintTechnique = {
+            let fallback: TechniqueInfo = {
                 switch self.level {
                 case .easy: return .hiddenSingle
                 case .medium: return .lockedCandidatesPointing
@@ -218,7 +218,7 @@ public enum SudokuDifficultyCalculator {
             }()
             return PuzzleDifficulty(
                 level: self.level,
-                hardestTechnique: self.hardestTechnique ?? fallback,
+                hardestTechnique: (self.hardestTechnique ?? fallback).id,
                 score: Int(self.score),
                 seRating: self.seRating,
                 hodokuRating: self.hodokuRating,

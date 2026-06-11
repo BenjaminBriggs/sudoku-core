@@ -13,7 +13,7 @@ struct HintTests {
 
     // MARK: - Enhanced Test Cases with Expected Results
 
-    static let testGrids: [(HintTechnique, [String])] = [
+    static let testGrids: [(TechniqueInfo, [String])] = [
         (
             .nakedSingle,
             [
@@ -319,7 +319,7 @@ struct HintTests {
     ]
 
     @Test("Test Hints", arguments: testGrids)
-    func testHints(technique: HintTechnique, gridStrings: [String]) async {
+    func testHints(technique: TechniqueInfo, gridStrings: [String]) async {
         for gridString in gridStrings {
             let state: BoardState
 
@@ -351,7 +351,7 @@ struct HintTests {
             [.finnedXWing, .finnedSwordfish, .finnedJellyfish].contains($0.0)
         }
     )
-    func testFinnedFishStructure(technique: HintTechnique, gridStrings: [String]) throws {
+    func testFinnedFishStructure(technique: TechniqueInfo, gridStrings: [String]) throws {
         for gridString in gridStrings {
             let state = try BoardStateParser.parse(gridString)
 
@@ -409,8 +409,8 @@ struct HintTests {
         }
     }
 
-    @Test("Test Hints Empty", arguments: HintTechnique.allCases)
-    func testHintsEmpty(technique: HintTechnique) async {
+    @Test("Test Hints Empty", arguments: TechniqueInfo.allClassic)
+    func testHintsEmpty(technique: TechniqueInfo) async {
         let grid = Solution.empty()
         let pencilMarks = Validator.validOptions(for: grid)
 
@@ -429,7 +429,7 @@ struct HintTests {
     // MARK: - Property-Based Tests
 
     @Test("Hints never create conflicts", arguments: testGrids)
-    func testHintsNeverCreateConflicts(technique: HintTechnique, gridStrings: [String]) async {
+    func testHintsNeverCreateConflicts(technique: TechniqueInfo, gridStrings: [String]) async {
         for gridString in gridStrings {
             let state: BoardState
             do {
@@ -452,7 +452,7 @@ struct HintTests {
     }
 
     @Test("Hints always reduce candidates", arguments: testGrids)
-    func testHintsAlwaysReduceCandidates(technique: HintTechnique, gridStrings: [String]) async {
+    func testHintsAlwaysReduceCandidates(technique: TechniqueInfo, gridStrings: [String]) async {
         for gridString in gridStrings {
             let state: BoardState
             do {
@@ -478,7 +478,7 @@ struct HintTests {
     }
 
     @Test("Hints are deterministic", arguments: testGrids)
-    func testHintsAreDeterministic(technique: HintTechnique, gridStrings: [String]) async {
+    func testHintsAreDeterministic(technique: TechniqueInfo, gridStrings: [String]) async {
         for gridString in gridStrings {
             let state: BoardState
             do {
@@ -506,7 +506,7 @@ struct HintTests {
     // MARK: - Solution Verification (False Positive Detection)
 
     @Test("Hints never eliminate solution digits", arguments: testGrids)
-    func testHintsNeverEliminateSolutionDigits(technique: HintTechnique, gridStrings: [String]) {
+    func testHintsNeverEliminateSolutionDigits(technique: TechniqueInfo, gridStrings: [String]) {
         for gridString in gridStrings {
             let state: BoardState
             do {
@@ -550,8 +550,8 @@ struct HintTests {
 
     // MARK: - Cross-Validation Tests (False Positive Detection)
 
-    @Test("Solved board returns nil for all techniques", arguments: HintTechnique.allCases)
-    func testSolvedBoardReturnsNilForAllTechniques(technique: HintTechnique) {
+    @Test("Solved board returns nil for all techniques", arguments: TechniqueInfo.allClassic)
+    func testSolvedBoardReturnsNilForAllTechniques(technique: TechniqueInfo) {
         if technique == .validation || technique == .unknown {
             return
         }
@@ -577,10 +577,10 @@ struct HintTests {
 
     struct PuzzleAllHintsTestCase {
         let gridString: String
-        let expectedTechniques: Set<HintTechnique>
+        let expectedTechniques: Set<TechniqueInfo>
         let description: String
 
-        init(gridString: String, expectedTechniques: Set<HintTechnique>, description: String = "") {
+        init(gridString: String, expectedTechniques: Set<TechniqueInfo>, description: String = "") {
             self.gridString = gridString
             self.expectedTechniques = expectedTechniques
             self.description = description
@@ -654,10 +654,10 @@ struct HintTests {
             validOptions: pencilMarks
         )
 
-        var foundTechniques = Set<HintTechnique>()
+        var foundTechniques = Set<TechniqueInfo>()
 
         // Try to find hints with each technique
-        for technique in HintTechnique.allCases {
+        for technique in TechniqueInfo.allClassic {
             if technique == .unknown || technique == .validation {
                 continue
             }
@@ -688,10 +688,10 @@ struct HintTests {
             validOptions: pencilMarks
         )
 
-        var foundTechniques = Set<HintTechnique>()
+        var foundTechniques = Set<TechniqueInfo>()
 
         // Try to find hints with each technique
-        for technique in HintTechnique.allCases {
+        for technique in TechniqueInfo.allClassic {
             if technique == .unknown || technique == .validation {
                 continue
             }

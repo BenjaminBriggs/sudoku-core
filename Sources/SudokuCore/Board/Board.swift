@@ -71,6 +71,12 @@ public final class Board {
     /// May be `nil` for puzzles without a known solution.
     public internal(set) var solution: [[Int]]?
 
+    /// Additive variant constraints for this puzzle (e.g. killer cages). Set at init.
+    public internal(set) var constraints: [AnyConstraint] = []
+
+    /// Definite breaches of variant constraints in the current state, for the app to surface.
+    public internal(set) var constraintViolations: [ConstraintViolation] = []
+
     // MARK: - Completion Tracking
 
     /// Rows (0-8) that are completely filled with correct values.
@@ -169,7 +175,8 @@ public final class Board {
             difficulty: puzzle.difficulty.level,
             difficultyScore: puzzle.difficulty.score,
             givenCells: puzzle.startingState,
-            solution: puzzle.solution
+            solution: puzzle.solution,
+            constraints: puzzle.constraints
         )
     }
 
@@ -204,7 +211,8 @@ public final class Board {
         difficulty: PuzzleDifficulty.Level = .custom,
         difficultyScore: Int = 0,
         givenCells: [[Int]],
-        solution: [[Int]]? = nil
+        solution: [[Int]]? = nil,
+        constraints: [AnyConstraint] = []
     ) {
         precondition(givenCells.count == 9)
         precondition(givenCells.allSatisfy { $0.count == 9 })
@@ -212,6 +220,7 @@ public final class Board {
         self.difficulty = difficulty
         self.difficultyScore = difficultyScore
         self.solution = solution
+        self.constraints = constraints
         self.cells = []
 
         SetUp(givenCells, solution)

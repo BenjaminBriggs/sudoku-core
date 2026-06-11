@@ -11,15 +11,49 @@ public struct Puzzle: Codable, Hashable, Identifiable, Sendable {
     public let solution: [[Int]]
     public let startingState: [[Int]]
     public let difficulty: PuzzleDifficulty
+    /// Additive variant rules (e.g. killer cages). Empty for classic puzzles.
+    public let constraints: [AnyConstraint]
+    /// Opaque presentation payload (overlay SVG, rules text) the app renders.
+    public let presentation: PuzzlePresentation?
+
     public init(
         solution: [[Int]],
         startingState: [[Int]],
-        difficulty: PuzzleDifficulty
+        difficulty: PuzzleDifficulty,
+        constraints: [AnyConstraint] = [],
+        presentation: PuzzlePresentation? = nil
     ) {
         self.id = startingState.flatString(empty: "0")
         self.solution = solution
         self.startingState = startingState
         self.difficulty = difficulty
+        self.constraints = constraints
+        self.presentation = presentation
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.solution = try container.decode([[Int]].self, forKey: .solution)
+        self.startingState = try container.decode([[Int]].self, forKey: .startingState)
+        self.difficulty = try container.decode(PuzzleDifficulty.self, forKey: .difficulty)
+        self.constraints =
+            try container.decodeIfPresent([AnyConstraint].self, forKey: .constraints) ?? []
+        self.presentation =
+            try container.decodeIfPresent(PuzzlePresentation.self, forKey: .presentation)
+    }
+}
+
+/// Presentation payload for bespoke puzzles. Opaque to core; the app renders it.
+public struct PuzzlePresentation: Codable, Hashable, Sendable {
+    /// SVG drawn over the grid (cage outlines, decorations). Coordinate system is app-defined.
+    public let overlaySVG: String?
+    /// Human-readable rules, as authored. Core never interprets this.
+    public let rulesText: String?
+
+    public init(overlaySVG: String? = nil, rulesText: String? = nil) {
+        self.overlaySVG = overlaySVG
+        self.rulesText = rulesText
     }
 }
 
@@ -50,7 +84,7 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
     public let level: Level
 
     /// Most advanced technique required to solve the puzzle
-    public let hardestTechnique: HintTechnique
+    public let hardestTechnique: TechniqueID
 
     /// HoDoKu cumulative effort rating
     /// Represents intrinsic puzzle difficulty independent of player performance
@@ -63,7 +97,7 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
 
     public init(
         level: Level,
-        hardestTechnique: HintTechnique,
+        hardestTechnique: TechniqueID,
         score: Int,
         seRating: Double? = nil,
         hodokuRating: Int? = nil,
@@ -118,7 +152,7 @@ extension Puzzle {
             ],
             difficulty: PuzzleDifficulty(
                 level: .easy,
-                hardestTechnique: .hiddenSingle,
+                hardestTechnique: TechniqueInfo.hiddenSingle.id,
                 score: 0
             )
         )

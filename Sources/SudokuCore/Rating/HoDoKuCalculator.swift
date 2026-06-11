@@ -29,7 +29,7 @@ public enum HoDoKuCalculator {
             let key = TechniqueMapping.hodokuId(for: step.technique)
             // Standard HoDoKu scoring: fixed points per technique, regardless of
             // how many eliminations the step produces.
-            let points = Int(step.technique.hodokuPoints.rounded())
+            let points = Int((step.technique.hodokuPoints ?? 0).rounded())
             breakdown[key, default: 0] += points
             total += Double(points)
         }

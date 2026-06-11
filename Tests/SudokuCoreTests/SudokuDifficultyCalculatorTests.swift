@@ -91,7 +91,7 @@ struct SudokuDifficultyCalculatorTests {
 
         // Should mostly use naked singles (the simplest technique)
         if let hardestTechnique = result.hardestTechnique {
-            #expect(hardestTechnique.difficulty <= HintTechnique.nakedSingle.difficulty)
+            #expect(hardestTechnique.difficulty <= TechniqueInfo.nakedSingle.difficulty)
         }
 
         // Check technique frequency - should be mostly naked singles
@@ -120,8 +120,8 @@ struct SudokuDifficultyCalculatorTests {
         // Verify the hardest technique is within reasonable bounds
         if let hardestTechnique = result.hardestTechnique {
             let isReasonableDifficulty =
-                hardestTechnique.difficulty >= HintTechnique.nakedSingle.difficulty
-                && hardestTechnique.difficulty <= HintTechnique.nakedPair.difficulty
+                hardestTechnique.difficulty >= TechniqueInfo.nakedSingle.difficulty
+                && hardestTechnique.difficulty <= TechniqueInfo.nakedPair.difficulty
             #expect(isReasonableDifficulty, "Hardest technique should be reasonable")
         }
 
@@ -221,7 +221,7 @@ struct SudokuDifficultyCalculatorTests {
 
         #expect(result.wasSolved, "Puzzle should be solved")
         #expect(
-            result.techniquesUsed.contains(HintTechnique.unknown) == false,
+            result.techniquesUsed.contains(TechniqueInfo.unknown) == false,
             "Puzzle should be solvable with hints alone (no fallback needed)")
         #expect(result.iterationCount > 0, "Should require multiple hint iterations")
         #expect(

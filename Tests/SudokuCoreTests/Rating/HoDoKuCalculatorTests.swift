@@ -24,8 +24,8 @@ struct HoDoKuCalculatorTests {
         grid[8][8] = 0  // single step
 
         let result = HoDoKuCalculator.compute(for: grid)
-        #expect(result.rating == Int(HintTechnique.nakedSingle.hodokuPoints))
-        #expect(result.breakdown["Single"] == Int(HintTechnique.nakedSingle.hodokuPoints))
+        #expect(result.rating == Int((TechniqueInfo.nakedSingle.hodokuPoints ?? 0)))
+        #expect(result.breakdown["Single"] == Int((TechniqueInfo.nakedSingle.hodokuPoints ?? 0)))
         #expect(result.classLabel.count > 0)
     }
 
@@ -46,7 +46,7 @@ struct HoDoKuCalculatorTests {
         )
 
         let result = HoDoKuCalculator.compute(from: path)
-        #expect(result.rating == Int(HintTechnique.xWing.hodokuPoints))
+        #expect(result.rating == Int((TechniqueInfo.xWing.hodokuPoints ?? 0)))
     }
 
     // MARK: - Comprehensive Rating Tests

@@ -10,12 +10,12 @@ import Collections
 
 // MARK: - Fish Pattern Technique (Generic for X-Wing, Swordfish, Jellyfish)
 extension HintFinder {
-    /// Maps the fish size `n` and finned status to the corresponding `HintTechnique`.
+    /// Maps the fish size `n` and finned status to the corresponding `TechniqueInfo`.
     /// - Parameters:
     ///   - n: The fish size (2 = X-Wing, 3 = Swordfish, 4 = Jellyfish).
     ///   - includesFin: Whether the pattern has fin candidates.
-    /// - Returns: The matching `HintTechnique` enum case.
-    private static func fishTechnique(for n: Int, includesFin: Bool) -> HintTechnique {
+    /// - Returns: The matching `TechniqueInfo` enum case.
+    private static func fishTechnique(for n: Int, includesFin: Bool) -> TechniqueInfo {
         if includesFin {
             switch n {
             case 2: return .finnedXWing

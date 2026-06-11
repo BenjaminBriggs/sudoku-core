@@ -9,12 +9,12 @@ import Foundation
 
 public enum SolvePathEmitter {
     public struct SolveStep: Sendable, Equatable {
-        public let technique: HintTechnique
+        public let technique: TechniqueInfo
         public let actions: [HintAction]
         public let eliminations: Int
         public let placements: Int
 
-        public init(technique: HintTechnique, actions: [HintAction]) {
+        public init(technique: TechniqueInfo, actions: [HintAction]) {
             self.technique = technique
             self.actions = actions
             self.eliminations = actions.reduce(0) { acc, a in
@@ -34,7 +34,7 @@ public enum SolvePathEmitter {
     }
 
     /// Produce a deterministic solve path by repeatedly applying the first-found hint
-    /// based on `HintTechnique.orderedCases`.
+    /// based on `TechniqueInfo.orderedCases`.
     /// - Parameters:
     ///   - initialGrid: 9x9 puzzle with 0 for empty cells
     ///   - maxIterations: safety cap to avoid infinite loops
