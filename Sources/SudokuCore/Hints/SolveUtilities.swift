@@ -30,14 +30,16 @@ extension BoardState {
         return state
     }
 
-    /// True when every cell is non-zero and there are no conflicts.
+    /// True when every cell is non-zero, there are no classic conflicts,
+    /// and every constraint is satisfied.
     public var isSolved: Bool {
         for row in 0..<9 {
             for col in 0..<9 {
                 if grid[row][col] == 0 { return false }
             }
         }
-        return Validator.hasNoConflicts(in: grid)
+        guard Validator.hasNoConflicts(in: grid) else { return false }
+        return constraints.allSatisfy { $0.base.violations(in: self).isEmpty }
     }
 
     /// Apply a hint's actions to produce the next BoardState, recalculating candidates.

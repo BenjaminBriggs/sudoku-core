@@ -151,7 +151,9 @@ extension Board {
         self.completedHouses = completedHouses
         self.completedNumbers = completedNumbers
 
-        if (try? Validator.isCompleteAndValidSolution(grid)) == true {
+        if (try? Validator.isCompleteAndValidSolution(grid)) == true,
+            constraintViolations.isEmpty
+        {
             self.isSolved = true
         } else {
             self.isSolved = false
