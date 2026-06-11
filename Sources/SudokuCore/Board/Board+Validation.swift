@@ -25,7 +25,9 @@ extension Board {
                 solution: solution,
                 constraints: constraints
             )
-            constraintViolations = constraints.flatMap { $0.base.violations(in: snapshot) }
+            constraintViolations = constraints.enumerated().flatMap { index, constraint in
+                constraint.base.violations(in: snapshot).map { $0.indexed(index) }
+            }
         }
         for (index, cell) in self.cells.enumerated() {
             self.cells[index].validOptions = validOptions[cell.position.row][cell.position.column]

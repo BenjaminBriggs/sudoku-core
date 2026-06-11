@@ -119,6 +119,27 @@ struct BoardConstraintTests {
         #expect(board.cell(at: y).validOptions.contains(7) == false)
     }
 
+    @Test("Violations identify their source constraint by index")
+    func violationsCarryConstraintIndex() {
+        let first = AnyConstraint(ForbidDigit(position: .init(row: 0, column: 1), digit: 3))
+        let second = AnyConstraint(ForbidDigit(position: .init(row: 0, column: 1), digit: 2))
+        let puzzle = Puzzle(
+            solution: Puzzle.example().solution,
+            startingState: Puzzle.example().startingState,
+            difficulty: Puzzle.example().difficulty,
+            constraints: [first, second]
+        )
+        let board = Board(puzzle: puzzle)
+        board.mark(positions: [.init(row: 0, column: 1)], as: 2)
+
+        #expect(board.constraintViolations.count == 1)
+        let violation = board.constraintViolations.first
+        #expect(violation?.constraintIndex == 1)
+        if let index = violation?.constraintIndex {
+            #expect(board.constraints[index] == second)
+        }
+    }
+
     @Test("Restoration filters pencil marks forbidden by constraints")
     func restoreFiltersConstraintForbiddenMarks() {
         // Constraint forbids 2 at (0,1); persisted marks there claim {2, 3}.

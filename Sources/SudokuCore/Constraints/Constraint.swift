@@ -34,10 +34,21 @@ public protocol Constraint: Sendable, Codable, Hashable {
 public struct ConstraintViolation: Sendable, Hashable {
     public let constraintTypeID: String
     public let cells: [Puzzle.Index]
+    /// Index of the breached constraint in the puzzle's/board's `constraints`
+    /// array. Set by the engine; nil when the violation was produced directly
+    /// by a `Constraint` outside engine reporting.
+    public let constraintIndex: Int?
 
-    public init(constraintTypeID: String, cells: [Puzzle.Index]) {
+    public init(constraintTypeID: String, cells: [Puzzle.Index], constraintIndex: Int? = nil) {
         self.constraintTypeID = constraintTypeID
         self.cells = cells
+        self.constraintIndex = constraintIndex
+    }
+
+    /// Copy of this violation annotated with its source constraint's index.
+    func indexed(_ index: Int) -> ConstraintViolation {
+        ConstraintViolation(
+            constraintTypeID: constraintTypeID, cells: cells, constraintIndex: index)
     }
 }
 
