@@ -71,26 +71,44 @@ extension Board {
     }
 
     public func saveState() {
+        guard let step = pendingUndoStep() else { return }
+        undoStack.append(step)
+    }
+
+    /// Runs `mutate` and records an undo step only if it changed any cell.
+    ///
+    /// The editing methods skip cells they cannot touch (given cells, filled cells for
+    /// pencil marks, already-empty cells for clears). Snapshotting before knowing whether
+    /// anything will change pushed a step identical to the live board, so the next
+    /// `undo()` appeared to do nothing.
+    internal func recordingUndo(_ mutate: () -> Void) {
+        let step = pendingUndoStep()
+        let before = cells
+        mutate()
+        guard let step, cells != before else { return }
+        undoStack.append(step)
+    }
+
+    /// The step `saveState()` would push, or `nil` when nothing should be recorded
+    /// (an atomic change is in progress, or the board matches the last step).
+    private func pendingUndoStep() -> UndoStep? {
         guard isPerformingAtomicChange == false
-        else { return }
+        else { return nil }
 
         let previousState = undoStack.last
 
         guard cells != previousState?.cells
-        else { return }
-
+        else { return nil }
 
         let changes = previousState?.cells
             .diff(from: cells)
             .compactMap { $0.position } ?? []
 
-        undoStack.append(
-            UndoStep(
-                cells: cells,
-                changes: changes,
-                isValid: isValid,
-                correctSolution: self.isSolvable
-            )
+        return UndoStep(
+            cells: cells,
+            changes: changes,
+            isValid: isValid,
+            correctSolution: self.isSolvable
         )
     }
 }

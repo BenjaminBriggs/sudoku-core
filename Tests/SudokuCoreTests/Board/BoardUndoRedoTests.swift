@@ -140,4 +140,39 @@ struct BoardUndoRedoTests {
         // Verify that the board's state matches the target state.
         #expect(board.cells == targetStep.cells)
     }
+
+    // MARK: - No-op edits must not cost an undo step
+
+    @Test("A pencil mark on a filled cell does not push an undo step")
+    @MainActor
+    func testPencilOnFilledCellDoesNotPushUndoStep() {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: nil)
+        let index = Puzzle.Index(row: 1, column: 2)
+
+        board.mark(positions: [index], as: 8)
+        #expect(board.undoStack.count == 1)
+
+        // pencil(positions:as:) skips cells that hold a value.
+        board.pencil(positions: [index], as: 4)
+        #expect(board.cell(at: index).value == 8)
+        #expect(board.undoStack.count == 1, "a no-op edit should not record a step")
+
+        // One undo therefore removes the 8, rather than replaying an identical state.
+        board.undo()
+        #expect(board.cell(at: index).value == nil)
+    }
+
+    @Test("Clearing an already-empty cell does not push an undo step")
+    @MainActor
+    func testClearOnEmptyCellDoesNotPushUndoStep() {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: nil)
+        board.mark(positions: [Puzzle.Index(row: 1, column: 2)], as: 8)
+        #expect(board.undoStack.count == 1)
+
+        board.clearCell(at: [Puzzle.Index(row: 0, column: 2)])
+        #expect(board.undoStack.count == 1)
+
+        board.undo()
+        #expect(board.cell(at: Puzzle.Index(row: 1, column: 2)).value == nil)
+    }
 }
