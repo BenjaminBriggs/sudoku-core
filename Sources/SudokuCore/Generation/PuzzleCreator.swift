@@ -60,6 +60,10 @@ public struct PuzzleCreator {
         let targetRange = difficultyTargets[targetDifficulty] ?? (0...50)
 
         for attempt in 1...maxAttempts {
+            // Each attempt is a full generate + solve + rate; a caller that has moved on
+            // (a new difficulty, a dismissed screen) should not pay for the rest.
+            try Task.checkCancellation()
+
             // Choose generation strategy based on target difficulty
             var targetsEmptyCells: ClosedRange<Int>
             switch targetDifficulty {

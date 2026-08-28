@@ -186,4 +186,28 @@ struct BoardMarkingTests {
         board.undo()
         #expect(board.cells == cellsBeforeHint)
     }
+
+    // MARK: - apply(hint:) never targets a given
+
+    @Test("A validation hint that names a given clears the player's clashing cell instead")
+    @MainActor
+    func testValidationHintRedirectsFromGivenToPlayerCell() {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: nil)
+        // Row 0 has a given 7 at column 4. A player 7 at column 2 clashes with it, and
+        // the row scan in checkValidity reaches the given second, so the engine's
+        // action names the given.
+        let playerCell = Puzzle.Index(row: 0, column: 2)
+        let givenCell = Puzzle.Index(row: 0, column: 4)
+        board.mark(positions: [playerCell], as: 7)
+
+        let hint = try! #require(HintFinder.firstHint(in: board.state))
+        #expect(hint.technique == .validation)
+        #expect(hint.actions.map(\.position) == [givenCell], "precondition: the engine names the given")
+
+        board.apply(hint: hint)
+
+        #expect(board.cell(at: playerCell).value == nil, "the player's 7 is the mistake")
+        #expect(board.cell(at: givenCell).value == 7)
+        #expect(board.hintsUsed == 1)
+    }
 }
