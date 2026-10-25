@@ -75,6 +75,18 @@ extension Board {
         undoStack.append(step)
     }
 
+    /// Runs several edits as one undo step: a single `undo()` takes them all back.
+    ///
+    /// Records nothing if the edits leave every cell as it was.
+    public func groupingUndo(_ edits: () -> Void) {
+        recordingUndo {
+            let wasAtomic = isPerformingAtomicChange
+            isPerformingAtomicChange = true
+            defer { isPerformingAtomicChange = wasAtomic }
+            edits()
+        }
+    }
+
     /// Runs `mutate` and records an undo step only if it changed any cell.
     ///
     /// The editing methods skip cells they cannot touch (given cells, filled cells for

@@ -175,4 +175,49 @@ struct BoardUndoRedoTests {
         board.undo()
         #expect(board.cell(at: Puzzle.Index(row: 1, column: 2)).value == nil)
     }
+
+    @Test("groupingUndo records several edits as one undo step")
+    @MainActor
+    func testGroupingUndoIsOneStep() {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: nil)
+        let first = Puzzle.Index(row: 1, column: 2)
+        let second = Puzzle.Index(row: 7, column: 6)
+        board.mark(positions: [Puzzle.Index(row: 0, column: 2)], as: 4)
+        #expect(board.undoStack.count == 1)
+
+        board.groupingUndo {
+            board.mark(positions: [first], as: 2)
+            board.mark(positions: [second], as: 3)
+        }
+        #expect(board.undoStack.count == 2)
+        #expect(board.cell(at: first).value == 2)
+        #expect(board.cell(at: second).value == 3)
+
+        board.undo()
+        #expect(board.cell(at: first).value == nil)
+        #expect(board.cell(at: second).value == nil)
+        #expect(board.cell(at: Puzzle.Index(row: 0, column: 2)).value == 4)
+    }
+
+    @Test("groupingUndo records nothing when the edits change nothing, and nests")
+    @MainActor
+    func testGroupingUndoNoChangeAndNesting() {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: nil)
+        board.groupingUndo {
+            board.clearCell(at: [Puzzle.Index(row: 1, column: 2)])
+        }
+        #expect(board.undoStack.isEmpty)
+
+        board.groupingUndo {
+            board.groupingUndo {
+                board.mark(positions: [Puzzle.Index(row: 1, column: 2)], as: 2)
+            }
+            board.mark(positions: [Puzzle.Index(row: 1, column: 1)], as: 7)
+        }
+        #expect(board.undoStack.count == 1)
+
+        // Edits after the group record their own steps again.
+        board.mark(positions: [Puzzle.Index(row: 2, column: 0)], as: 1)
+        #expect(board.undoStack.count == 2)
+    }
 }
