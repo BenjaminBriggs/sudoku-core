@@ -72,6 +72,28 @@ let easyGrid = await SudokuGenerator.createPuzzle(from: SolutionGenerator.genera
 let hardGrid = await SudokuGenerator.createPuzzle(from: SolutionGenerator.generateRandomSolution(), targetEmpty: 60)
 ```
 
+### Symmetric Clue Layouts
+
+Hand-crafted puzzles usually place their clues symmetrically. Pass a ``Symmetry`` and the generator removes clues a whole orbit at a time — the 2 or 4 cells that map onto each other — so the layout keeps that symmetry while the puzzle stays unique:
+
+```swift
+let daily = try await PuzzleCreator.createPuzzleWithDifficulty(.hard, symmetry: .rotational180)
+
+let grid = await SudokuGenerator.createPuzzle(
+    from: SolutionGenerator.generateRandomSolution(),
+    targetEmpty: 58,
+    symmetry: .rotational90
+)
+```
+
+Because orbits are removed whole, the result can stop up to an orbit short of `targetEmpty`. ``PuzzleCreator`` makes up for the coarser steps by removing further orbits (``SudokuGenerator/removingOrbit(from:symmetry:uniqueCheck:)``) while a candidate rates easier than the target. Symmetry is a convention, not a logic rule; `.none` (the default) leaves generation unchanged.
+
+To find which symmetries an existing grid has, use ``Symmetry/symmetries(of:)``:
+
+```swift
+Symmetry.symmetries(of: puzzle.startingState)  // e.g. [.rotational180]
+```
+
 ## Advanced Generation
 
 ### Custom Solutions
@@ -171,7 +193,7 @@ if isValid && hasUniqueSolution {
 
 ### Custom Validation
 
-``PuzzleCreator/createPuzzleWithDifficulty(_:maxAttempts:)`` already validates uniqueness and rates each candidate, so reach for it first. Write your own loop only when you need a constraint it doesn't offer — for example, a custom empty-cell range:
+``PuzzleCreator/createPuzzleWithDifficulty(_:maxAttempts:symmetry:)`` already validates uniqueness and rates each candidate, so reach for it first. Write your own loop only when you need a constraint it doesn't offer — for example, a custom empty-cell range:
 
 ```swift
 func generateValidatedPuzzle(
