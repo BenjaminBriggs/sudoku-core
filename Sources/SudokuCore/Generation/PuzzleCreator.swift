@@ -34,10 +34,12 @@ public struct PuzzleCreator {
     /// - Parameters:
     ///   - targetDifficulty: The desired difficulty level
     ///   - maxAttempts: Maximum number of attempts to generate a matching puzzle
+    ///   - symmetry: The symmetry the clue layout keeps (defaults to `.none`)
     /// - Returns: A Puzzle with the requested difficulty, or the closest match
     public static func createPuzzleWithDifficulty(
         _ targetDifficulty: PuzzleDifficulty.Level,
-        maxAttempts: Int = 20
+        maxAttempts: Int = 20,
+        symmetry: Symmetry = .none
     ) async throws -> Puzzle {
         var bestMatch:
             (
@@ -83,16 +85,17 @@ public struct PuzzleCreator {
 
             // Generate a puzzle
             let solution = SolutionGenerator.generateRandomSolution()
-            let puzzle = await SudokuGenerator.createPuzzle(
+            var puzzle = await SudokuGenerator.createPuzzle(
                 from: solution,
-                targetEmpty: Int.random(in: targetsEmptyCells)
+                targetEmpty: Int.random(in: targetsEmptyCells),
+                symmetry: symmetry
             )
 
             // Skip if not uniquely solvable
             guard Validator.hasUniqueSolution(puzzle) else { continue }
 
             // Calculate difficulty - skip if calculation fails
-            let difficultyResult: SudokuDifficultyCalculator.DifficultyResult
+            var difficultyResult: SudokuDifficultyCalculator.DifficultyResult
             do {
                 difficultyResult = try SudokuDifficultyCalculator.calculateDifficulty(
                     for: puzzle
@@ -106,9 +109,27 @@ public struct PuzzleCreator {
             guard difficultyResult.wasSolved else { continue }
 
             // Check if difficulty matches our target
-            let highestDifficulty = difficultyResult.hardestTechnique?.difficulty ?? 0
-            let difficultyDistance = distanceToTargetRange(
+            var highestDifficulty = difficultyResult.hardestTechnique?.difficulty ?? 0
+            var difficultyDistance = distanceToTargetRange(
                 highestDifficulty, targetRange: targetRange)
+
+            // Orbit removal steps are coarse, so a symmetric puzzle that rates too easy
+            // is pushed harder an orbit at a time rather than thrown away.
+            if symmetry != .none {
+                while highestDifficulty < targetRange.lowerBound,
+                    let harder = SudokuGenerator.removingOrbit(from: puzzle, symmetry: symmetry),
+                    let harderResult = try? SudokuDifficultyCalculator.calculateDifficulty(
+                        for: harder),
+                    harderResult.wasSolved
+                {
+                    try Task.checkCancellation()
+                    puzzle = harder
+                    difficultyResult = harderResult
+                    highestDifficulty = harderResult.hardestTechnique?.difficulty ?? 0
+                    difficultyDistance = distanceToTargetRange(
+                        highestDifficulty, targetRange: targetRange)
+                }
+            }
 
             // If we have a perfect match, use it immediately
             if difficultyDistance == 0 {
@@ -138,7 +159,7 @@ public struct PuzzleCreator {
         }
 
         // If we couldn't find a suitable puzzle, generate a basic one
-        let (solution, startingState) = await SudokuGenerator.generatePuzzle()
+        let (solution, startingState) = await SudokuGenerator.generatePuzzle(symmetry: symmetry)
         return try await createPuzzle(solution: solution, startingState: startingState)
     }
 
