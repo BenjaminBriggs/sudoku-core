@@ -71,6 +71,42 @@ let puzzleGenerationBenchmarks: @Sendable () -> Void = {
         }
     }
 
+    // Symmetric removal - whole orbits at a time; compare against CreatePuzzle-Hard
+    for symmetry in [Symmetry.rotational180, .rotational90] {
+        Benchmark("PuzzleGeneration.CreatePuzzle-Hard-\(symmetry.rawValue)", configuration: .init(
+            metrics: [.wallClock, .cpuUser, .throughput],
+            scalingFactor: .one,
+            maxIterations: 5
+        )) { benchmark in
+            let solution = SolutionGenerator.generateRandomSolution()
+            for _ in benchmark.scaledIterations {
+                let puzzle = await SudokuGenerator.createPuzzle(
+                    from: solution,
+                    targetEmpty: 60,
+                    symmetry: symmetry
+                )
+                blackHole(puzzle)
+            }
+        }
+    }
+
+    // Generating to a target difficulty, plain vs symmetric
+    for symmetry in [Symmetry.none, .rotational180] {
+        Benchmark("PuzzleCreator.WithDifficulty-Hard-\(symmetry.rawValue)", configuration: .init(
+            metrics: [.wallClock, .cpuUser],
+            scalingFactor: .one,
+            maxIterations: 5
+        )) { benchmark in
+            for _ in benchmark.scaledIterations {
+                let puzzle = try await PuzzleCreator.createPuzzleWithDifficulty(
+                    .hard,
+                    symmetry: symmetry
+                )
+                blackHole(puzzle)
+            }
+        }
+    }
+
     // Full generation pipeline - solution + puzzle creation (easy)
     Benchmark("PuzzleGeneration.FullPipeline-Easy", configuration: .init(
         metrics: [.wallClock, .cpuUser, .throughput],
