@@ -115,6 +115,9 @@ extension HintFinder {
         let neighboursA = LookupTables.cellNeighbours[cellA.row][cellA.column]
         let neighboursB = LookupTables.cellNeighbours[cellB.row][cellB.column]
 
+        // Matching cells that see each other are a naked pair, not a W-Wing.
+        if neighboursA.contains(cellB) { return nil }
+
         for link in strongLinks {
             // The strong link cells must not be the bi-value cells themselves
             if link.cellA == cellA || link.cellA == cellB ||

@@ -48,8 +48,9 @@ extension HintFinder {
                     }
                 }
                     
-                // Check if the digit is confined to a single row within the house
-                if possibleRows.count == 1, let lockedRow = possibleRows.first, possiblePositions.count > 0 {
+                // Check if the digit is confined to a single row within the house. A lone
+                // candidate is a hidden single, not a pointing pair, so it needs two or more.
+                if possibleRows.count == 1, let lockedRow = possibleRows.first, possiblePositions.count >= 2 {
                     // Find cells in this row outside the current house where digit is a candidate
                     let cellsInHouse = possiblePositions
                     var removals: [HintAction] = []
@@ -91,7 +92,7 @@ extension HintFinder {
                 }
 
                 // Check if the digit is confined to a single column within the house
-                if possibleCols.count == 1, let lockedCol = possibleCols.first, possiblePositions.count > 0 {
+                if possibleCols.count == 1, let lockedCol = possibleCols.first, possiblePositions.count >= 2 {
                     // Find cells in this column outside the current house where digit is a candidate
                     let cellsInHouse = possiblePositions
                     var removals: [HintAction] = []

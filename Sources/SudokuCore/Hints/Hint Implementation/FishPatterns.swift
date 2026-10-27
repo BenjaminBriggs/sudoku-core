@@ -38,10 +38,9 @@ extension HintFinder {
     /// Detects fins in a fish pattern for either orientation.
     ///
     /// Fins are extra candidate positions that spill beyond the `n` core cross lines.
-    /// The algorithm ranks cross lines by how many base lines they appear in, selects
-    /// the top `n` as core lines, and treats remaining positions as fins.
-    /// When counts are ambiguous (multiple cross lines share the same frequency),
-    /// all `n`-element combinations are tried until a valid partition is found.
+    /// Every `n`-element choice of core cross lines is tried, ordered by how many base lines
+    /// each cross line appears in, and the remaining positions are treated as fins. The
+    /// first partition that validates is returned.
     ///
     /// - Parameters:
     ///   - digit: The candidate digit being analysed.
@@ -90,16 +89,13 @@ extension HintFinder {
             return $0 < $1
         }
 
-        // Try different combinations when counts are equal
         guard sortedCrossLines.count >= n else { return nil }
 
-        // If cross lines have clearly different counts, use the standard approach
-        let maxCount = crossLineCounts[sortedCrossLines[0]]!
-        let nthCount = crossLineCounts[sortedCrossLines[min(n-1, sortedCrossLines.count-1)]]!
-
-        if maxCount > nthCount || sortedCrossLines.count == n {
-            // Standard case: clear distinction OR exact fit
-            let coreCrossLines = Set(sortedCrossLines.prefix(n))
+        // Try every partition, most frequent lines first. Frequency alone can't pick the
+        // core: a valid core line can appear in fewer base lines than a fin line does.
+        // There are at most C(n+2, n) = 15 partitions, so the full search is cheap.
+        for combo in combinations(of: sortedCrossLines, choose: n) {
+            let coreCrossLines = Set(combo)
             let finCrossLines = allCrossLines.subtracting(coreCrossLines)
 
             if let result = validateFins(
@@ -112,25 +108,6 @@ extension HintFinder {
                 state: state
             ) {
                 return result
-            }
-        } else {
-            // Ambiguous case: try all combinations of n cross lines
-            let crossLinesArray = Array(sortedCrossLines)
-            for combo in combinations(of: crossLinesArray, choose: n) {
-                let coreCrossLines = Set(combo)
-                let finCrossLines = allCrossLines.subtracting(coreCrossLines)
-
-                if let result = validateFins(
-                    digit: digit,
-                    fishBaseLines: fishBaseLines,
-                    coreCrossLines: coreCrossLines,
-                    finCrossLines: finCrossLines,
-                    baseLineToCrossLines: baseLineToCrossLines,
-                    makeIndex: makeIndex,
-                    state: state
-                ) {
-                    return result
-                }
             }
         }
 
