@@ -4,69 +4,13 @@
 //
 //  Fresh puzzles as a source of edge cases. In the soak, SUDOKU_SOAK_GENERATE=N makes N puzzles
 //  per level and symmetry with the steered generator, plus N blind minimal puzzles per symmetry
-//  that no rating has filtered. Each goes through an independent brute-force solver and an
-//  independent logical solve built from the reference finders, and joins the corpus so every
-//  state of its solve gets the full verification.
+//  that no rating has filtered. Each joins the corpus, so every state of its solve gets the full
+//  verification, and with HoDoKu installed, HoDoKuTests checks its solution and every state.
 //
 import Foundation
 import Synchronization
 import Testing
 @testable import SudokuCore
-
-/// A plain backtracking solver, sharing no code with core's solvers.
-enum BruteForce {
-    /// Up to `limit` solutions of `grid`.
-    static func solutions(of grid: [[Int]], limit: Int = 2) -> [[[Int]]] {
-        var cells = grid.flatMap { $0 }
-        var rows = Array(repeating: 0, count: 9), columns = rows, boxes = rows
-        for index in 0..<81 where cells[index] != 0 {
-            let bit = 1 << cells[index], r = index / 9, c = index % 9, b = (r / 3) * 3 + c / 3
-            if rows[r] & bit != 0 || columns[c] & bit != 0 || boxes[b] & bit != 0 { return [] }
-            rows[r] |= bit; columns[c] |= bit; boxes[b] |= bit
-        }
-        var found: [[[Int]]] = []
-
-        func search() {
-            // The empty cell with the fewest options, so dead ends show early.
-            var best = -1, bestOptions = 0, bestCount = 10
-            for index in 0..<81 where cells[index] == 0 {
-                let r = index / 9, c = index % 9, b = (r / 3) * 3 + c / 3
-                let options = ~(rows[r] | columns[c] | boxes[b]) & 0b11_1111_1110
-                let count = options.nonzeroBitCount
-                if count < bestCount { best = index; bestOptions = options; bestCount = count }
-                if count == 0 { return }
-            }
-            guard best >= 0 else {
-                found.append((0..<9).map { r in Array(cells[(r * 9)..<(r * 9 + 9)]) })
-                return
-            }
-            let r = best / 9, c = best % 9, b = (r / 3) * 3 + c / 3
-            for digit in 1...9 where bestOptions & (1 << digit) != 0 {
-                let bit = 1 << digit
-                cells[best] = digit; rows[r] |= bit; columns[c] |= bit; boxes[b] |= bit
-                search()
-                cells[best] = 0; rows[r] &= ~bit; columns[c] &= ~bit; boxes[b] &= ~bit
-                if found.count >= limit { return }
-            }
-        }
-        search()
-        return found
-    }
-
-    /// `solution` with clues removed an orbit at a time, in random order, while it keeps one
-    /// solution: a minimal puzzle no rating has filtered.
-    static func minimalPuzzle(from solution: [[Int]], symmetry: Symmetry) -> [[Int]] {
-        var grid = solution
-        for orbit in symmetry.orbits.shuffled() {
-            let saved = orbit.map { grid[$0.row][$0.column] }
-            for cell in orbit { grid[cell.row][cell.column] = 0 }
-            if solutions(of: grid).count != 1 {
-                for (cell, value) in zip(orbit, saved) { grid[cell.row][cell.column] = value }
-            }
-        }
-        return grid
-    }
-}
 
 /// Puzzles made fresh for the soak, tagged with how they were made.
 enum GeneratedCorpus {
@@ -93,7 +37,7 @@ enum GeneratedCorpus {
                 }
             case .blind(let symmetry):
                 let solution = SolutionGenerator.generateRandomSolution()
-                let grid = BruteForce.minimalPuzzle(from: solution, symmetry: symmetry)
+                let grid = minimalPuzzle(from: solution, symmetry: symmetry)
                 puzzle = CorpusPuzzle(id: Self.id(of: grid), level: "blind \(symmetry.rawValue)", startingState: grid, solution: solution)
             }
             if let puzzle { made.withLock { $0.append(puzzle) } }
@@ -107,19 +51,24 @@ enum GeneratedCorpus {
     }()
 
     static func id(of grid: [[Int]]) -> String { grid.flatMap { $0 }.map(String.init).joined() }
+
+    /// `solution` with clues removed an orbit at a time, in random order, while it keeps one
+    /// solution: a minimal puzzle no rating has filtered.
+    static func minimalPuzzle(from solution: [[Int]], symmetry: Symmetry) -> [[Int]] {
+        var grid = solution
+        for orbit in symmetry.orbits.shuffled() {
+            let saved = orbit.map { grid[$0.row][$0.column] }
+            for cell in orbit { grid[cell.row][cell.column] = 0 }
+            if Validator.solutionCount(of: grid).isUnique == false {
+                for (cell, value) in zip(orbit, saved) { grid[cell.row][cell.column] = value }
+            }
+        }
+        return grid
+    }
 }
 
 struct GeneratedPuzzleTests {
-    @Test("A generated puzzle has exactly one solution, the one the generator gave",
-          .enabled(if: GeneratedCorpus.puzzles.isEmpty == false), arguments: GeneratedCorpus.puzzles)
-    func solutionMatchesBruteForce(_ puzzle: CorpusPuzzle) {
-        let solutions = BruteForce.solutions(of: puzzle.startingState)
-        #expect(solutions.count == 1, "\(solutions.count) solutions")
-        #expect(solutions.first == puzzle.solution, "the brute-force solution differs from the generator's")
-        #expect(Validator.solutionCount(of: puzzle.startingState).isUnique, "core's uniqueness check disagrees")
-    }
-
-    @Test("The hint finder's solve matches the brute-force solution and the reference finders' solve",
+    @Test("The hint finder's solve reaches the generator's solution and matches the reference finders' solve",
           .enabled(if: GeneratedCorpus.puzzles.isEmpty == false), arguments: GeneratedCorpus.puzzles)
     func solveMatchesReference(_ puzzle: CorpusPuzzle) throws {
         let path = SolvePathEmitter.emit(from: puzzle.startingState)
@@ -131,8 +80,8 @@ struct GeneratedPuzzleTests {
             #expect(try SudokuDifficultyCalculator.calculateDifficulty(for: puzzle.startingState).needsGuessing == false)
         }
 
-        // An independent logical solve: apply everything every reference finder licenses, over
-        // and over, until nothing changes.
+        // A second logical solve, from the definitions: apply everything every reference finder
+        // licenses, over and over, until nothing changes.
         var state = BoardState.fromGrid(puzzle.startingState, assumingUniqueSolution: true)
         var problems: [String] = []
         while true {

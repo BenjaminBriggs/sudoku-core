@@ -116,7 +116,8 @@ struct TechniqueVerificationTests {
             var thinned = state.pencilMarks
             for r in 0..<9 {
                 for c in 0..<9 where state.grid[r][c] == 0 {
-                    for digit in thinned[r][c] where digit != puzzle.solution[r][c] && rng.next() % 4 == 0 {
+                    // Sorted: a Set's order changes from run to run.
+                    for digit in thinned[r][c].sorted() where digit != puzzle.solution[r][c] && rng.next() % 4 == 0 {
                         thinned[r][c].remove(digit)
                     }
                 }
