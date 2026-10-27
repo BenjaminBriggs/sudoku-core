@@ -11,7 +11,7 @@ import Testing
 
 /// A puzzle with its known solution, taken from the app's bundled seed pools. Most of them
 /// stall today's finder, since stall points are where a missed pattern costs a puzzle.
-struct CorpusPuzzle: Decodable, Sendable, CustomTestStringConvertible {
+struct CorpusPuzzle: Codable, Sendable, CustomTestStringConvertible {
     let id: String
     let level: String
     let startingState: [[Int]]
@@ -25,8 +25,8 @@ struct CorpusPuzzle: Decodable, Sendable, CustomTestStringConvertible {
         return try! JSONDecoder().decode([CorpusPuzzle].self, from: Data(contentsOf: url))
     }()
 
-    /// The fixture corpus, plus in the soak every seed file in `SUDOKU_SOAK_SEEDS` (a folder of
-    /// the app's `seed-*.json` pools).
+    /// The fixture corpus, plus in the soak every seed file in `SUDOKU_SOAK_SEEDS` and the
+    /// puzzles `SUDOKU_SOAK_GENERATE` makes.
     static let all: [CorpusPuzzle] = {
         guard isSoak, let folder = ProcessInfo.processInfo.environment["SUDOKU_SOAK_SEEDS"] else { return fixtureCorpus }
         struct Seed: Decodable {
@@ -46,7 +46,7 @@ struct CorpusPuzzle: Decodable, Sendable, CustomTestStringConvertible {
         }
         let known = Set(fixtureCorpus.map(\.id))
         return fixtureCorpus + seeds.filter { known.contains($0.id) == false }
-    }()
+    }() + GeneratedCorpus.puzzles
 
     /// The soak tier (`SUDOKU_VERIFY_ALL=1`, best in release with `-c release -Xswiftc
     /// -enable-testing`) checks every corpus puzzle at every state. The per-commit tier checks

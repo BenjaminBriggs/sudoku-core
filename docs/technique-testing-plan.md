@@ -93,8 +93,15 @@ Each item's **Done** line says where it lives.
       thinned variants each, in release. Any failure writes the board state to a fixture file
       for a regression test.
     **Done**, apart from scheduling: the tiers are `CorpusPuzzle.isSoak`, the seed folder and the
-    failure file above. Freshly generated puzzles go through `GeneratorContractTests`, not the full
-    verification.
+    failure file above. `SUDOKU_SOAK_GENERATE=N` makes N steered puzzles per level and symmetry,
+    plus N blind minimal puzzles per symmetry that no rating has filtered. They join the corpus, so
+    every state gets the full verification. `GeneratedPuzzleTests` also checks each one three ways:
+    - an independent brute-force solver confirms one solution, the generator's;
+    - core's solve must reach that solution;
+    - applying every reference finder until nothing changes must solve exactly the puzzles core's
+      solve does.
+
+    `SUDOKU_SOAK_GENERATED_OUT=<file>` saves the puzzles for outside cross-checks.
 
 ## Rule for new techniques
 
