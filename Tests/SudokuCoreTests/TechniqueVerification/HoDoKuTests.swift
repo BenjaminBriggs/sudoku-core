@@ -136,6 +136,16 @@ enum HoDoKu {
 
     /// HoDoKu's findings at each keyed state.
     static func findings(for states: [(key: String, state: BoardState)]) throws -> [String: HoDoKuFindings] {
+        let (steps, bugFailed) = try steps(for: states)
+        var out: [String: HoDoKuFindings] = [:]
+        for (key, state) in states {
+            out[key] = findings(steps[key] ?? [], bugFailed: bugFailed.contains(key), in: state)
+        }
+        return out
+    }
+
+    /// Every step HoDoKu finds at each keyed state, and the states where its BUG+1 search threw.
+    static func steps(for states: [(key: String, state: BoardState)]) throws -> (steps: [String: [HoDoKuStep]], bugFailed: Set<String>) {
         let lines = states.map { key, state in
             let grid = state.grid.flatMap { $0 }.map(String.init).joined()
             let candidates = (0..<81).map { i in
@@ -158,11 +168,7 @@ enum HoDoKu {
             let step = HoDoKuStep(type: fields[1], moves: Set(moves(fields[2], place: false) + moves(fields[3], place: true)), text: fields[4])
             steps[fields[0], default: []].append(step)
         }
-        var out: [String: HoDoKuFindings] = [:]
-        for (key, state) in states {
-            out[key] = findings(steps[key] ?? [], bugFailed: bugFailed.contains(key), in: state)
-        }
-        return out
+        return (steps, bugFailed)
     }
 
     /// HoDoKu's solution count for each keyed grid, stopping at 2, with the solution when
@@ -193,47 +199,57 @@ enum HoDoKu {
     /// - a turbot fish with one strong link in a box and the other in a line is a Crane.
     static func findings(_ steps: [HoDoKuStep], bugFailed: Bool, in state: BoardState) -> HoDoKuFindings {
         var licensed: [String: Set<Move>] = [:]
-        var reached: Set<Move> = []
+        var reached = allMoves(of: steps)
         for step in steps {
-            var moves = step.moves
-            var targets = techniques[step.type] ?? []
-            switch step.type {
-            case "h1":
-                if let move = moves.first, candidateCount(move.cell, state) == 1 { targets = [] }
-            case "bf2", "bf3", "bf4", "fbf2", "fbf3", "fbf4", "sbf2", "sbf3", "sbf4":
-                let words = step.text.split(separator: ":")[1].split(separator: " ")
-                let digit = Int(words[0])!, base = words[1]
-                let lines = base.dropFirst().compactMap(\.wholeNumberValue)
-                if lines.contains(where: { homes(of: digit, in: line(base.first!, $0 - 1), state).count < 2 }) { targets = [] }
-            case "sk", "2sk", "tf":
-                let own = Set(cells(in: String(step.text.split(separator: "=>")[0])).map { $0.row * 9 + $0.column })
-                let trimmed = moves.filter { own.contains($0.cell) == false }
-                if step.type == "tf", isCrane(step, state) { targets.append(.crane) }
-                if trimmed.isEmpty { targets = [] }
-                if targets.isEmpty == false { moves = trimmed }
-            case "w":
-                let pair = cells(in: String(step.text.split(separator: " ")[3]))
-                if pair.count == 2, sees(pair[0], pair[1]) { targets = [] }
-            case "bug1":
-                guard let cell = moves.first?.cell else { break }
-                let removed = Set(moves.map(\.digit))
-                let left = state.pencilMarks[cell / 9][cell % 9].subtracting(removed)
-                if let digit = left.first, left.count == 1 {
-                    moves.insert(Move(place: true, row: cell / 9, column: cell % 9, digit: digit))
-                }
-                let strict = (0..<81).allSatisfy { i in
-                    i == cell || state.grid[i / 9][i % 9] != 0 || candidateCount(i, state) == 2
-                }
-                if strict == false { targets = [] }
-                moves = moves.filter(\.isPlacement)
-            default:
-                break
-            }
+            let (targets, moves) = interpret(step, in: state)
             reached.formUnion(moves)
-            reached.formUnion(step.moves)
             for technique in targets { licensed[technique.rawValue, default: []].formUnion(moves) }
         }
         return HoDoKuFindings(licensed: licensed.mapValues { $0.sorted() }, reached: reached.sorted(), bugUnknown: bugFailed)
+    }
+
+    private static func allMoves(of steps: [HoDoKuStep]) -> Set<Move> {
+        steps.reduce(into: Set<Move>()) { $0.formUnion($1.moves) }
+    }
+
+    /// One HoDoKu step in the hint finder's terms: the techniques it counts as, after the
+    /// differences of definition above, and the moves it makes.
+    static func interpret(_ step: HoDoKuStep, in state: BoardState) -> (targets: [HintTechnique], moves: Set<Move>) {
+        var moves = step.moves
+        var targets = techniques[step.type] ?? []
+        switch step.type {
+        case "h1":
+            if let move = moves.first, candidateCount(move.cell, state) == 1 { targets = [] }
+        case "bf2", "bf3", "bf4", "fbf2", "fbf3", "fbf4", "sbf2", "sbf3", "sbf4":
+            let words = step.text.split(separator: ":")[1].split(separator: " ")
+            let digit = Int(words[0])!, base = words[1]
+            let lines = base.dropFirst().compactMap(\.wholeNumberValue)
+            if lines.contains(where: { homes(of: digit, in: line(base.first!, $0 - 1), state).count < 2 }) { targets = [] }
+        case "sk", "2sk", "tf":
+            let own = Set(cells(in: String(step.text.split(separator: "=>")[0])).map { $0.row * 9 + $0.column })
+            let trimmed = moves.filter { own.contains($0.cell) == false }
+            if step.type == "tf", isCrane(step, state) { targets.append(.crane) }
+            if trimmed.isEmpty { targets = [] }
+            if targets.isEmpty == false { moves = trimmed }
+        case "w":
+            let pair = cells(in: String(step.text.split(separator: " ")[3]))
+            if pair.count == 2, sees(pair[0], pair[1]) { targets = [] }
+        case "bug1":
+            guard let cell = moves.first?.cell else { break }
+            let removed = Set(moves.map(\.digit))
+            let left = state.pencilMarks[cell / 9][cell % 9].subtracting(removed)
+            if let digit = left.first, left.count == 1 {
+                moves.insert(Move(place: true, row: cell / 9, column: cell % 9, digit: digit))
+            }
+            let strict = (0..<81).allSatisfy { i in
+                i == cell || state.grid[i / 9][i % 9] != 0 || candidateCount(i, state) == 2
+            }
+            if strict == false { targets = [] }
+            moves = moves.filter(\.isPlacement)
+        default:
+            break
+        }
+        return (targets, moves)
     }
 
     /// Where HoDoKu, by its own definition, doesn't look for a hint the hint finder makes:
@@ -409,7 +425,10 @@ struct HoDoKuTests {
     func live() throws {
         let puzzles = CorpusPuzzle.isSoak ? CorpusPuzzle.all : CorpusPuzzle.fixtureCorpus
         let states = keyedStates(puzzles)
-        let findings = try HoDoKu.findings(for: states)
+        let (steps, bugFailed) = try HoDoKu.steps(for: states)
+        let findings = Dictionary(uniqueKeysWithValues: states.map { key, state in
+            (key, HoDoKu.findings(steps[key] ?? [], bugFailed: bugFailed.contains(key), in: state))
+        })
         let failures = Mutex<[String]>([])
         DispatchQueue.concurrentPerform(iterations: states.count) { i in
             let (key, state) = states[i]
@@ -440,6 +459,55 @@ struct HoDoKuTests {
             let name = ProcessInfo.processInfo.environment["SUDOKU_HODOKU_VERSION"] ?? URL(fileURLWithPath: HoDoKu.jar!).lastPathComponent
             try encoder.encode(HoDoKuFixture(hodoku: name, states: recorded)).write(to: HoDoKuFixture.fileURL)
         }
+        if ProcessInfo.processInfo.environment["SUDOKU_UPDATE_TECHNIQUE_LIBRARY"] != nil {
+            try writeLibrary(puzzles: puzzles, states: states, steps: steps)
+        }
+    }
+
+    /// Rewrites the generated part of our technique library: corpus states where HoDoKu finds
+    /// exactly one instance of a technique and the hint finder's hint for it is part of that
+    /// instance. Up to six cases per technique, from different puzzles, taking states on a solve
+    /// path before thinned ones. Hand-made cases, after the "# Hand-made cases" line, are kept.
+    func writeLibrary(puzzles: [CorpusPuzzle], states: [(key: String, state: BoardState)], steps: [String: [HoDoKuStep]]) throws {
+        let byPrefix = Dictionary(puzzles.map { (String($0.id.prefix(24)), $0) }, uniquingKeysWith: { a, _ in a })
+        let ordered = states.filter { Int($0.key.split(separator: "-").last!)! % 2 == 0 }
+            + states.filter { Int($0.key.split(separator: "-").last!)! % 2 == 1 }
+        var lines: [String] = []
+        for technique in HintTechnique.orderedCases where LibraryCase.writtenCode[technique] != nil {
+            var used: Set<String> = []
+            for (key, state) in ordered where used.count < 6 {
+                let parts = key.split(separator: "-")
+                guard let puzzle = byPrefix[String(parts[0])], used.contains(puzzle.id) == false else { continue }
+                let instances = Set((steps[key] ?? []).map { HoDoKu.interpret($0, in: state) }
+                    .filter { $0.targets.contains(technique) }.map(\.moves))
+                guard instances.count == 1, let expected = instances.first,
+                      let hint = HintFinder.findHint(for: technique, in: state)
+                else { continue }
+                let moves = Set(hint.actions.compactMap(Move.init))
+                guard moves.isEmpty == false, moves.isSubset(of: expected) else { continue }
+                used.insert(puzzle.id)
+                let index = Int(parts.last!)!
+                lines.append("# \(technique.rawValue): \(puzzle.level) puzzle \(puzzle.id.prefix(24)), "
+                    + (index % 2 == 0 ? "step \(index / 2 + 1)" : "step \(index / 2 + 1), thinned"))
+                lines.append(LibraryCase.line(technique, digits: hint.reasoning.focusDigits, state: state,
+                                              startingState: puzzle.startingState, expected: expected))
+            }
+        }
+        let marker = "# Hand-made cases"
+        let existing = (try? String(contentsOf: LibraryCase.ownURL, encoding: .utf8)) ?? ""
+        let handMade = existing.range(of: marker).map { String(existing[$0.lowerBound...]) } ?? marker + "\n"
+        let header = """
+            # SudokuCore technique library, in HoDoKu's library format (see TechniqueLibraryTests.swift).
+            # Codes are HoDoKu's, plus M100 Crane and M105 to M107 for 5- to 7-Y-Wings, which HoDoKu
+            # doesn't have; a 4-Y-Wing is HoDoKu's WXYZ-Wing, 0802.
+            #
+            # Generated cases: corpus states where HoDoKu2 finds exactly one instance of the technique,
+            # whose result each case records, and the hint finder's hint is part of it.
+            # Rewrite them with SUDOKU_HODOKU_JAR=<jar> SUDOKU_UPDATE_TECHNIQUE_LIBRARY=1 swift test
+            # -c release -Xswiftc -enable-testing --filter HoDoKuTests. Hand-made cases follow.
+
+            """
+        try (header + lines.joined(separator: "\n") + "\n\n" + handMade).write(to: LibraryCase.ownURL, atomically: true, encoding: .utf8)
     }
 
     @Test("HoDoKu finds exactly one solution to every corpus puzzle, the one recorded", .enabled(if: HoDoKu.isAvailable))
