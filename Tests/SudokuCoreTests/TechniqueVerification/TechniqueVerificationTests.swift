@@ -58,6 +58,21 @@ struct CorpusPuzzle: Codable, Sendable, CustomTestStringConvertible {
         return Dictionary(grouping: all, by: \.level).values.compactMap(\.first).sorted { $0.id < $1.id }
     }()
 
+    /// The starting grid with one empty cell given a digit its peers allow but the solution
+    /// doesn't have: no two givens clash, but there's no solution.
+    var unsolvableGrid: [[Int]] {
+        var grid = startingState
+        let options = Validator.validOptions(for: grid)
+        for row in 0..<9 {
+            for column in 0..<9 where grid[row][column] == 0 && options[row][column].count >= 3 {
+                let wrong: [Int] = options[row][column].sorted().filter { $0 != solution[row][column] }
+                grid[row][column] = wrong[0]
+                return grid
+            }
+        }
+        return grid
+    }
+
     /// Check every `stride`th state: all of them in the soak, a sample per commit.
     static func stride(perCommit: Int) -> Int { isSoak ? 1 : perCommit }
 }

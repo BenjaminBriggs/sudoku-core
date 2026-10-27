@@ -12,16 +12,19 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  # The Xcode the package is developed with. The xcode-27 image is GitHub's preview of it.
+  DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
   # The benchmark target links jemalloc, which the runners don't have.
   BENCHMARK_DISABLE_JEMALLOC: "true"
 
 jobs:
   soak:
     name: Soak
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
+      - run: xcodebuild -version && java -version
       - run: scripts/hodoku/fetch.sh "$RUNNER_TEMP/hodoku"
       - run: swift test -c release -Xswiftc -enable-testing
         env:
