@@ -108,4 +108,18 @@ struct SudokuSolverTests {
         let (solution, _) = SudokuSolver.solve(grid: unsolvablePuzzle)
         #expect(solution == nil)  // Should not find a solution
     }
+
+    @Test("A puzzle with no solution that arc consistency alone can't rule out returns nil")
+    func testUnsolvableAfterSearch() {
+        // A unique puzzle with one empty cell given a digit its peers allow but the solution
+        // doesn't have: it has no solution, which only the search finds.
+        let puzzle = CorpusPuzzle.fixtureCorpus[0]
+        var grid = puzzle.startingState
+        let solution = puzzle.solution
+        let options = Validator.validOptions(for: grid)
+        let cell = (0..<81).first { grid[$0 / 9][$0 % 9] == 0 && options[$0 / 9][$0 % 9].count >= 3 }!
+        let wrong = options[cell / 9][cell % 9].sorted().first { $0 != solution[cell / 9][cell % 9] }!
+        grid[cell / 9][cell % 9] = wrong
+        #expect(SudokuSolver.solve(grid: grid).solution == nil)
+    }
 }

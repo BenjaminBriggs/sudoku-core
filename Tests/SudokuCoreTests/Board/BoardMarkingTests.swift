@@ -210,4 +210,28 @@ struct BoardMarkingTests {
         #expect(board.cell(at: givenCell).value == 7)
         #expect(board.hintsUsed == 1)
     }
+
+    @Test("apply(hint:) pencils in a candidate")
+    @MainActor
+    func testApplyHintPencilsIn() {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: nil)
+        let position = Puzzle.Index(row: 0, column: 2)
+        board.apply(hint: HintStep(actions: [HintAction(position: position, pencilIn: 4)], technique: .unknown))
+        #expect(board.cell(at: position).simplePencilMarks.contains(4))
+    }
+
+    @Test("A hint that would clear a given clears the player's clash in its column or box instead",
+          arguments: [Puzzle.Index(row: 6, column: 4), Puzzle.Index(row: 2, column: 3)])
+    @MainActor
+    func testRedirectFromGivenInColumnOrBox(playerCell: Puzzle.Index) {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: nil)
+        // The given 7 at r1c5 shares column 5 with r7c5 and box 2 with r3c4, but not a row.
+        let givenCell = Puzzle.Index(row: 0, column: 4)
+        board.mark(positions: [playerCell], as: 7)
+
+        board.apply(hint: HintStep(actions: [HintAction(clearPosition: givenCell)], technique: .validation))
+
+        #expect(board.cell(at: playerCell).value == nil)
+        #expect(board.cell(at: givenCell).value == 7)
+    }
 }

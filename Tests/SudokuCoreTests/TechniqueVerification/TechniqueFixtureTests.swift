@@ -90,6 +90,10 @@ struct TechniqueFixtureTests {
     /// A late state of seed puzzle 176003500… (Hard) that BUG+1 finishes.
     static let bugGrid = "176943582402150690905062400527689300391425800864371259059010730018030905743596128"
     static let bugCandidates = ",,,,,,,,,,38,,,,78,,,37,,38,,78,,,,17,137,,,,,,,,14,14,,,,,,,,67,67,,,,,,,,,,26,,,28,,48,,,46,26,,,27,,47,,46,,,,,,,,,,"
+    /// The BUG+1 state with r2c2 changed from {3, 8} to {3, 7}: r3c9 is still the only cell
+    /// with three candidates, but no digit taken out of it leaves every candidate twice in every
+    /// unit. (The grid rules 7 out of r2c2, so no real board gets here; the shape is the test.)
+    static let notGraveCandidates = ",,,,,,,,,,37,,,,78,,,37,,38,,78,,,,17,137,,,,,,,,14,14,,,,,,,,67,67,,,,,,,,,,26,,,28,,48,,,46,26,,,27,,47,,46,,,,,,,,,,"
 
     static let fixtures: [TechniqueFixture] = [
         // MARK: Crane
@@ -172,6 +176,8 @@ struct TechniqueFixtureTests {
                          grid: bugGrid, candidates: bugCandidates, placements: ["r3c9#7"]),
         TechniqueFixture("BUG+1 near-miss: a puzzle not known to be unique", .bug,
                          grid: bugGrid, candidates: bugCandidates, unique: false),
+        TechniqueFixture("BUG+1 near-miss: one cell with three candidates, but no digit leaves a grave", .bug,
+                         grid: bugGrid, candidates: notGraveCandidates),
 
         // MARK: The bugs the verification suite found
         TechniqueFixture("Pointing near-miss: a lone candidate in a box is a hidden single", .lockedCandidatesPointing) { s in

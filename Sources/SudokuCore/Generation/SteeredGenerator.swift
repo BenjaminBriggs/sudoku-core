@@ -229,10 +229,8 @@ private struct Steer {
     private mutating func swap(_ grid: [[Int]]) -> [[Int]]? {
         let orbits = symmetry.orbits
         let isGiven = { (orbit: [Puzzle.Index], grid: [[Int]]) in grid[orbit[0].row][orbit[0].column] != 0 }
-        guard let back = orbits.filter({ isGiven($0, grid) == false }).randomElement() else {
-            ratings += 1
-            return nil
-        }
+        // The puzzle being climbed always has at least one orbit out.
+        let back = orbits.filter { isGiven($0, grid) == false }.randomElement()!
         var candidate = grid
         set(back, in: &candidate, to: true)
         var taken = 0

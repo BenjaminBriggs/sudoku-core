@@ -201,7 +201,7 @@ extension HintFinder {
             }
             return nil
 
-        case 5:
+        default:  // Type 5
             let isDiagonal = extra.count == 2
                 && extra[0].row != extra[1].row && extra[0].column != extra[1].column
             guard isDiagonal || extra.count == 3, let x = sharedExtraDigit(extra) else { return nil }
@@ -211,8 +211,6 @@ extension HintFinder {
                 removals: commonPeers(of: extra, holding: x).map { ($0, x) }
             )
 
-        default:
-            return nil
         }
     }
 }

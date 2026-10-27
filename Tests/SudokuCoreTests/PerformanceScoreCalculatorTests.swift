@@ -1174,4 +1174,19 @@ struct PerformanceScoreCalculatorTests {
             "Even an impossible puzzle should cap at maximum (got \(impossible.score))"
         )
     }
+
+    @Test("Hints cost less at each harder level, up to Professional")
+    func testHintPenaltyEasesWithLevel() {
+        // One representative difficulty per level, Easy to Professional; the share of the score
+        // three hints leave is 1 - e^(-3c), for the level's coefficient c.
+        let kept = [150, 450, 800, 1300, 1800].map { difficulty in
+            PerformanceScoreCalculator.calculateScore(
+                baseDifficulty: difficulty, elapsedTime: 3600, hintsUsed: 3, errorCount: 0
+            ).hintPenalty
+        }
+        let expected = [0.30, 0.22, 0.16, 0.12, 0.08].map { exp(-3 * $0) }
+        for (actual, wanted) in zip(kept, expected) {
+            #expect(abs(actual - wanted) < 1e-9, "\(kept)")
+        }
+    }
 }
