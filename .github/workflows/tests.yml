@@ -7,26 +7,28 @@ on:
   workflow_dispatch:
 
 env:
+  # The Xcode the package is developed with. The xcode-27 image is GitHub's preview of it.
+  DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
   # The benchmark target links jemalloc, which the runners don't have.
   BENCHMARK_DISABLE_JEMALLOC: "true"
 
 jobs:
   test:
     name: swift test
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - run: swift --version
+      - run: xcodebuild -version && swift --version
       - run: swift test
 
   hodoku:
     name: HoDoKu cross-check
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - run: java -version
+      - run: xcodebuild -version && java -version
       - run: scripts/hodoku/fetch.sh "$RUNNER_TEMP/hodoku"
       - run: swift test -c release -Xswiftc -enable-testing --filter HoDoKu
         env:

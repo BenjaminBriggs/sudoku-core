@@ -148,10 +148,7 @@ enum HoDoKu {
     static func steps(for states: [(key: String, state: BoardState)]) throws -> (steps: [String: [HoDoKuStep]], bugFailed: Set<String>) {
         let lines = states.map { key, state in
             let grid = state.grid.flatMap { $0 }.map(String.init).joined()
-            let candidates = (0..<81).map { i in
-                state.grid[i / 9][i % 9] == 0 ? state.pencilMarks[i / 9][i % 9].sorted().map(String.init).joined() : ""
-            }
-            return "\(key)\t\(grid)\t\(candidates.joined(separator: ","))"
+            return "\(key)\t\(grid)\t\(state.candidateStrings().joined(separator: ","))"
         }
         var steps: [String: [HoDoKuStep]] = [:]
         var bugFailed: Set<String> = []
@@ -400,6 +397,21 @@ struct HoDoKuFixture: Codable {
     }
 }
 
+extension BoardState {
+    /// Each cell's candidates as a string of digits, or `filled(value)` for a filled cell.
+    func candidateStrings(filled: (Int) -> String = { _ in "" }) -> [String] {
+        var out: [String] = []
+        for row in 0..<9 {
+            for column in 0..<9 {
+                let value: Int = grid[row][column]
+                let digits: [Int] = pencilMarks[row][column].sorted()
+                out.append(value == 0 ? digits.map(String.init).joined() : filled(value))
+            }
+        }
+        return out
+    }
+}
+
 /// Every state of `puzzles`, keyed by puzzle and index.
 func keyedStates(_ puzzles: [CorpusPuzzle]) -> [(key: String, state: BoardState)] {
     let all = Mutex<[[(key: String, state: BoardState)]]>(Array(repeating: [], count: puzzles.count))
@@ -434,10 +446,8 @@ struct HoDoKuTests {
             let (key, state) = states[i]
             let differences = HoDoKu.differences(at: state, findings[key]!)
             if differences.isEmpty == false {
-                let candidates = (0..<81).map { i in
-                    state.grid[i / 9][i % 9] == 0 ? state.pencilMarks[i / 9][i % 9].sorted().map(String.init).joined() : "[\(state.grid[i / 9][i % 9])]"
-                }
-                failures.withLock { $0.append("\(key): \(differences) at \(candidates.joined(separator: ","))") }
+                let candidates = state.candidateStrings { "[\($0)]" }.joined(separator: ",")
+                failures.withLock { $0.append("\(key): \(differences) at \(candidates)") }
             }
         }
         let found = failures.withLock { $0 }.sorted()
@@ -449,9 +459,7 @@ struct HoDoKuTests {
                 HoDoKuFixture.RecordedState(
                     key: key,
                     grid: state.grid.flatMap { $0 }.map(String.init).joined(),
-                    candidates: (0..<81).map { i in
-                        state.grid[i / 9][i % 9] == 0 ? state.pencilMarks[i / 9][i % 9].sorted().map(String.init).joined() : ""
-                    },
+                    candidates: state.candidateStrings(),
                     findings: findings[key]!)
             }
             let encoder = JSONEncoder()
