@@ -24,10 +24,15 @@ public enum Symmetry: String, Codable, CaseIterable, Hashable, Sendable {
     case diagonal
     /// Reflecting across the anti-diagonal, top-right to bottom-left.
     case antiDiagonal
+    /// Both centre-line mirrors at once. Implies `mirrorHorizontal`, `mirrorVertical` and `rotational180`.
+    case orthogonal
+    /// Both diagonal mirrors at once. Implies `diagonal`, `antiDiagonal` and `rotational180`.
+    case diagonals
 
     /// The cells that must be given or removed together with `index`, `index` included.
     ///
     /// Orbits have 1, 2 or 4 cells. The centre cell is its own orbit under every symmetry.
+    /// For `orthogonal` and `diagonals` an orbit is every cell either mirror reaches.
     public func orbit(of index: Puzzle.Index) -> [Puzzle.Index] {
         Self.orbitTable[self]![index.row * 9 + index.column]
     }
@@ -52,11 +57,12 @@ public enum Symmetry: String, Codable, CaseIterable, Hashable, Sendable {
 
     // MARK: - Lookup tables
 
+    /// The single transformation this symmetry applies; composites use their two mirrors instead.
     private func image(of index: Puzzle.Index) -> Puzzle.Index {
         let r = index.row
         let c = index.column
         switch self {
-        case .none: return index
+        case .none, .orthogonal, .diagonals: return index
         case .rotational180: return Puzzle.Index(row: 8 - r, column: 8 - c)
         case .rotational90: return Puzzle.Index(row: c, column: 8 - r)
         case .mirrorHorizontal: return Puzzle.Index(row: 8 - r, column: c)
@@ -66,12 +72,26 @@ public enum Symmetry: String, Codable, CaseIterable, Hashable, Sendable {
         }
     }
 
+    /// The transformations whose combined closure is this symmetry.
+    private var generators: [Symmetry] {
+        switch self {
+        case .orthogonal: return [.mirrorHorizontal, .mirrorVertical]
+        case .diagonals: return [.diagonal, .antiDiagonal]
+        default: return [self]
+        }
+    }
+
     private func computeOrbit(of index: Puzzle.Index) -> [Puzzle.Index] {
         var orbit = [index]
-        var next = image(of: index)
-        while next != index {
-            orbit.append(next)
-            next = image(of: next)
+        var next = 0
+        while next < orbit.count {
+            for generator in generators {
+                let image = generator.image(of: orbit[next])
+                if orbit.contains(image) == false {
+                    orbit.append(image)
+                }
+            }
+            next += 1
         }
         return orbit
     }

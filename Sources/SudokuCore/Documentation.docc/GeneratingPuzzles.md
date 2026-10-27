@@ -102,6 +102,8 @@ let grid = await SudokuGenerator.createPuzzle(
 
 Because orbits are removed whole, the result can stop up to an orbit short of `targetEmpty`. ``PuzzleCreator`` makes up for the coarser steps by removing further orbits (``SudokuGenerator/removingOrbit(from:symmetry:uniqueCheck:)``) while a candidate rates easier than the target. Symmetry is a convention, not a logic rule; `.none` (the default) leaves generation unchanged.
 
+``Symmetry/orthogonal`` and ``Symmetry/diagonals`` combine two mirrors (both centre lines, or both diagonals), so their orbits are the up-to-4 cells either mirror reaches. A layout with one of them also has each mirror and `.rotational180`, and ``Symmetry/symmetries(of:)`` lists them all.
+
 To find which symmetries an existing grid has, use ``Symmetry/symmetries(of:)``:
 
 ```swift

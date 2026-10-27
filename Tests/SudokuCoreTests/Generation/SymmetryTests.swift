@@ -45,7 +45,37 @@ struct SymmetryTests {
         #expect(Symmetry.mirrorVertical.orbits.count == 45)
         #expect(Symmetry.diagonal.orbits.count == 45)
         #expect(Symmetry.antiDiagonal.orbits.count == 45)
+        #expect(Symmetry.orthogonal.orbits.count == 25)  // 16 quads + 8 pairs on the centre lines + centre
+        #expect(Symmetry.diagonals.orbits.count == 25)  // 16 quads + 8 pairs on the diagonals + centre
         #expect(Symmetry.rotational180.orbit(of: Puzzle.Index(row: 4, column: 4)).count == 1)
+    }
+
+    @Test("Composite orbits are the union of their two mirrors' orbits")
+    func compositeOrbits() {
+        #expect(Set(Symmetry.orthogonal.orbit(of: Puzzle.Index(row: 0, column: 1))) == [
+            Puzzle.Index(row: 0, column: 1), Puzzle.Index(row: 8, column: 1),
+            Puzzle.Index(row: 0, column: 7), Puzzle.Index(row: 8, column: 7),
+        ])
+        #expect(Set(Symmetry.orthogonal.orbit(of: Puzzle.Index(row: 4, column: 1))) == [
+            Puzzle.Index(row: 4, column: 1), Puzzle.Index(row: 4, column: 7),
+        ])
+        #expect(Set(Symmetry.diagonals.orbit(of: Puzzle.Index(row: 0, column: 1))) == [
+            Puzzle.Index(row: 0, column: 1), Puzzle.Index(row: 1, column: 0),
+            Puzzle.Index(row: 7, column: 8), Puzzle.Index(row: 8, column: 7),
+        ])
+        #expect(Set(Symmetry.diagonals.orbit(of: Puzzle.Index(row: 2, column: 2))) == [
+            Puzzle.Index(row: 2, column: 2), Puzzle.Index(row: 6, column: 6),
+        ])
+        for (composite, parts) in [(Symmetry.orthogonal, [Symmetry.mirrorHorizontal, .mirrorVertical]),
+                                   (.diagonals, [.diagonal, .antiDiagonal])] {
+            for index in Puzzle.Index.allIndices {
+                let orbit = Set(composite.orbit(of: index))
+                for part in parts {
+                    #expect(Set(part.orbit(of: index)).isSubset(of: orbit))
+                }
+                #expect(Set(Symmetry.rotational180.orbit(of: index)).isSubset(of: orbit))
+            }
+        }
     }
 
     // MARK: - Detection
@@ -72,6 +102,27 @@ struct SymmetryTests {
         var grid = solvedGrid
         grid[0][1] = 0
         #expect(Symmetry.symmetries(of: grid).isEmpty)
+    }
+
+    @Test("Detection reports a composite with everything it implies")
+    func detectsComposites() {
+        var orthogonal = solvedGrid
+        for index in Symmetry.orthogonal.orbit(of: Puzzle.Index(row: 0, column: 1)) {
+            orthogonal[index.row][index.column] = 0
+        }
+        #expect(Symmetry.symmetries(of: orthogonal) == [.rotational180, .mirrorHorizontal, .mirrorVertical, .orthogonal])
+
+        var diagonals = solvedGrid
+        for index in Symmetry.diagonals.orbit(of: Puzzle.Index(row: 0, column: 1)) {
+            diagonals[index.row][index.column] = 0
+        }
+        #expect(Symmetry.symmetries(of: diagonals) == [.rotational180, .diagonal, .antiDiagonal, .diagonals])
+
+        // One mirror alone isn't the composite
+        var horizontal = solvedGrid
+        horizontal[0][1] = 0
+        horizontal[8][1] = 0
+        #expect(Symmetry.symmetries(of: horizontal) == [.mirrorHorizontal])
     }
 
     // MARK: - Generation

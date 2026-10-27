@@ -27,7 +27,7 @@ struct SteeredGeneratorTests {
         }
     }
 
-    @Test("Steered puzzles keep the symmetry", arguments: [Symmetry.rotational180, .rotational90, .diagonal])
+    @Test("Steered puzzles keep the symmetry", arguments: [Symmetry.rotational180, .rotational90, .diagonal, .orthogonal, .diagonals])
     func keepsSymmetry(_ symmetry: Symmetry) throws {
         let steered = try #require(SudokuGenerator.createPuzzle(level: .hard, symmetry: symmetry, bestEffort: true))
         #expect(symmetry.isSatisfied(by: steered.puzzle.startingState))
