@@ -29,6 +29,21 @@ private func createBoardState(from grid: [[Int]]) -> BoardState {
     )
 }
 
+/// Where the hint finder stalls on Professional seed 086070004…: the grid and every empty
+/// cell's candidates at that point.
+private func stallState() -> BoardState {
+    let grid = parseGrid("086070004010080006425196378590007000630805000048009050070928005069051007850760009")
+    let candidates = "39,,,35,,23,1259,129,,379,,37,345,,234,259,29,,,,,,,,,,,,,12,26,134,,468,468,123,,,127,,14,,479,49,12,127,,,26,13,,67,,123,13,,134,,,,146,1346,,23,,,34,,,248,2348,,,,1234,,,34,124,1234,"
+        .split(separator: ",", omittingEmptySubsequences: false)
+        .map { Set($0.compactMap { Int(String($0)) }) }
+    return BoardState(
+        grid: grid,
+        pencilMarks: (0..<9).map { r in Array(candidates[(r * 9)..<(r * 9 + 9)]) },
+        validOptions: Validator.validOptions(for: grid),
+        assumesUniqueSolution: true
+    )
+}
+
 // MARK: - Individual Technique Benchmarks
 
 let hintFinderBenchmarks: @Sendable () -> Void = {
@@ -92,13 +107,25 @@ let hintFinderBenchmarks: @Sendable () -> Void = {
         }
     }
 
-    // Y-Wing
-    Benchmark("HintFinder.YWing") { benchmark in
+    // XY-Wing
+    Benchmark("HintFinder.XYWing") { benchmark in
         let grid = parseGrid("387956412600024083420800096743519628162487935958002147200098354500240800804005200")
         let state = createBoardState(from: grid)
         for _ in benchmark.scaledIterations {
-            let hint = HintFinder.findHint(for:.yWing, in: state)
+            let hint = HintFinder.findHint(for:.xyWing, in: state)
             blackHole(hint)
+        }
+    }
+
+    // Each technique searching a Professional seed's stall point, where nothing applies, so
+    // every finder runs its whole search. The n-Y-Wings are the ones to watch.
+    for technique in [HintTechnique.crane, .uniqueRectangleType1, .uniqueRectangleType3, .bug,
+                      .fourYWing, .fiveYWing, .sixYWing, .sevenYWing, .finnedJellyfish] {
+        Benchmark("HintFinder.Stall.\(technique.rawValue)") { benchmark in
+            let state = stallState()
+            for _ in benchmark.scaledIterations {
+                blackHole(HintFinder.findHint(for: technique, in: state))
+            }
         }
     }
 

@@ -177,7 +177,8 @@ struct HintTests {
             ]
         ),
         (
-            .yWing,
+            // Formerly the duplicate Y-Wing's fixtures; XY-Wing finds the same patterns.
+            .xyWing,
             [
                 "SCv7_32_f2e7r3id1o122345tv15l4ie55mn3apnu029634pi0c1fvhd6jfdq0l3sd51ka1snqudf9srptijl527erdr8sbjn7jt7fmcslt72mp779800mu4440igi4a51e5ad89405441c458igcgmgc0ehhr8eghh05mo351405drhmt5jtrviu6s1mjqjj736nbi1s0vhbm27c4vg1u28mj5e90vmdvs56sd0mqvltn958jq9hc49pi6j1doe4pf3gmddqn933tdukirm7dfujn6lglcfa5vqctdf6uivsihe",
                 "SCv7_32_f2e8qjebdo13237siue8id3uohorhkhvt0bi0rdkha23g07d072bvoutdkln3aq6hqehiuv6i7jcn61uouuqeverklsnptvjouccfrcquo4l1aggg0geok000qah47cdh8oi8e4b2k74do5hb36bg2elk8ne9bd8e52r1r6k4jmt5ltlbs7fqt1q3j7t764emuv091bncrroo5d5baue36e34gj35f19qgs19j8d1d3s4fra6n7u55gb5lej7vngve9sgmbaunh2r3sbou2mdmliaqrkqcq5vonkgtdd6sr3qns5r55ko",
@@ -606,7 +607,7 @@ struct HintTests {
                 "658003421249185003713006598802030150037000286005800000586010042971000805324008017",
             expectedTechniques: [
                 .nakedPair, .hiddenPair, .xWing, .swordfish, .jellyfish,
-                .xyWing, .yWing, .skyscraper, .finnedXWing,
+                .xyWing, .skyscraper, .finnedXWing,
                 .lockedCandidatesPointing, .lockedCandidatesClaiming,
             ],
             description: "Complex puzzle with naked pair and many techniques"
@@ -626,7 +627,7 @@ struct HintTests {
                 "638005219149628000752193800820951030573860901000030508300509602265380190007216000",
             expectedTechniques: [
                 .swordfish, .nakedTriple, .hiddenPair,
-                .xyWing, .yWing, .xyzWing, .skyscraper,
+                .xyWing, .xyzWing, .skyscraper,
                 .finnedXWing, .finnedSwordfish, .finnedJellyfish,
                 .lockedCandidatesPointing, .lockedCandidatesClaiming,
             ],
