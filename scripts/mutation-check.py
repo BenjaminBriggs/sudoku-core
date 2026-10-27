@@ -7,13 +7,17 @@ file is restored afterwards, even on Ctrl-C.
 
 Usage: scripts/mutation-check.py [name ...]    (default: all mutations)
 """
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 HINTS = "Sources/SudokuCore/Hints/Hint Implementation/"
-SUITES = "TechniqueVerificationTests|TechniqueFixtureTests|MetamorphicTests"
+# MUTATION_SUITES overrides which suites run, to see what one set of tests catches on its own.
+SUITES = os.environ.get(
+    "MUTATION_SUITES",
+    "TechniqueVerificationTests|TechniqueFixtureTests|MetamorphicTests|HoDoKuTests|TechniqueLibraryTests")
 
 # name: (file, [(original text, mutated text)], what it reintroduces)
 MUTATIONS = {
