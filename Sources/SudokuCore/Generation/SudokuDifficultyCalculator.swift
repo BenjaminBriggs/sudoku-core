@@ -121,20 +121,7 @@ public enum SudokuDifficultyCalculator {
         let score = Double(hodokuRating ?? 1)
 
         // Determine difficulty level based on HoDoKu rating thresholds
-        let level: PuzzleDifficulty.Level
-        if score <= 300 {
-            level = .easy
-        } else if score <= 600 {
-            level = .medium
-        } else if score <= 1000 {
-            level = .hard
-        } else if score <= 1600 {
-            level = .expert
-        } else if score <= 2000 {
-            level = .professional
-        } else {
-            level = .custom
-        }
+        let level = PuzzleDifficulty.Level.allCases.first { $0.scoreRange.contains(Int(score)) } ?? .custom
 
         return DifficultyResult(
             level: level,
@@ -174,6 +161,31 @@ public enum SudokuDifficultyCalculator {
         public var hardestTechnique: HintTechnique? {
             let filtered = techniquesUsed.filter { $0 != .unknown }
             return filtered.max(by: { $0.difficulty < $1.difficulty })
+        }
+
+        /// The solve path stalls and the solver has to guess (`.unknown` closes the techniques).
+        ///
+        /// The score then only counts the steps before the stall, so it understates the puzzle.
+        public var needsGuessing: Bool {
+            techniquesUsed.contains(.unknown)
+        }
+
+        /// How many steps use `hardestTechnique`.
+        public var hardestTechniqueCount: Int {
+            guard let hardest = hardestTechnique else { return 0 }
+            return techniquesUsed.filter { $0 == hardest }.count
+        }
+
+        /// The hardest technique used after the last step that uses `hardestTechnique`, or
+        /// `nil` when that step is the last one. Shows whether the hardest step breaks the
+        /// puzzle open (only singles follow) or leaves more work.
+        public var hardestTechniqueAfterLastHardestStep: HintTechnique? {
+            guard let hardest = hardestTechnique,
+                let last = techniquesUsed.lastIndex(of: hardest)
+            else { return nil }
+            return techniquesUsed[(last + 1)...]
+                .filter { $0 != .unknown }
+                .max(by: { $0.difficulty < $1.difficulty })
         }
 
         /// Frequency of each technique used

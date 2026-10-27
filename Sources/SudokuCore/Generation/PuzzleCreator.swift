@@ -31,9 +31,12 @@ public struct PuzzleCreator {
     }
 
     /// Create a puzzle with a specific difficulty goal
+    ///
+    /// Built on ``SudokuGenerator/createPuzzle(level:symmetry:from:maxRatings:bestEffort:)``,
+    /// so the level is the calculator's own and the puzzle never needs guessing.
     /// - Parameters:
     ///   - targetDifficulty: The desired difficulty level
-    ///   - maxAttempts: Maximum number of attempts to generate a matching puzzle
+    ///   - maxAttempts: Maximum number of solutions to try
     ///   - symmetry: The symmetry the clue layout keeps (defaults to `.none`)
     /// - Returns: A Puzzle with the requested difficulty, or the closest match
     public static func createPuzzleWithDifficulty(
@@ -41,121 +44,36 @@ public struct PuzzleCreator {
         maxAttempts: Int = 20,
         symmetry: Symmetry = .none
     ) async throws -> Puzzle {
-        var bestMatch:
-            (
-                puzzle: [[Int]], solution: [[Int]],
-                difficultyResult: SudokuDifficultyCalculator.DifficultyResult
-            )? = nil
-        var bestDifficultyDistance = Int.max
+        let targetRange = targetDifficulty.scoreRange
+        var closest: SteeredPuzzle?
 
-        // Target technique difficulty ranges for different puzzle difficulty levels
-        let difficultyTargets: [PuzzleDifficulty.Level: ClosedRange<Int>] = [
-            .easy: 0...40,  // Up to locked candidates
-            .medium: 41...70,  // Naked/hidden pair, triple techniques
-            .hard: 71...100,  // X-Wing, swordfish, Y-Wing, etc.
-            .expert: 101...115,  // Advanced wings and fish
-            .professional: 116...120,  // Most advanced techniques
-            .custom: 100...120,  // Most advanced techniques
-        ]
-
-        // Get target range for requested difficulty
-        let targetRange = difficultyTargets[targetDifficulty] ?? (0...50)
-
-        for attempt in 1...maxAttempts {
-            // Each attempt is a full generate + solve + rate; a caller that has moved on
+        for _ in 1...max(1, maxAttempts) {
+            // Each attempt is a full generate + search; a caller that has moved on
             // (a new difficulty, a dismissed screen) should not pay for the rest.
             try Task.checkCancellation()
 
-            // Choose generation strategy based on target difficulty
-            var targetsEmptyCells: ClosedRange<Int>
-            switch targetDifficulty {
-            case .easy:
-                targetsEmptyCells = 35...45
-            case .medium:
-                targetsEmptyCells = 46...55
-            case .hard:
-                targetsEmptyCells = 56...60
-            case .expert:
-                targetsEmptyCells = 58...62
-            case .professional:
-                targetsEmptyCells = 60...64
-            case .custom:
-                targetsEmptyCells = 56...64
-            }
-
-            // Generate a puzzle
-            let solution = SolutionGenerator.generateRandomSolution()
-            var puzzle = await SudokuGenerator.createPuzzle(
-                from: solution,
-                targetEmpty: Int.random(in: targetsEmptyCells),
-                symmetry: symmetry
-            )
-
-            // Skip if not uniquely solvable
-            guard Validator.hasUniqueSolution(puzzle) else { continue }
-
-            // Calculate difficulty - skip if calculation fails
-            var difficultyResult: SudokuDifficultyCalculator.DifficultyResult
-            do {
-                difficultyResult = try SudokuDifficultyCalculator.calculateDifficulty(
-                    for: puzzle
+            guard
+                let steered = SudokuGenerator.createPuzzle(
+                    level: targetDifficulty,
+                    symmetry: symmetry,
+                    bestEffort: true
                 )
-            } catch {
-                // Skip puzzles that fail difficulty calculation
-                continue
+            else { continue }
+            if steered.matchesLevel {
+                return steered.puzzle
             }
-
-            // Skip if the puzzle couldn't be solved using our techniques
-            guard difficultyResult.wasSolved else { continue }
-
-            // Check if difficulty matches our target
-            var highestDifficulty = difficultyResult.hardestTechnique?.difficulty ?? 0
-            var difficultyDistance = distanceToTargetRange(
-                highestDifficulty, targetRange: targetRange)
-
-            // Orbit removal steps are coarse, so a symmetric puzzle that rates too easy
-            // is pushed harder an orbit at a time rather than thrown away.
-            if symmetry != .none {
-                while highestDifficulty < targetRange.lowerBound,
-                    let harder = SudokuGenerator.removingOrbit(from: puzzle, symmetry: symmetry),
-                    let harderResult = try? SudokuDifficultyCalculator.calculateDifficulty(
-                        for: harder),
-                    harderResult.wasSolved
-                {
-                    try Task.checkCancellation()
-                    puzzle = harder
-                    difficultyResult = harderResult
-                    highestDifficulty = harderResult.hardestTechnique?.difficulty ?? 0
-                    difficultyDistance = distanceToTargetRange(
-                        highestDifficulty, targetRange: targetRange)
-                }
+            let distance = distanceToTargetRange(Int(steered.result.score), targetRange: targetRange)
+            let closestDistance = closest.map {
+                distanceToTargetRange(Int($0.result.score), targetRange: targetRange)
             }
-
-            // If we have a perfect match, use it immediately
-            if difficultyDistance == 0 {
-                bestMatch = (puzzle, solution, difficultyResult)
-                break
-            }
-
-            // Update best match if this is closer to our target
-            if difficultyDistance < bestDifficultyDistance {
-                bestMatch = (puzzle, solution, difficultyResult)
-                bestDifficultyDistance = difficultyDistance
-            }
-
-            // If we're close enough, stop early
-            if bestDifficultyDistance < 10 && attempt > 5 {
-                break
+            if distance < closestDistance ?? .max {
+                closest = steered
             }
         }
+        try Task.checkCancellation()
 
-        // Create the puzzle using the best match
-        if let (puzzle, solution, difficultyResult) = bestMatch {
-            return Puzzle(
-                solution: solution,
-                startingState: puzzle,
-                difficulty: difficultyResult.puzzleDifficulty
-            )
+        if let closest {
+            return closest.puzzle
         }
 
         // If we couldn't find a suitable puzzle, generate a basic one

@@ -19,7 +19,7 @@ print("Created \(puzzle.difficulty.level) puzzle")
 print("Difficulty score: \(puzzle.difficulty.score)")
 ```
 
-It generates candidate puzzles (up to `maxAttempts`, default 20), keeps the closest match to the requested level, and falls back to a basic puzzle if no reasonable match is found. If you already have a solution and starting grid, rate and assemble them with:
+It steers up to `maxAttempts` solutions (default 20) towards the level, returns the first that the calculator rates at it, and otherwise the closest match. It never returns a puzzle that needs guessing. If you already have a solution and starting grid, rate and assemble them with:
 
 ```swift
 let puzzle = try await PuzzleCreator.createPuzzle(
@@ -29,6 +29,20 @@ let puzzle = try await PuzzleCreator.createPuzzle(
 ```
 
 Prefer ``PuzzleCreator`` unless you need control over an individual pipeline stage — the sections below break the same pipeline into its parts.
+
+### Steering Towards a Level
+
+``SudokuGenerator/createPuzzle(level:symmetry:from:maxRatings:bestEffort:)`` aims clue removal at a level instead of generating blind and filtering. It removes clues (whole orbits under a symmetry) to a minimal puzzle, binary-searches the removal order for the point where the rating reaches the level, and swaps clues to push a minimal puzzle that is still short of it. Puzzles that need guessing are never kept.
+
+```swift
+if let steered = SudokuGenerator.createPuzzle(level: .expert, symmetry: .rotational180) {
+    print(steered.result.level, steered.ratings)
+}
+```
+
+It returns `nil` when the level isn't reached within `maxRatings`; pass `bestEffort: true` for the closest puzzle instead, with `matchesLevel` false. ``PuzzleDifficulty/Level/scoreRange`` gives the HoDoKu scores the calculator places at each level.
+
+For quality rules, ``SudokuDifficultyCalculator/DifficultyResult`` measures `needsGuessing`, `hardestTechniqueCount` (steps using the hardest technique) and `hardestTechniqueAfterLastHardestStep` (the hardest technique still needed once the hardest step is done).
 
 ### Generate a Puzzle Step by Step
 
