@@ -323,4 +323,22 @@ struct SudokuDifficultyCalculatorTests {
             }
         }
     }
+
+    @Test("A complete grid's difficulty names its level's simplest technique")
+    func testCompleteGridHardestTechnique() throws {
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(for: completeSudoku)
+        #expect(result.hardestTechnique == nil)
+        #expect(result.puzzleDifficulty.hardestTechnique == .hiddenSingle)
+    }
+
+    @Test("A puzzle with no solution can't be rated")
+    func testUnsolvablePuzzleThrows() {
+        // A corpus puzzle with one empty cell given a wrong digit its peers allow.
+        let puzzle = CorpusPuzzle.fixtureCorpus[0]
+        var grid = puzzle.startingState
+        let options = Validator.validOptions(for: grid)
+        let cell = (0..<81).first { grid[$0 / 9][$0 % 9] == 0 && options[$0 / 9][$0 % 9].count >= 3 }!
+        grid[cell / 9][cell % 9] = options[cell / 9][cell % 9].sorted().first { $0 != puzzle.solution[cell / 9][cell % 9] }!
+        #expect(throws: (any Error).self) { try SudokuDifficultyCalculator.calculateDifficulty(for: grid) }
+    }
 }

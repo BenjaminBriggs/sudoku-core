@@ -455,4 +455,59 @@ struct BoardStateParserTests {
             try BoardStateParser.zlibDecompress(invalidData)
         }
     }
+
+    // MARK: - Malformed input
+
+    /// sudoku.coach's encoding of `json`: zlib-compressed, then base32hex.
+    private func encode(_ json: String) -> String {
+        let input = Array(json.utf8)
+        var output = [UInt8](repeating: 0, count: input.count + 64)
+        let size = compression_encode_buffer(&output, output.count, input, input.count, nil, COMPRESSION_ZLIB)
+        // Apple writes raw deflate; zlib's two-byte header goes in front.
+        let bytes = [UInt8(0x78), 0x9C] + output.prefix(size)
+        let alphabet = Array("0123456789abcdefghijklmnopqrstuv")
+        var encoded = ""
+        var buffer = 0, bits = 0
+        for byte in bytes {
+            buffer = (buffer << 8) | Int(byte)
+            bits += 8
+            while bits >= 5 {
+                bits -= 5
+                encoded.append(alphabet[(buffer >> bits) & 31])
+            }
+            buffer &= (1 << bits) - 1
+        }
+        if bits > 0 { encoded.append(alphabet[(buffer << (5 - bits)) & 31]) }
+        return encoded
+    }
+
+    @Test("A character outside base32hex is rejected")
+    func testInvalidBase32Character() {
+        #expect(throws: BoardStateParseError.invalidBase32Character) {
+            try BoardStateParser.parseSudokuCoach("SCv7_32_!!")
+        }
+    }
+
+    @Test("A payload that isn't a sudoku.coach state is rejected", arguments: ["[1]", "{}"])
+    func testInvalidState(json: String) {
+        #expect(throws: BoardStateParseError.invalidJSON) {
+            try BoardStateParser.parseSudokuCoach("SCv7_32_" + encode(json))
+        }
+    }
+
+    @Test("A progress payload without a usable state is rejected",
+          arguments: [#"{"i":3,"a":[]}"#, #"{"i":0,"a":["[1]"]}"#])
+    func testInvalidProgress(json: String) {
+        #expect(throws: BoardStateParseError.invalidJSON) {
+            try BoardStateParser.parseSudokuCoachProgress("32_" + encode(json))
+        }
+    }
+
+    @Test("A candidate mask that isn't a number reads as no candidates")
+    func testNonNumericMask() throws {
+        let json = #"{"givenDigits":"\#(String(repeating: "0", count: 81))","userCellCandidates":"x-6"}"#
+        let state = try BoardStateParser.parseSudokuCoach("SCv7_32_" + encode(json))
+        #expect(state.pencilMarks[0][0].isEmpty)
+        #expect(state.pencilMarks[0][1] == [1, 2])
+    }
 }

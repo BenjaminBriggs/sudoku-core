@@ -97,7 +97,7 @@ public enum SudokuDifficultyCalculator {
         techniquesUsed: [HintTechnique],
         iterationCount: Int,
         seRating: Double?,
-        hodokuRating: Int?,
+        hodokuRating: Int,
         estimatedTimeSeconds: Int?
     ) throws -> DifficultyResult {
         // If not solved, throw error
@@ -117,11 +117,11 @@ public enum SudokuDifficultyCalculator {
         }
 
         // Use HoDoKu rating as the primary score
-        // Default to a basic score if HoDoKu rating is not available
-        let score = Double(hodokuRating ?? 1)
+        let score = Double(hodokuRating)
 
-        // Determine difficulty level based on HoDoKu rating thresholds
-        let level = PuzzleDifficulty.Level.allCases.first { $0.scoreRange.contains(Int(score)) } ?? .custom
+        // Determine difficulty level based on HoDoKu rating thresholds, which cover every rating
+        // from 0 up.
+        let level = PuzzleDifficulty.Level.allCases.first { $0.scoreRange.contains(Int(score)) }!
 
         return DifficultyResult(
             level: level,

@@ -107,17 +107,14 @@ extension Validator {
                 var narrowed = grid
                 narrowed[position.row][position.column] = value
                 let clue = SuggestedClue(position: position, value: value)
-                switch solutionCount(of: narrowed) {
-                case .unique:
-                    return clue
-                case .multiple(let a, let b):
+                // Both values come from real solutions, so there's always at least one.
+                let count = solutionCount(of: narrowed)
+                if case .unique = count { return clue }
+                if case .multiple(let a, let b) = count {
                     let remaining = differingCells(a, b).count
                     if remaining < best?.remaining ?? .max {
                         best = (clue, remaining)
                     }
-                case .none:
-                    // Both values come from real solutions, so this can't happen.
-                    continue
                 }
             }
         }

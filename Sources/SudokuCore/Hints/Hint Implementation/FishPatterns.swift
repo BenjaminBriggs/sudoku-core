@@ -16,21 +16,10 @@ extension HintFinder {
     ///   - includesFin: Whether the pattern has fin candidates.
     /// - Returns: The matching `HintTechnique` enum case.
     private static func fishTechnique(for n: Int, includesFin: Bool) -> HintTechnique {
-        if includesFin {
-            switch n {
-            case 2: return .finnedXWing
-            case 3: return .finnedSwordfish
-            case 4: return .finnedJellyfish
-            default: fatalError("Unhandled finned fish pattern size")
-            }
-        } else {
-            switch n {
-            case 2: return .xWing
-            case 3: return .swordfish
-            case 4: return .jellyfish
-            default: fatalError("Unhandled fish pattern size")
-            }
-        }
+        let techniques: [HintTechnique] = includesFin
+            ? [.finnedXWing, .finnedSwordfish, .finnedJellyfish]
+            : [.xWing, .swordfish, .jellyfish]
+        return techniques[n - 2]
     }
 
     // MARK: - Fin Detection Helpers
@@ -155,11 +144,7 @@ extension HintFinder {
             }
         }
 
-        // Must have at least one fin
-        guard fins.isEmpty == false else {
-            return nil
-        }
-
+        // Every fin cross line holds a base line's candidate, so there is at least one fin.
         // Same-box constraint: all fins must share one 3x3 box so that
         // eliminations can be confined to cells that see the entire fin group.
         guard let firstFin = fins.first else { return nil }
@@ -239,16 +224,10 @@ extension HintFinder {
         baseOrientation: Puzzle.Index.Orientation,
         state: BoardState
     ) -> HintStep? {
-        // Orientation abstraction closures:
         // `makeIndex` maps (baseLine, crossLine) -> Puzzle.Index for either orientation.
-        // `getBase` extracts the base-line index from a Puzzle.Index.
         let makeIndex: (Int, Int) -> Puzzle.Index = baseOrientation == .row
             ? { base, cross in Puzzle.Index(row: base, column: cross) }
             : { base, cross in Puzzle.Index(row: cross, column: base) }
-
-        let getBase: (Puzzle.Index) -> Int = baseOrientation == .row
-            ? { $0.row }
-            : { $0.column }
 
         // Pre-compute pencil marks for all cells to avoid repeated lookups
         let pencilMarks = state.pencilMarks
@@ -344,19 +323,9 @@ extension HintFinder {
                         }
                     }
                 }
-                // Include fins in fish positions for visualization
+                // Include fins in fish positions for visualization. Every base line holds at
+                // least two candidates, each in a core line or a fin.
                 fishPositions.formUnion(fins)
-
-                // Validation
-                if fishPositions.count < 2 {
-                    continue
-                }
-
-                // Ensure at least 2 of the n base lines contain the digit
-                let baseLinesWithPositions = Set(fishPositions.map { getBase($0) })
-                if baseLinesWithPositions.count < 2 {
-                    continue
-                }
 
                 // Check if we can eliminate digit from other cells
                 var removals: [HintAction] = []

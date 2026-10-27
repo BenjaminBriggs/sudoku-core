@@ -43,7 +43,7 @@ extension HintFinder {
 
         // Compute strong links only for digits that appear in a usable bi-value pair.
         // Strong link = digit appears as candidate in exactly 2 cells in a unit.
-        var strongLinksByDigit: [Int: [(cellA: Puzzle.Index, cellB: Puzzle.Index)]] = [:]
+        var strongLinksByDigit = Array(repeating: [(cellA: Puzzle.Index, cellB: Puzzle.Index)](), count: 10)
         for digit in Set(sortedGroups.flatMap(\.key)) {
             strongLinksByDigit[digit] = Self.strongLinks(
                 for: digit,
@@ -69,7 +69,7 @@ extension HintFinder {
                     if let hint = tryWWingConnection(
                         cellA: cellA, cellB: cellB,
                         linkDigit: digitX, eliminationDigit: digitY,
-                        strongLinks: strongLinksByDigit[digitX] ?? [],
+                        strongLinks: strongLinksByDigit[digitX],
                         grid: grid, pencilMarks: pencilMarks
                     ) {
                         return hint
@@ -79,7 +79,7 @@ extension HintFinder {
                     if let hint = tryWWingConnection(
                         cellA: cellA, cellB: cellB,
                         linkDigit: digitY, eliminationDigit: digitX,
-                        strongLinks: strongLinksByDigit[digitY] ?? [],
+                        strongLinks: strongLinksByDigit[digitY],
                         grid: grid, pencilMarks: pencilMarks
                     ) {
                         return hint
