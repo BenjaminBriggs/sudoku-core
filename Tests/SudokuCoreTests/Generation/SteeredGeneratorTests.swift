@@ -2,11 +2,20 @@ import Testing
 @testable import SudokuCore
 
 struct SteeredGeneratorTests {
+    /// The first puzzle `make` finds in `tries`. Not `lazy.compactMap { }.first`: that calls
+    /// the closure twice per element, and a random generator can return nil the second time.
+    private static func firstFound(tries: Int, _ make: () -> SteeredPuzzle?) -> SteeredPuzzle? {
+        for _ in 0..<tries {
+            if let found = make() { return found }
+        }
+        return nil
+    }
+
     @Test("Steered puzzles rate at the level asked for", arguments: [PuzzleDifficulty.Level.easy, .medium, .hard])
     func reachesLevel(_ level: PuzzleDifficulty.Level) throws {
         // Easy to Hard land almost every time; allow a few solutions for an unlucky one
         let steered = try #require(
-            (0..<5).lazy.compactMap { _ in SudokuGenerator.createPuzzle(level: level) }.first
+            Self.firstFound(tries: 5) { SudokuGenerator.createPuzzle(level: level) }
         )
         let rerated = try SudokuDifficultyCalculator.calculateDifficulty(for: steered.puzzle.startingState)
         #expect(steered.matchesLevel)
@@ -80,6 +89,54 @@ struct SteeredGeneratorTests {
         #expect(PuzzleDifficulty.Level.expert.scoreRange == 1001...1600)
         #expect(PuzzleDifficulty.Level.professional.scoreRange == 1601...2000)
     }
+
+    // MARK: - Clue count
+
+    private static func clues(_ grid: [[Int]]) -> Int {
+        grid.joined().count { $0 != 0 }
+    }
+
+    @Test("A clue range keeps the puzzle's clue count in it", arguments: [26...30, 31...40])
+    func cluesInRange(_ givens: ClosedRange<Int>) throws {
+        let steered = try #require(
+            Self.firstFound(tries: 10) { SudokuGenerator.createPuzzle(level: .medium, givens: givens) }
+        )
+        #expect(givens.contains(Self.clues(steered.puzzle.startingState)))
+        #expect(steered.result.level == .medium)
+    }
+
+    @Test("A range below any minimal puzzle is a clue miss, with no rating spent")
+    func unreachableRangeIsGivensMiss() {
+        // No minimal puzzle has fewer than 17 clues
+        let result = SudokuGenerator.steerPuzzle(level: .medium, givens: 0...16)
+        guard case .failure(let miss) = result else {
+            Issue.record("Found a 16-clue puzzle")
+            return
+        }
+        #expect(miss == .givens)
+    }
+
+    @Test("Too many clues for the level is a clue miss")
+    func tooManyCluesForLevel() {
+        // Expert needs far fewer than 60 clues
+        for _ in 0..<3 {
+            let result = SudokuGenerator.steerPuzzle(level: .expert, givens: 60...70)
+            guard case .failure(let miss) = result else {
+                Issue.record("Found an Expert puzzle with 60+ clues")
+                return
+            }
+            #expect(miss == .givens)
+        }
+    }
+
+    @Test("Best effort stays in the clue range")
+    func bestEffortInRange() throws {
+        for _ in 0..<3 {
+            let steered = try #require(
+                SudokuGenerator.createPuzzle(level: .expert, givens: 28...32, maxRatings: 10, bestEffort: true))
+            #expect((28...32).contains(Self.clues(steered.puzzle.startingState)))
+        }
+    }
 }
 
 struct PuzzleCreatorLevelTests {
@@ -120,4 +177,5 @@ struct DifficultyMeasurementTests {
         #expect(result([.nakedSingle, .xWing]).hardestTechniqueAfterLastHardestStep == nil)
         #expect(result([.xWing, .nakedSingle, .unknown]).hardestTechniqueAfterLastHardestStep == .nakedSingle)
     }
+
 }

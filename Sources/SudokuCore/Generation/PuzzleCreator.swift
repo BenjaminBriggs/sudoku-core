@@ -32,7 +32,7 @@ public struct PuzzleCreator {
 
     /// Create a puzzle with a specific difficulty goal
     ///
-    /// Built on ``SudokuGenerator/createPuzzle(level:symmetry:from:maxRatings:bestEffort:)``,
+    /// Built on ``SudokuGenerator/createPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)``,
     /// so the level is the calculator's own and the puzzle never needs guessing.
     /// - Parameters:
     ///   - targetDifficulty: The desired difficulty level

@@ -32,7 +32,7 @@ Prefer ``PuzzleCreator`` unless you need control over an individual pipeline sta
 
 ### Steering Towards a Level
 
-``SudokuGenerator/createPuzzle(level:symmetry:from:maxRatings:bestEffort:)`` aims clue removal at a level instead of generating blind and filtering. It removes clues (whole orbits under a symmetry) to a minimal puzzle, binary-searches the removal order for the point where the rating reaches the level, and swaps clues to push a minimal puzzle that is still short of it. Puzzles that need guessing are never kept.
+``SudokuGenerator/createPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)`` aims clue removal at a level instead of generating blind and filtering. It removes clues (whole orbits under a symmetry) to a minimal puzzle, binary-searches the removal order for the point where the rating reaches the level, and swaps clues to push a minimal puzzle that is still short of it. Puzzles that need guessing are never kept. Pass `givens` to bound the number of clues: only puzzles in the range are rated, so it costs nothing, and ``SudokuGenerator/steerPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)`` reports ``SteerMiss/givens`` when the range ruled the level out.
 
 ```swift
 if let steered = SudokuGenerator.createPuzzle(level: .expert, symmetry: .rotational180) {

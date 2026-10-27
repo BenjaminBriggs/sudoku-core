@@ -19,6 +19,17 @@ public struct SteeredPuzzle: Sendable {
     public let ratings: Int
 }
 
+/// Why the steered generator came back without a puzzle.
+public enum SteerMiss: Error, Sendable {
+    /// The level wasn't reached within the rating budget.
+    case level
+    /// The clue count range ruled the level out: the minimal puzzle has too many clues, or
+    /// reaching the level needed more or fewer clues than the range allows.
+    case givens
+    /// The task was cancelled.
+    case cancelled
+}
+
 extension PuzzleDifficulty.Level {
     /// The HoDoKu scores `SudokuDifficultyCalculator` places at this level.
     public var scoreRange: ClosedRange<Int> {
@@ -54,6 +65,9 @@ extension SudokuGenerator {
     ///   - symmetry: The symmetry the clue layout keeps.
     ///   - solution: The solved grid to take clues from.
     ///   - maxRatings: Bound on ratings, the expensive step, including the search.
+    ///   - givens: The number of clues the puzzle may have; `nil` for any. Only puzzles in
+    ///     the range are rated, so a range costs nothing and stops early when the minimal
+    ///     puzzle already has too many clues.
     ///   - bestEffort: Return the closest puzzle found, with `matchesLevel` false, rather
     ///     than `nil` when the level isn't reached.
     /// - Returns: `nil` when the level isn't reached within `maxRatings` (and not
@@ -61,20 +75,44 @@ extension SudokuGenerator {
     public static func createPuzzle(
         level: PuzzleDifficulty.Level,
         symmetry: Symmetry = .none,
+        givens: ClosedRange<Int>? = nil,
         from solution: [[Int]] = SolutionGenerator.generateRandomSolution(),
         maxRatings: Int = 40,
         bestEffort: Bool = false
     ) -> SteeredPuzzle? {
-        var steer = Steer(solution: solution, symmetry: symmetry, range: level.scoreRange, maxRatings: maxRatings)
-        guard let found = steer.run() else { return nil }
+        try? steerPuzzle(
+            level: level, symmetry: symmetry, givens: givens, from: solution,
+            maxRatings: maxRatings, bestEffort: bestEffort
+        ).get()
+    }
+
+    /// ``createPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)``, saying why when
+    /// it finds nothing.
+    public static func steerPuzzle(
+        level: PuzzleDifficulty.Level,
+        symmetry: Symmetry = .none,
+        givens: ClosedRange<Int>? = nil,
+        from solution: [[Int]] = SolutionGenerator.generateRandomSolution(),
+        maxRatings: Int = 40,
+        bestEffort: Bool = false
+    ) -> Result<SteeredPuzzle, SteerMiss> {
+        var steer = Steer(
+            solution: solution, symmetry: symmetry, range: level.scoreRange,
+            givens: givens ?? 0...81, maxRatings: maxRatings
+        )
+        let found: Steer.Rated
+        switch steer.run() {
+        case .success(let rated): found = rated
+        case .failure(let miss): return .failure(miss)
+        }
         let matches = level.scoreRange.contains(Int(found.result.score))
-        guard matches || bestEffort else { return nil }
-        return SteeredPuzzle(
+        guard matches || bestEffort else { return .failure(steer.givensBlocked ? .givens : .level) }
+        return .success(SteeredPuzzle(
             puzzle: Puzzle(solution: solution, startingState: found.grid, difficulty: found.result.puzzleDifficulty),
             result: found.result,
             matchesLevel: matches,
             ratings: steer.ratings
-        )
+        ))
     }
 }
 
@@ -84,24 +122,29 @@ private struct Steer {
     let solution: [[Int]]
     let symmetry: Symmetry
     let range: ClosedRange<Int>
+    let givens: ClosedRange<Int>
     let maxRatings: Int
     private(set) var ratings = 0
+    /// The clue count range stopped the search going where the level was.
+    private(set) var givensBlocked = false
     /// The closest acceptable puzzle so far: unique, rated, no guessing.
     private var best: Rated?
 
-    init(solution: [[Int]], symmetry: Symmetry, range: ClosedRange<Int>, maxRatings: Int) {
+    init(solution: [[Int]], symmetry: Symmetry, range: ClosedRange<Int>, givens: ClosedRange<Int>, maxRatings: Int) {
         self.solution = solution
         self.symmetry = symmetry
         self.range = range
+        self.givens = givens
         self.maxRatings = maxRatings
     }
 
-    mutating func run() -> Rated? {
+    /// The closest puzzle found, or why there's none at all.
+    mutating func run() -> Result<Rated, SteerMiss> {
         // Remove orbits to a minimal puzzle, keeping the order they came out in
         var grid = solution
         var removed: [[Puzzle.Index]] = []
         for orbit in symmetry.orbits.shuffled() {
-            if Task.isCancelled { return nil }
+            if Task.isCancelled { return .failure(.cancelled) }
             set(orbit, in: &grid, to: false)
             if Validator.solutionCount(of: grid).isUnique {
                 removed.append(orbit)
@@ -110,16 +153,28 @@ private struct Steer {
             }
         }
 
+        // Prefix lengths whose puzzles have an allowed number of clues; clues fall as it grows
+        var clues = [81]
+        for orbit in removed {
+            clues.append(clues[clues.count - 1] - orbit.count)
+        }
+        let shortest = max(1, clues.firstIndex { $0 <= givens.upperBound } ?? Int.max)
+        let longest = clues.lastIndex { $0 >= givens.lowerBound } ?? 0
+        guard shortest <= longest else {
+            givensBlocked = true
+            return .failure(.givens)
+        }
+
         // Smallest prefix of the order whose puzzle reaches the target or overshoots
         let target = Int.random(in: range.lowerBound...min(range.upperBound, range.lowerBound + 1000))
-        var low = 0
-        var high = removed.count
+        var low = shortest - 1
+        var high = longest
         var found: Rated?
         while low < high, ratings < maxRatings {
-            if Task.isCancelled { return nil }
+            if Task.isCancelled { return .failure(.cancelled) }
             let mid = (low + high) / 2
             let candidate = prefix(removed, count: mid + 1)
-            guard let result = rate(candidate) else { return best }
+            guard let result = rate(candidate) else { return best.map { .success($0) } ?? .failure(.level) }
             if result.needsGuessing || Int(result.score) >= target {
                 if result.needsGuessing == false, range.contains(Int(result.score)) {
                     found = (candidate, result)
@@ -129,22 +184,35 @@ private struct Steer {
                 low = mid + 1
             }
         }
-        if let found { return found }
+        if let found { return .success(found) }
+        // Too hard at the most clues allowed, or too easy at the fewest
+        if (high == shortest - 1 && shortest > 1) || (low == longest && longest < removed.count) {
+            givensBlocked = true
+        }
 
         // Short of the level at the deepest puzzle that rates: swap clues to push it harder
         guard var current = best, Int(current.result.score) >= range.lowerBound - SudokuGenerator.climbReach else {
-            return best
+            return best.map { .success($0) } ?? .failure(givensBlocked ? .givens : .level)
         }
         while ratings < maxRatings, Int(current.result.score) < range.lowerBound {
-            if Task.isCancelled { return nil }
-            guard let swapped = swap(current.grid), let result = rate(swapped) else { continue }
+            if Task.isCancelled { return .failure(.cancelled) }
+            guard let swapped = swap(current.grid) else { continue }
+            guard givens.contains(clueCount(swapped)) else {
+                ratings += 1
+                continue
+            }
+            guard let result = rate(swapped) else { continue }
             if result.needsGuessing == false, Int(result.score) >= Int(current.result.score),
                 Int(result.score) <= range.upperBound
             {
                 current = (swapped, result)
             }
         }
-        return best
+        return best.map { .success($0) } ?? .failure(.level)
+    }
+
+    private func clueCount(_ grid: [[Int]]) -> Int {
+        grid.joined().count { $0 != 0 }
     }
 
     /// The solution with the first `count` orbits of `order` removed.
