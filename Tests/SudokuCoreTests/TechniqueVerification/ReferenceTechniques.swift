@@ -644,7 +644,7 @@ extension Reference {
                         let extraDigits = extra.map(b.candidates).reduce(Set<Int>()) { $0.union($1) }.subtracting(pair)
                         for unit in shared {
                             let others = unit.filter { extra.contains($0) == false && b.isEmpty($0) }
-                            for size in 1...3 {
+                            for size in 1..<max(2, others.count) {
                                 for subset in others.choose(size) {
                                     let digits = subset.map(b.candidates).reduce(extraDigits) { $0.union($1) }
                                     guard digits.count == size + 1 else { continue }

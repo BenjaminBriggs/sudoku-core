@@ -159,7 +159,8 @@ extension HintFinder {
                 let others = unit.positions.filter {
                     extra.contains($0) == false && grid[$0.row][$0.column] == 0
                 }
-                for size in 1...3 {
+                // Any number of other cells, as HoDoKu searches, leaving at least one to clear.
+                for size in 1..<max(2, others.count) {
                     for subset in combinations(of: others, choose: size) {
                         let digits = subset.reduce(virtualDigits) { $0.union(candidates($1)) }
                         guard digits.count == size + 1 else { continue }

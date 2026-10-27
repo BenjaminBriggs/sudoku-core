@@ -41,8 +41,9 @@ extension HintFinder {
                 if candidatePositions.count < 2 { continue }
 
                 // Check rows and columns within the box that have candidates
-                let candidateRows = Set(candidatePositions.map(\.row))
-                let candidateCols = Set(candidatePositions.map(\.column))
+                // Sorted, so the same board always gives the same hint.
+                let candidateRows = Set(candidatePositions.map(\.row)).sorted()
+                let candidateCols = Set(candidatePositions.map(\.column)).sorted()
 
                 // Must span more than one row AND more than one column (otherwise it's a locked candidate)
                 if candidateRows.count < 2 || candidateCols.count < 2 { continue }
