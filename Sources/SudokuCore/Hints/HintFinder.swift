@@ -35,8 +35,6 @@ public enum HintFinder {
             return findXYWing(in: state)
         case .xyzWing:
             return findXYZWing(in: state)
-        case .yWing:
-            return findYWing(in: state)
         case .xWing:
             return findNFish(n: 2, requiresFin: false, in: state)
         case .finnedXWing:
@@ -57,6 +55,28 @@ public enum HintFinder {
             return findEmptyRectangle(in: state)
         case .wWing:
             return findWWing(in: state)
+        case .crane:
+            return findCrane(in: state)
+        case .uniqueRectangleType1:
+            return findUniqueRectangle(type: 1, in: state)
+        case .uniqueRectangleType2:
+            return findUniqueRectangle(type: 2, in: state)
+        case .uniqueRectangleType3:
+            return findUniqueRectangle(type: 3, in: state)
+        case .uniqueRectangleType4:
+            return findUniqueRectangle(type: 4, in: state)
+        case .uniqueRectangleType5:
+            return findUniqueRectangle(type: 5, in: state)
+        case .bug:
+            return findBUG(in: state)
+        case .fourYWing:
+            return findNYWing(size: 4, technique: .fourYWing, in: state)
+        case .fiveYWing:
+            return findNYWing(size: 5, technique: .fiveYWing, in: state)
+        case .sixYWing:
+            return findNYWing(size: 6, technique: .sixYWing, in: state)
+        case .sevenYWing:
+            return findNYWing(size: 7, technique: .sevenYWing, in: state)
         case .unknown:
             return nil // this will never have a hint
         }

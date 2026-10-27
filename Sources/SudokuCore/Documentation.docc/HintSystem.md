@@ -62,11 +62,22 @@ Techniques are ordered from easiest to hardest:
 5. **Naked/Hidden Triples** (60) - Three cells share three candidates
 6. **Naked/Hidden Quads** (70) - Four cells share four candidates
 7. **X-Wing** (80) - Fish pattern with 2 cells per unit
-8. **Skyscraper** (90) - Special coloring pattern
+8. **Skyscraper / Two-String Kite** (90) - Two strong links joined by a weak link, both in lines
 9. **Swordfish** (90) - Fish pattern with 3 cells per unit
-10. **Finned Fish** (85-105) - Fish with extra candidates
-11. **Y-Wing/XY-Wing** (110) - Wing patterns
-12. **XYZ-Wing** (120) - Three-cell wing pattern
+10. **Crane** (91) - The same chain with one strong link in a box
+11. **Empty Rectangle** (92) - A box's candidates on one row and column, plus a strong link
+12. **Finned Fish** (85-105) - Fish with extra candidates, sashimi included
+13. **W-Wing** (95) - Two matching bivalue cells joined by a strong link
+14. **Unique Rectangles** (96-101) - Types 1 to 5; only when the puzzle has one solution
+15. **Jellyfish** (100) - Fish pattern with 4 cells per unit
+16. **XY-Wing** (110) - Bivalue pivot and two bivalue wings
+17. **BUG+1** (115) - All cells bivalue but one; only when the puzzle has one solution
+18. **XYZ-Wing** (120) - Three-candidate pivot and two wings
+19. **4- to 7-Y-Wing** (125-140) - n cells holding n digits, every digit but one restricted
+
+The uniqueness techniques run only when ``BoardState/assumesUniqueSolution`` is `true`.
+`Board` sets it when its givens have one solution, and ``SolvePathEmitter`` sets it the
+same way, so hints and ratings agree.
 
 Numbers in parentheses show relative difficulty values.
 
@@ -187,7 +198,7 @@ class HintProvider {
         [.xWing, .swordfish, .skyscraper],
 
         // Level 5: Master
-        [.yWing, .xyWing, .xyzWing]
+        [.xyWing, .xyzWing]
     ]
 
     func findHint(for board: Board, maxLevel: Int) -> HintStep? {

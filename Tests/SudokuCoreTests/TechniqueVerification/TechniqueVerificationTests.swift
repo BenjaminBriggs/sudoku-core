@@ -19,22 +19,72 @@ struct CorpusPuzzle: Decodable, Sendable, CustomTestStringConvertible {
 
     var testDescription: String { "\(level) \(id.prefix(18))…" }
 
-    static let all: [CorpusPuzzle] = {
+    /// The 60-puzzle fixture corpus.
+    static let fixtureCorpus: [CorpusPuzzle] = {
         let url = Bundle.module.url(forResource: "technique-corpus", withExtension: "json", subdirectory: "Fixtures")!
         return try! JSONDecoder().decode([CorpusPuzzle].self, from: Data(contentsOf: url))
     }()
 
-    /// All 60 puzzles take about 5 minutes in a debug build, so by default the first 4 of each
-    /// level run. Set `SUDOKU_VERIFY_ALL=1` for the whole corpus; in release
-    /// (`swift test -c release -Xswiftc -enable-testing`) that takes about 20 seconds.
-    static let selected: [CorpusPuzzle] = {
-        if ProcessInfo.processInfo.environment["SUDOKU_VERIFY_ALL"] != nil { return all }
-        return Dictionary(grouping: all, by: \.level).values.flatMap { $0.prefix(4) }.sorted { $0.id < $1.id }
+    /// The fixture corpus, plus in the soak every seed file in `SUDOKU_SOAK_SEEDS` (a folder of
+    /// the app's `seed-*.json` pools).
+    static let all: [CorpusPuzzle] = {
+        guard isSoak, let folder = ProcessInfo.processInfo.environment["SUDOKU_SOAK_SEEDS"] else { return fixtureCorpus }
+        struct Seed: Decodable {
+            let id: String
+            let startingState: [[Int]]
+            let solution: [[Int]]
+            let difficulty: Difficulty
+            struct Difficulty: Decodable { let level: String }
+        }
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []
+        let seeds = files.filter { $0.hasSuffix(".json") }.sorted().flatMap { file -> [CorpusPuzzle] in
+            let url = URL(fileURLWithPath: folder).appendingPathComponent(file)
+            let decoded = (try? JSONDecoder().decode([Seed].self, from: Data(contentsOf: url))) ?? []
+            return decoded.map {
+                CorpusPuzzle(id: $0.id, level: $0.difficulty.level, startingState: $0.startingState, solution: $0.solution)
+            }
+        }
+        let known = Set(fixtureCorpus.map(\.id))
+        return fixtureCorpus + seeds.filter { known.contains($0.id) == false }
     }()
+
+    /// The soak tier (`SUDOKU_VERIFY_ALL=1`, best in release with `-c release -Xswiftc
+    /// -enable-testing`) checks every corpus puzzle at every state. The per-commit tier checks
+    /// one stalling puzzle per level at a sample of states, to stay quick in a debug build.
+    static let isSoak = ProcessInfo.processInfo.environment["SUDOKU_VERIFY_ALL"] != nil
+
+    static let selected: [CorpusPuzzle] = {
+        if isSoak { return all }
+        return Dictionary(grouping: all, by: \.level).values.compactMap(\.first).sorted { $0.id < $1.id }
+    }()
+
+    /// Check every `stride`th state: all of them in the soak, a sample per commit.
+    static func stride(perCommit: Int) -> Int { isSoak ? 1 : perCommit }
 }
 
+/// A quarter of one puzzle's checked states, so the slices run in parallel.
+struct CorpusSlice: Sendable, CustomTestStringConvertible {
+    static let parts = 4
+
+    let puzzle: CorpusPuzzle
+    let part: Int
+
+    var testDescription: String { "\(puzzle.testDescription) part \(part + 1)/\(Self.parts)" }
+
+    static let selected: [CorpusSlice] = CorpusPuzzle.selected.flatMap { puzzle in
+        (0..<parts).map { CorpusSlice(puzzle: puzzle, part: $0) }
+    }
+
+    /// The slice's states: every `stride`th state of the puzzle, dealt round the parts.
+    func states(stride perCommit: Int) -> [(index: Int, state: BoardState)] {
+        let stride = CorpusPuzzle.stride(perCommit: perCommit)
+        return TechniqueVerificationTests.states(for: puzzle).enumerated()
+            .filter { $0.offset % stride == 0 && ($0.offset / stride) % Self.parts == part }
+            .map { ($0.offset, $0.element) }
+    }}
+
 /// Seeded generator, so thinned states are the same on every run.
-private struct SplitMix64: RandomNumberGenerator {
+struct SplitMix64: RandomNumberGenerator {
     var state: UInt64
 
     init(seed: String) {
@@ -60,7 +110,8 @@ struct TechniqueVerificationTests {
     static func states(for puzzle: CorpusPuzzle) -> [BoardState] {
         var rng = SplitMix64(seed: puzzle.id)
         var states: [BoardState] = []
-        var state = BoardState.fromGrid(puzzle.startingState)
+        // Every corpus puzzle has one solution, which the uniqueness techniques rely on.
+        var state = BoardState.fromGrid(puzzle.startingState, assumingUniqueSolution: true)
         while true {
             var thinned = state.pencilMarks
             for r in 0..<9 {
@@ -71,7 +122,7 @@ struct TechniqueVerificationTests {
                 }
             }
             states.append(state)
-            states.append(BoardState(grid: state.grid, pencilMarks: thinned, validOptions: state.validOptions))
+            states.append(BoardState(grid: state.grid, pencilMarks: thinned, validOptions: state.validOptions, assumesUniqueSolution: true))
             guard let hint = HintFinder.firstHint(in: state), hint.technique != .validation else { break }
             state = state.applying(hint)
         }
@@ -79,15 +130,16 @@ struct TechniqueVerificationTests {
     }
 
     @Test("Every hint agrees with the solution, matches its technique's definition, and none is missed",
-          arguments: CorpusPuzzle.selected)
-    func verify(_ puzzle: CorpusPuzzle) {
+          arguments: CorpusSlice.selected)
+    func verify(_ slice: CorpusSlice) {
         var failures: [String] = []
-        let solution = puzzle.solution
+        let solution = slice.puzzle.solution
 
-        for (index, state) in Self.states(for: puzzle).enumerated() {
+        for (index, state) in slice.states(stride: 2) {
+            let licensed = Reference.licensedAll(Self.techniques, in: state)
             for technique in Self.techniques {
                 let where_ = "\(technique.rawValue) state \(index)"
-                let reference = Reference.licensed(technique, in: state)
+                let reference = licensed[technique]!
 
                 // The reference must itself be sound, or nothing it says can be trusted.
                 for c in reference.placements where solution[c.row][c.column] != c.digit {
@@ -131,6 +183,38 @@ struct TechniqueVerificationTests {
             }
         }
 
+        if failures.isEmpty == false { SoakFailures.record(slice.puzzle, failures) }
         #expect(failures.isEmpty, "\(failures.count) problems, first: \(failures.prefix(8).joined(separator: " | "))")
+    }
+}
+
+/// Appends failing puzzles to `SUDOKU_SOAK_FAILURES` (JSON lines), so a soak failure can be
+/// turned into a corpus entry and a regression test.
+enum SoakFailures {
+    private static let lock = NSLock()
+
+    static func record(_ puzzle: CorpusPuzzle, _ problems: [String]) {
+        guard let path = ProcessInfo.processInfo.environment["SUDOKU_SOAK_FAILURES"] else { return }
+        struct Entry: Encodable {
+            let id: String
+            let level: String
+            let startingState: [[Int]]
+            let solution: [[Int]]
+            let problems: [String]
+        }
+        let entry = Entry(id: puzzle.id, level: puzzle.level, startingState: puzzle.startingState,
+                          solution: puzzle.solution, problems: Array(problems.prefix(20)))
+        guard var line = try? JSONEncoder().encode(entry) else { return }
+        line.append(0x0A)
+        lock.lock()
+        defer { lock.unlock() }
+        if FileManager.default.fileExists(atPath: path) == false {
+            FileManager.default.createFile(atPath: path, contents: nil)
+        }
+        if let handle = FileHandle(forWritingAtPath: path) {
+            handle.seekToEndOfFile()
+            handle.write(line)
+            try? handle.close()
+        }
     }
 }

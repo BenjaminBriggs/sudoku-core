@@ -9,12 +9,15 @@ import Foundation
 
 extension BoardState {
     /// Build a BoardState from a 9x9 grid, initializing candidates via Validator.
-    public static func fromGrid(_ grid: [[Int]]) -> BoardState {
+    /// - Parameter assumingUniqueSolution: Pass `true` only when the grid is known to have
+    ///   exactly one solution; it turns on the uniqueness techniques.
+    public static func fromGrid(_ grid: [[Int]], assumingUniqueSolution: Bool = false) -> BoardState {
         let pencilMarks = Validator.validOptions(for: grid)
         return BoardState(
             grid: grid,
             pencilMarks: pencilMarks,
-            validOptions: pencilMarks
+            validOptions: pencilMarks,
+            assumesUniqueSolution: assumingUniqueSolution
         )
     }
 
@@ -63,7 +66,8 @@ extension BoardState {
         return BoardState(
             grid: newGrid,
             pencilMarks: merged,
-            validOptions: validOptions
+            validOptions: validOptions,
+            assumesUniqueSolution: assumesUniqueSolution
         )
     }
 }

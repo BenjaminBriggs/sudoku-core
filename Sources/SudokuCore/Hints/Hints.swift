@@ -10,6 +10,14 @@ public enum HintTechnique: String, CaseIterable, Sendable, Codable, Identifiable
 
     public var id: String { rawValue }
 
+    /// Looks a technique up by name. "yWing" was a duplicate of XY-Wing and has merged into
+    /// it, so puzzles and profiles saved with that name still decode.
+    public init?(rawValue: String) {
+        let name = rawValue == "yWing" ? "xyWing" : rawValue
+        guard let technique = Self.allCases.first(where: { $0.rawValue == name }) else { return nil }
+        self = technique
+    }
+
     public static var orderedCases: [HintTechnique] {
         allCases.sorted { $0.difficulty < $1.difficulty }
     }
@@ -37,8 +45,18 @@ public enum HintTechnique: String, CaseIterable, Sendable, Codable, Identifiable
     case emptyRectangle
     case xyWing
     case xyzWing
-    case yWing
     case wWing
+    case crane
+    case uniqueRectangleType1
+    case uniqueRectangleType2
+    case uniqueRectangleType3
+    case uniqueRectangleType4
+    case uniqueRectangleType5
+    case bug
+    case fourYWing
+    case fiveYWing
+    case sixYWing
+    case sevenYWing
 
     /// An approximate difficulty scale (1 = easiest, higher = more complex).
     /// Adjust these as you see fit for your puzzle’s difficulty progression.
@@ -66,20 +84,42 @@ public enum HintTechnique: String, CaseIterable, Sendable, Codable, Identifiable
             return 90
         case .swordfish:
             return 90
+        case .crane:
+            return 91
         case .emptyRectangle:
             return 92
         case .finnedSwordfish:
             return 95
         case .wWing:
             return 95
+        case .uniqueRectangleType1:
+            return 96
+        case .uniqueRectangleType2:
+            return 97
+        case .uniqueRectangleType4:
+            return 98
+        case .uniqueRectangleType5:
+            return 99
         case .jellyfish:
             return 100
+        case .uniqueRectangleType3:
+            return 101
         case .finnedJellyfish:
             return 105
-        case .xyWing, .yWing:
+        case .xyWing:
             return 110
+        case .bug:
+            return 115
         case .xyzWing:
             return 120
+        case .fourYWing:
+            return 125
+        case .fiveYWing:
+            return 130
+        case .sixYWing:
+            return 135
+        case .sevenYWing:
+            return 140
         case .unknown:
             return 9999
         }
@@ -107,12 +147,22 @@ public enum HintTechnique: String, CaseIterable, Sendable, Codable, Identifiable
         case .jellyfish: return "Jellyfish"
         case .finnedJellyfish: return "Finned Jellyfish"
         case .xyWing: return "XY-Wing"
-        case .yWing: return "Y-Wing"
         case .xyzWing: return "XYZ-Wing"
         case .skyscraper: return "Skyscraper"
         case .twoStringKite: return "Two-String Kite"
         case .emptyRectangle: return "Empty Rectangle"
         case .wWing: return "W-Wing"
+        case .crane: return "Crane"
+        case .uniqueRectangleType1: return "Unique Rectangle Type 1"
+        case .uniqueRectangleType2: return "Unique Rectangle Type 2"
+        case .uniqueRectangleType3: return "Unique Rectangle Type 3"
+        case .uniqueRectangleType4: return "Unique Rectangle Type 4"
+        case .uniqueRectangleType5: return "Unique Rectangle Type 5"
+        case .bug: return "BUG+1"
+        case .fourYWing: return "4-Y-Wing"
+        case .fiveYWing: return "5-Y-Wing"
+        case .sixYWing: return "6-Y-Wing"
+        case .sevenYWing: return "7-Y-Wing"
         case .validation: return "Validation"
         case .unknown: return "Unknown"
         }
@@ -137,13 +187,20 @@ public enum HintTechnique: String, CaseIterable, Sendable, Codable, Identifiable
         case .finnedSwordfish: return 4.8
         case .jellyfish: return 4.8
         case .finnedJellyfish: return 5.1
-        case .yWing: return 4.3
         case .xyWing: return 4.5
         case .xyzWing: return 5.2
         case .skyscraper: return 4.0
         case .twoStringKite: return 4.0
         case .emptyRectangle: return 4.0
         case .wWing: return 4.4
+        case .crane: return 4.0
+        case .uniqueRectangleType1, .uniqueRectangleType2, .uniqueRectangleType4: return 4.5
+        case .uniqueRectangleType3, .uniqueRectangleType5: return 4.6
+        case .bug: return 5.6
+        case .fourYWing: return 5.4
+        case .fiveYWing: return 5.6
+        case .sixYWing: return 5.8
+        case .sevenYWing: return 6.0
         case .unknown: return 8.0
         }
     }
@@ -170,13 +227,20 @@ public enum HintTechnique: String, CaseIterable, Sendable, Codable, Identifiable
         case .finnedSwordfish: return 100
         case .jellyfish: return 120
         case .finnedJellyfish: return 130
-        case .yWing: return 100
         case .xyWing: return 110
         case .xyzWing: return 130
         case .skyscraper: return 80
         case .twoStringKite: return 80
         case .emptyRectangle: return 80
         case .wWing: return 90
+        case .crane: return 80
+        case .uniqueRectangleType1, .uniqueRectangleType2, .uniqueRectangleType3,
+             .uniqueRectangleType4, .uniqueRectangleType5: return 100
+        case .bug: return 100
+        case .fourYWing: return 140
+        case .fiveYWing: return 160
+        case .sixYWing: return 180
+        case .sevenYWing: return 200
         case .unknown: return 200
         }
     }
