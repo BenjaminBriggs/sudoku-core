@@ -18,15 +18,91 @@ struct ScoreCalculatorTests {
         ]
     }
 
-    @Test("Sums technique points across steps and classifies")
+    private func path(_ techniques: [TechniqueInfo]) -> SolvePathEmitter.SolvePath {
+        SolvePathEmitter.SolvePath(
+            steps: techniques.map { SolvePathEmitter.SolveStep(technique: $0, actions: []) },
+            solved: true,
+            finalState: BoardState.fromGrid(solved),
+            iterationCount: techniques.count
+        )
+    }
+
+    @Test("A single scores HoDoKu's 4 points, all tedium, and is Beginner")
     func sumsPoints() {
         var grid = solved
         grid[8][8] = 0  // single step
 
         let result = ScoreCalculator.compute(for: grid)
-        #expect(result.score == Int((TechniqueInfo.nakedSingle.scorePoints ?? 0)))
-        #expect(result.breakdown[TechniqueInfo.nakedSingle.id] == Int((TechniqueInfo.nakedSingle.scorePoints ?? 0)))
+        #expect(result.score == 4)
+        #expect(result.tedium == 4)
+        #expect(result.difficulty == 0)
+        #expect(result.breakdown == [TechniqueInfo.nakedSingle.id: 4])
         #expect(result.level == .easy)
+    }
+
+    @Test("A singles-only puzzle of ordinary size is Beginner")
+    func singlesOnlyIsBeginner() {
+        // 44 naked singles and 8 hidden singles: the path of a 29-clue singles puzzle
+        let steps = Array(repeating: TechniqueInfo.nakedSingle, count: 44) + Array(repeating: .hiddenSingle, count: 8)
+        let result = ScoreCalculator.compute(from: path(steps))
+        #expect(result.score == 44 * 4 + 8 * 14)
+        #expect(result.tedium == result.score)
+        #expect(result.difficulty == 0)
+        #expect(result.level == .easy)
+    }
+
+    @Test("A hard step sets the level however low the score")
+    func hardStepSetsLevel() {
+        let steps = Array(repeating: TechniqueInfo.nakedSingle, count: 20) + [.wWing]
+        let result = ScoreCalculator.compute(from: path(steps))
+        #expect(result.score == 20 * 4 + 150)
+        #expect(result.difficulty == 150)
+        #expect(result.tedium == 80)
+        #expect(result.level == .hard)
+    }
+
+    @Test("Difficulty adds the steps beyond singles")
+    func difficultyAddsNonSingles() {
+        let steps: [TechniqueInfo] = [.nakedSingle, .lockedCandidatesPointing, .hiddenSingle, .lockedCandidatesPointing, .lockedCandidatesClaiming, .wWing]
+        let result = ScoreCalculator.compute(from: path(steps))
+        #expect(result.difficulty == 300, "a W-Wing and three pointings")
+        #expect(result.tedium == 18)
+        #expect(result.score == 318)
+        #expect(result.level == .hard)
+    }
+
+    @Test("The level follows the hardest step, not the total", arguments: [
+        (TechniqueInfo.hiddenSingle, PuzzleDifficulty.Level.easy),
+        (.lockedCandidatesPointing, .medium),
+        (.nakedTriple, .medium),
+        (.nakedQuad, .hard),
+        (.xWing, .hard),
+        (.wWing, .hard),
+        (.uniqueRectangleType1, .hard),
+        (.bug, .hard),
+        (.crane, .hard),
+        (.finnedSwordfish, .expert),
+        (.finnedJellyfish, .expert),
+        (.sevenYWing, .expert),
+        (.unknown, .professional),
+    ])
+    func levelFollowsHardestStep(_ technique: TechniqueInfo, _ level: PuzzleDifficulty.Level) {
+        // A hundred hidden singles would pass every HoDoKu band; the level still reads the hardest step
+        let steps = Array(repeating: TechniqueInfo.hiddenSingle, count: 100) + [technique]
+        let result = ScoreCalculator.compute(from: path(steps))
+        #expect(result.level == level)
+        let points = Int(technique.scorePoints ?? 0)
+        #expect(result.tedium == 1400 + (technique.isSingle ? points : 0))
+        #expect(result.difficulty == (technique.isSingle ? 0 : points))
+        #expect(result.score == result.difficulty + result.tedium)
+    }
+
+    @Test("An empty path is Beginner with no points")
+    func emptyPath() {
+        let result = ScoreCalculator.compute(from: path([]))
+        #expect(result.score == 0)
+        #expect(result.level == .easy)
+        #expect(result.breakdown.isEmpty)
     }
 
     @Test("Elimination count does not modify technique points")
@@ -56,7 +132,14 @@ struct ScoreCalculatorTests {
             // The calculator throws `.unsolved` on some of these puzzles; compare the rest.
             guard let difficulty = try? SudokuDifficultyCalculator.calculateDifficulty(for: puzzle.grid) else { continue }
             #expect(Double(result.score) == difficulty.score, "\(puzzle.name)")
-            #expect(result.level == difficulty.level, "\(puzzle.name)")
+            #expect(result.difficulty == difficulty.difficulty, "\(puzzle.name)")
+            #expect(result.tedium == difficulty.tedium, "\(puzzle.name)")
+            // The calculator's level also reads the guessing marker it appends after a stall
+            if difficulty.needsGuessing {
+                #expect(difficulty.level == .professional, "\(puzzle.name)")
+            } else {
+                #expect(result.level == difficulty.level, "\(puzzle.name)")
+            }
         }
     }
 
@@ -78,25 +161,13 @@ struct ScoreCalculatorTests {
 
     // MARK: - Classification Tests
 
-    @Test("Levels follow the score ranges")
-    func testClassificationThresholds() {
-        let testCases: [(score: Int, level: PuzzleDifficulty.Level)] = [
-            (50, .easy),
-            (300, .easy),
-            (301, .medium),
-            (600, .medium),
-            (601, .hard),
-            (1000, .hard),
-            (1001, .expert),
-            (1600, .expert),
-            (1601, .professional),
-            (2000, .professional),
-            (2001, .custom),
-        ]
-
-        for testCase in testCases {
-            let level = PuzzleDifficulty.Level.allCases.first { $0.scoreRange.contains(testCase.score) }
-            #expect(level == testCase.level, "Score \(testCase.score)")
+    @Test("Every rated puzzle's level is its hardest step's")
+    func levelIsHardestSteps() {
+        for puzzle in RatedPuzzles.allPuzzles {
+            let path = SolvePathEmitter.emit(from: puzzle.grid)
+            let result = ScoreCalculator.compute(from: path)
+            #expect(result.level == path.steps.map(\.technique.level).max() ?? .easy, "\(puzzle.name)")
+            #expect(result.score == result.difficulty + result.tedium, "\(puzzle.name)")
         }
     }
 

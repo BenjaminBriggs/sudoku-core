@@ -38,13 +38,12 @@ public struct PuzzleCreator {
     ///   - targetDifficulty: The desired difficulty level
     ///   - maxAttempts: Maximum number of solutions to try
     ///   - symmetry: The symmetry the clue layout keeps (defaults to `.none`)
-    /// - Returns: A Puzzle with the requested difficulty, or the closest match
+    /// - Returns: A Puzzle at the requested level, or the closest level reached
     public static func createPuzzleWithDifficulty(
         _ targetDifficulty: PuzzleDifficulty.Level,
         maxAttempts: Int = 20,
         symmetry: Symmetry = .none
     ) async throws -> Puzzle {
-        let targetRange = targetDifficulty.scoreRange
         var closest: SteeredPuzzle?
 
         for _ in 1...max(1, maxAttempts) {
@@ -62,11 +61,8 @@ public struct PuzzleCreator {
             if steered.matchesLevel {
                 return steered.puzzle
             }
-            let distance = distanceToTargetRange(Int(steered.result.score), targetRange: targetRange)
-            let closestDistance = closest.map {
-                distanceToTargetRange(Int($0.result.score), targetRange: targetRange)
-            }
-            if distance < closestDistance ?? .max {
+            let distance = levelsApart(steered.result.level, targetDifficulty)
+            if distance < closest.map({ levelsApart($0.result.level, targetDifficulty) }) ?? .max {
                 closest = steered
             }
         }
@@ -81,18 +77,9 @@ public struct PuzzleCreator {
         return try await createPuzzle(solution: solution, startingState: startingState)
     }
 
-    /// Calculate distance to the target range
-    /// - Parameters:
-    ///   - value: The value to check
-    ///   - targetRange: The target range
-    /// - Returns: How far outside the range the value is (0 if inside)
-    private static func distanceToTargetRange(_ value: Int, targetRange: ClosedRange<Int>) -> Int {
-        if targetRange.contains(value) {
-            return 0
-        } else if value < targetRange.lowerBound {
-            return targetRange.lowerBound - value
-        } else {
-            return value - targetRange.upperBound
-        }
+    /// How many levels apart two levels are, Beginner to Master.
+    private static func levelsApart(_ a: PuzzleDifficulty.Level, _ b: PuzzleDifficulty.Level) -> Int {
+        let levels = PuzzleDifficulty.Level.allCases
+        return abs(levels.firstIndex(of: a)! - levels.firstIndex(of: b)!)
     }
 }

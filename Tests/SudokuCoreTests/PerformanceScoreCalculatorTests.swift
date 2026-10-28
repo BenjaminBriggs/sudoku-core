@@ -110,21 +110,21 @@ struct PerformanceScoreCalculatorTests {
         let testTime = 600.0  // 10 minutes
 
         let easyResult = PerformanceScoreCalculator.calculateScore(
-            baseDifficulty: 150,  // Easy
+            baseDifficulty: 300,  // Light
             elapsedTime: testTime,
             hintsUsed: 0,
             errorCount: 0
         )
 
         let mediumResult = PerformanceScoreCalculator.calculateScore(
-            baseDifficulty: 450,  // Medium
+            baseDifficulty: 900,  // Moderate
             elapsedTime: testTime,
             hintsUsed: 0,
             errorCount: 0
         )
 
         let hardResult = PerformanceScoreCalculator.calculateScore(
-            baseDifficulty: 800,  // Hard
+            baseDifficulty: 1300,  // Heavy
             elapsedTime: testTime,
             hintsUsed: 0,
             errorCount: 0
@@ -189,21 +189,21 @@ struct PerformanceScoreCalculatorTests {
         let hintsUsed = 2
 
         let easyResult = PerformanceScoreCalculator.calculateScore(
-            baseDifficulty: 150,  // Easy (15% penalty per hint)
+            baseDifficulty: 300,  // Light (steepest penalty per hint)
             elapsedTime: testTime,
             hintsUsed: hintsUsed,
             errorCount: 0
         )
 
         let mediumResult = PerformanceScoreCalculator.calculateScore(
-            baseDifficulty: 450,  // Medium (10% penalty per hint)
+            baseDifficulty: 900,  // Moderate
             elapsedTime: testTime,
             hintsUsed: hintsUsed,
             errorCount: 0
         )
 
         let hardResult = PerformanceScoreCalculator.calculateScore(
-            baseDifficulty: 800,  // Hard (7% penalty per hint)
+            baseDifficulty: 1300,  // Heavy (gentlest of the three)
             elapsedTime: testTime,
             hintsUsed: hintsUsed,
             errorCount: 0
@@ -479,12 +479,12 @@ struct PerformanceScoreCalculatorTests {
 
     @Test("Perfect game receives bonus multiplier")
     func testPerfectGameBonus() {
-        let baseDifficulty = 450
+        let baseDifficulty = 900
 
         // Perfect game (fast, no hints, no errors)
         let perfectResult = PerformanceScoreCalculator.calculateScore(
             baseDifficulty: baseDifficulty,
-            elapsedTime: 500,  // Under target for medium
+            elapsedTime: 500,  // Under target (~13 minutes at 900)
             hintsUsed: 0,
             errorCount: 0
         )
@@ -513,7 +513,7 @@ struct PerformanceScoreCalculatorTests {
 
     @Test("Hints or errors prevent perfect bonus")
     func testPerfectBonusRequirements() {
-        let baseDifficulty = 450
+        let baseDifficulty = 900
         let fastTime = 500.0  // Under target
 
         let withHint = PerformanceScoreCalculator.calculateScore(
@@ -704,7 +704,7 @@ struct PerformanceScoreCalculatorTests {
     func testExcellentMediumCompletion() {
         // Skilled player: 8 minutes, 0 hints, 0 errors
         let result = PerformanceScoreCalculator.calculateScore(
-            baseDifficulty: 450,
+            baseDifficulty: 900,
             elapsedTime: 480,  // 8 minutes
             hintsUsed: 0,
             errorCount: 0
@@ -1116,7 +1116,7 @@ struct PerformanceScoreCalculatorTests {
 
         // Mid tier: ~40,000-50,000
         let average = PerformanceScoreCalculator.calculateScore(
-            baseDifficulty: 600,
+            baseDifficulty: 1000,
             elapsedTime: 1200.0,  // 20 minutes
             hintsUsed: 2,
             errorCount: 1
@@ -1175,11 +1175,11 @@ struct PerformanceScoreCalculatorTests {
         )
     }
 
-    @Test("Hints cost less at each harder level, up to Professional")
+    @Test("Hints cost less in each heavier score band")
     func testHintPenaltyEasesWithLevel() {
-        // One representative difficulty per level, Easy to Professional; the share of the score
-        // three hints leave is 1 - e^(-3c), for the level's coefficient c.
-        let kept = [150, 450, 800, 1300, 1800].map { difficulty in
+        // One score per band (HoDoKu's level bounds: 800, 1000, 1600, 1800); the share of the
+        // score three hints leave is 1 - e^(-3c), for the band's coefficient c.
+        let kept = [300, 900, 1300, 1700, 1900].map { difficulty in
             PerformanceScoreCalculator.calculateScore(
                 baseDifficulty: difficulty, elapsedTime: 3600, hintsUsed: 3, errorCount: 0
             ).hintPenalty

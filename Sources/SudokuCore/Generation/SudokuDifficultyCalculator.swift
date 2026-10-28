@@ -9,11 +9,16 @@ import Foundation
 
 /// Calculates Sudoku difficulty by simulating human solving with available hint techniques
 ///
-/// # Score
+/// # Level, difficulty and tedium
 ///
-/// The level comes from ``ScoreCalculator``'s cumulative effort score, which sums
-/// ``TechniqueInfo/scorePoints`` for each step of the solve. ``PuzzleDifficulty/Level/scoreRange``
-/// gives each level's range.
+/// ``ScoreCalculator`` sums each step's ``TechniqueInfo/scorePoints`` (HoDoKu 2.6's step scores)
+/// over the solve path and splits the sum in two:
+/// - **difficulty**: the steps beyond singles, the skill the puzzle asks for
+/// - **tedium**: the singles, 4 a naked and 14 a hidden one, the slog
+///
+/// The level is the hardest step's ``TechniqueInfo/level``, nothing else. Unlike HoDoKu, a long
+/// path never promotes a puzzle: fifty singles are a tedious Beginner puzzle, and one W-Wing
+/// after twenty singles is an Advanced one. Guessing is Master.
 ///
 /// ## Additional Ratings
 /// The calculator also computes:
@@ -85,7 +90,7 @@ public enum SudokuDifficultyCalculator {
             wasSolved: wasSolved,
             techniquesUsed: techniquesUsed,
             iterationCount: iterationCount,
-            score: score.score,
+            score: score,
             seRating: se.rating,
             hodoku: hodoku,
             estimatedTimeSeconds: timeEstimate.personalizedSeconds ?? timeEstimate.baselineSeconds
@@ -94,12 +99,12 @@ public enum SudokuDifficultyCalculator {
 
     // Helpers moved to SolveUtilities.swift (BoardState.fromGrid, BoardState.isSolved, BoardState.applying, HintFinder.firstHint)
 
-    /// Calculates difficulty metrics, classifying the level by the cumulative effort score
+    /// Calculates difficulty metrics; the level is the hardest step's
     private static func calculateDifficultyMetrics(
         wasSolved: Bool,
         techniquesUsed: [TechniqueInfo],
         iterationCount: Int,
-        score: Int,
+        score: ScoreCalculator.Score,
         seRating: Double?,
         hodoku: HoDoKuCalculator.Rating?,
         estimatedTimeSeconds: Int?
@@ -120,12 +125,13 @@ public enum SudokuDifficultyCalculator {
             )
         }
 
-        // The score's ranges cover every score from 0 up.
-        let level = PuzzleDifficulty.Level.allCases.first { $0.scoreRange.contains(score) }!
+        // The hardest step's level. The path's score doesn't count the guessing marker the
+        // solver fallback appends, so the level is taken over every technique used.
+        let level = techniquesUsed.map(\.level).max() ?? score.level
 
         return DifficultyResult(
             level: level,
-            score: Double(score),
+            score: Double(score.score),
             techniquesUsed: techniquesUsed,
             iterationCount: iterationCount,
             wasSolved: wasSolved,
@@ -141,9 +147,20 @@ public enum SudokuDifficultyCalculator {
         /// The calculated difficulty level
         public let level: PuzzleDifficulty.Level
 
-        /// The difficulty score: the sum of each step's ``TechniqueInfo/scorePoints``
-        /// (see ``PuzzleDifficulty/Level/scoreRange``)
+        /// Points over every step, each its technique's ``TechniqueInfo/scorePoints``:
+        /// `difficulty + tedium`
         public let score: Double
+
+        /// Points over the steps beyond singles: the skill the puzzle asks for
+        public var difficulty: Int { pathScore.difficulty }
+
+        /// Points over the singles, 4 a naked and 14 a hidden one: the slog
+        public var tedium: Int { pathScore.tedium }
+
+        /// The score of the steps the hint finder took, without the guessing marker.
+        private var pathScore: ScoreCalculator.Score {
+            ScoreCalculator.compute(from: techniquesUsed.filter { $0 != .unknown })
+        }
 
         /// All techniques that were used to solve the puzzle
         public let techniquesUsed: [TechniqueInfo]
@@ -172,7 +189,8 @@ public enum SudokuDifficultyCalculator {
 
         /// The solve path stalls and the solver has to guess (`.unknown` closes the techniques).
         ///
-        /// The score then only counts the steps before the stall, so it understates the puzzle.
+        /// The score then only counts the steps before the stall, but the level is Master:
+        /// guessing is HoDoKu's give-up, beyond every rated technique.
         public var needsGuessing: Bool {
             techniquesUsed.contains(.unknown)
         }
@@ -232,8 +250,8 @@ public enum SudokuDifficultyCalculator {
                 case .easy: return .hiddenSingle
                 case .medium: return .lockedCandidatesPointing
                 case .hard: return .xWing
-                case .expert: return .swordfish
-                case .professional: return .xyWing
+                case .expert: return .finnedSwordfish
+                case .professional: return .unknown
                 case .custom: return .hiddenSingle
                 }
             }()
@@ -241,6 +259,8 @@ public enum SudokuDifficultyCalculator {
                 level: self.level,
                 hardestTechnique: (self.hardestTechnique ?? fallback).id,
                 score: Int(self.score),
+                difficulty: self.difficulty,
+                tedium: self.tedium,
                 seRating: self.seRating,
                 hodokuRating: self.hodokuRating,
                 hodokuLevel: self.hodokuLevel,
