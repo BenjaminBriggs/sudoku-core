@@ -147,6 +147,15 @@ print("\(score.level): difficulty \(score.difficulty), tedium \(score.tedium), S
 print(score.breakdown)  // technique id -> total points
 ```
 
+The main path takes the easiest technique that applies at every step, which is not always the lightest way through. ``SolvePathEmitter/alternatives(from:maxIterations:)`` takes every other technique that applies at each step beyond singles and carries on easiest-first, returning the paths that solve, lightest first; ``HintFinder/hints(in:using:)`` gives one hint from every technique that applies to a state.
+
+```swift
+for path in SolvePathEmitter.alternatives(from: startingState) {
+    let score = ScoreCalculator.compute(from: path)
+    print("\(score.level): difficulty \(score.difficulty) over \(path.steps.count) steps")
+}
+```
+
 ## Hardest Technique
 
 The ``PuzzleDifficulty/hardestTechnique`` indicates the most advanced solving technique required:
