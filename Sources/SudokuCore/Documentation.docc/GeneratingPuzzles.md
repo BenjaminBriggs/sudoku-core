@@ -19,7 +19,7 @@ print("Created \(puzzle.difficulty.level) puzzle")
 print("Difficulty score: \(puzzle.difficulty.score)")
 ```
 
-It generates candidate puzzles (up to `maxAttempts`, default 20), keeps the closest match to the requested level, and falls back to a basic puzzle if no reasonable match is found. If you already have a solution and starting grid, rate and assemble them with:
+It steers up to `maxAttempts` solutions (default 20) towards the level, returns the first that the calculator rates at it, and otherwise the closest match. It never returns a puzzle that needs guessing. If you already have a solution and starting grid, rate and assemble them with:
 
 ```swift
 let puzzle = try await PuzzleCreator.createPuzzle(
@@ -29,6 +29,20 @@ let puzzle = try await PuzzleCreator.createPuzzle(
 ```
 
 Prefer ``PuzzleCreator`` unless you need control over an individual pipeline stage — the sections below break the same pipeline into its parts.
+
+### Steering Towards a Level
+
+``SudokuGenerator/createPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)`` aims clue removal at a level instead of generating blind and filtering. It removes clues (whole orbits under a symmetry) to a minimal puzzle, binary-searches the removal order for the point where the rating reaches the level, and swaps clues to push a minimal puzzle that is still short of it. Puzzles that need guessing are never kept. Pass `givens` to bound the number of clues: only puzzles in the range are rated, so it costs nothing, and ``SudokuGenerator/steerPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)`` reports ``SteerMiss/givens`` when the range ruled the level out.
+
+```swift
+if let steered = SudokuGenerator.createPuzzle(level: .expert, symmetry: .rotational180) {
+    print(steered.result.level, steered.ratings)
+}
+```
+
+It returns `nil` when the level isn't reached within `maxRatings`; pass `bestEffort: true` for the closest puzzle instead, with `matchesLevel` false. ``PuzzleDifficulty/Level/scoreRange`` gives the HoDoKu scores the calculator places at each level.
+
+For quality rules, ``SudokuDifficultyCalculator/DifficultyResult`` measures `needsGuessing`, `hardestTechniqueCount` (steps using the hardest technique) and `hardestTechniqueAfterLastHardestStep` (the hardest technique still needed once the hardest step is done).
 
 ### Generate a Puzzle Step by Step
 
@@ -70,6 +84,30 @@ let easyGrid = await SudokuGenerator.createPuzzle(from: SolutionGenerator.genera
 
 // Harder puzzles (more empty cells)
 let hardGrid = await SudokuGenerator.createPuzzle(from: SolutionGenerator.generateRandomSolution(), targetEmpty: 60)
+```
+
+### Symmetric Clue Layouts
+
+Hand-crafted puzzles usually place their clues symmetrically. Pass a ``Symmetry`` and the generator removes clues a whole orbit at a time — the 2 or 4 cells that map onto each other — so the layout keeps that symmetry while the puzzle stays unique:
+
+```swift
+let daily = try await PuzzleCreator.createPuzzleWithDifficulty(.hard, symmetry: .rotational180)
+
+let grid = await SudokuGenerator.createPuzzle(
+    from: SolutionGenerator.generateRandomSolution(),
+    targetEmpty: 58,
+    symmetry: .rotational90
+)
+```
+
+Because orbits are removed whole, the result can stop up to an orbit short of `targetEmpty`. ``PuzzleCreator`` makes up for the coarser steps by removing further orbits (``SudokuGenerator/removingOrbit(from:symmetry:uniqueCheck:)``) while a candidate rates easier than the target. Symmetry is a convention, not a logic rule; `.none` (the default) leaves generation unchanged.
+
+``Symmetry/orthogonal`` and ``Symmetry/diagonals`` combine two mirrors (both centre lines, or both diagonals), so their orbits are the up-to-4 cells either mirror reaches. A layout with one of them also has each mirror and `.rotational180`, and ``Symmetry/symmetries(of:)`` lists them all.
+
+To find which symmetries an existing grid has, use ``Symmetry/symmetries(of:)``:
+
+```swift
+Symmetry.symmetries(of: puzzle.startingState)  // e.g. [.rotational180]
 ```
 
 ## Advanced Generation
@@ -171,7 +209,7 @@ if isValid && hasUniqueSolution {
 
 ### Custom Validation
 
-``PuzzleCreator/createPuzzleWithDifficulty(_:maxAttempts:)`` already validates uniqueness and rates each candidate, so reach for it first. Write your own loop only when you need a constraint it doesn't offer — for example, a custom empty-cell range:
+``PuzzleCreator/createPuzzleWithDifficulty(_:maxAttempts:symmetry:)`` already validates uniqueness and rates each candidate, so reach for it first. Write your own loop only when you need a constraint it doesn't offer — for example, a custom empty-cell range:
 
 ```swift
 func generateValidatedPuzzle(

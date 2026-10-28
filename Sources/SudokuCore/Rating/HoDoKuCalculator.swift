@@ -40,9 +40,11 @@ public enum HoDoKuCalculator {
     }
 
     private static func classify(rating: Int) -> String {
-        for (level, maxPoints) in RatingTables.HoDoKu.classThresholds {
-            if rating <= maxPoints { return level.debugDescription }
+        let thresholds = RatingTables.HoDoKu.classThresholds
+        for (level, maxPoints) in thresholds.dropLast() where rating <= maxPoints {
+            return level.debugDescription
         }
-        return "Extreme"
+        // The last class has no upper bound.
+        return thresholds[thresholds.count - 1].level.debugDescription
     }
 }

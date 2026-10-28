@@ -41,7 +41,7 @@ Each technique contributes a fixed number of points to the cumulative score, reg
 - **Naked Pair**: 20 points
 - **X-Wing**: 60 points
 - **Swordfish**: 90 points
-- **Y-Wing**: 100 points
+- **XY-Wing**: 110 points
 
 See ``TechniqueInfo/hodokuPoints`` for the complete list.
 
@@ -134,7 +134,7 @@ case .nakedPair, .hiddenPair, .nakedTriple:
     print("Intermediate puzzle")
 case .xWing, .swordfish:
     print("Advanced puzzle - requires fish patterns")
-case .yWing, .xyWing, .xyzWing:
+case .xyWing, .xyzWing:
     print("Expert puzzle - requires wing patterns")
 default:
     print("Complex puzzle")

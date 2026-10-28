@@ -34,13 +34,17 @@ public enum SolvePathEmitter {
     }
 
     /// Produce a deterministic solve path by repeatedly applying the first-found hint
-    /// based on `TechniqueInfo.orderedCases`.
+    /// based on `ClassicTechniques.all`.
+    ///
+    /// The uniqueness techniques join in only when the grid has exactly one solution, which
+    /// is checked here so every caller rates the same way.
     /// - Parameters:
     ///   - initialGrid: 9x9 puzzle with 0 for empty cells
     ///   - maxIterations: safety cap to avoid infinite loops
     /// - Returns: `SolvePath` with ordered steps and final state
     public static func emit(from initialGrid: [[Int]], maxIterations: Int = 300) -> SolvePath {
-        var state = BoardState.fromGrid(initialGrid)
+        let isUnique = Validator.solutionCount(of: initialGrid).isUnique
+        var state = BoardState.fromGrid(initialGrid, assumingUniqueSolution: isUnique)
         var steps: [SolveStep] = []
         var iterations = 0
 

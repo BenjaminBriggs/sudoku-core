@@ -85,6 +85,10 @@ public final class Board {
     /// Columns (0-8) that are completely filled with correct values.
     public internal(set) var completedColumns: Set<Int> = []
 
+    /// Whether the givens have exactly one solution, worked out when the board is set up.
+    /// Hints only use the uniqueness techniques when it's `true`.
+    public private(set) var hasUniqueSolution = false
+
     /// Houses/boxes (0-8) that are completely filled with correct values.
     ///
     /// Houses are numbered 0-8 in row-major order: top-left is 0, top-middle is 1, etc.
@@ -274,6 +278,7 @@ public final class Board {
             "We should have a board with 81 cells, but we have \(cells.count)"
         )
         self.cells = cells
+        hasUniqueSolution = Validator.solutionCount(of: givenCells).isUnique
         updateCellValidation()
     }
 }

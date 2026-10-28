@@ -10,8 +10,10 @@ import Foundation
 extension BoardState {
     /// Build a BoardState from a 9x9 grid, initializing candidates via Validator
     /// and applying any constraint pruning.
+    /// - Parameter assumingUniqueSolution: Pass `true` only when the grid is known to have
+    ///   exactly one solution under classic rules; it turns on the uniqueness techniques.
     public static func fromGrid(
-        _ grid: [[Int]], constraints: [AnyConstraint] = []
+        _ grid: [[Int]], constraints: [AnyConstraint] = [], assumingUniqueSolution: Bool = false
     ) -> BoardState {
         var options = Validator.validOptions(for: grid)
         BoardState.pruneToFixpoint(
@@ -20,7 +22,8 @@ extension BoardState {
             grid: grid,
             pencilMarks: options,
             validOptions: options,
-            constraints: constraints
+            constraints: constraints,
+            assumesUniqueSolution: assumingUniqueSolution
         )
     }
 
@@ -78,7 +81,8 @@ extension BoardState {
             pencilMarks: merged,
             validOptions: validOptions,
             solution: self.solution,
-            constraints: self.constraints
+            constraints: self.constraints,
+            assumesUniqueSolution: assumesUniqueSolution
         )
     }
 }

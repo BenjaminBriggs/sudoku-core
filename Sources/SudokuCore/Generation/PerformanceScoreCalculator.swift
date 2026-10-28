@@ -211,42 +211,39 @@ public enum PerformanceScoreCalculator {
         }
     }
 
-    /// Calculates target completion time in seconds based on difficulty
+    /// Calculates target completion time in seconds based on difficulty, which the caller clamps
+    /// to 1...2000.
     private static func calculateTargetTime(difficulty: Double) -> TimeInterval {
         switch difficulty {
-        case 1...300:
+        case ...300:
             // Easy: 3-8 minutes, scaled linearly
             // At difficulty 1: 3 minutes (180s)
             // At difficulty 300: 8 minutes (480s)
             return 180.0 + ((difficulty - 1.0) / 299.0 * 300.0)
 
-        case 301...600:
+        case ...600:
             // Medium: 8-18 minutes, scaled linearly
             // At difficulty 301: 8 minutes (480s)
             // At difficulty 600: 18 minutes (1080s)
             return 480.0 + ((difficulty - 301.0) / 299.0 * 600.0)
 
-        case 601...1000:
+        case ...1000:
             // Hard: 18-35 minutes, scaled linearly
             // At difficulty 601: 18 minutes (1080s)
             // At difficulty 1000: 35 minutes (2100s)
             return 1080.0 + ((difficulty - 601.0) / 399.0 * 1020.0)
 
-        case 1001...1600:
+        case ...1600:
             // Expert: 35-55 minutes, scaled linearly
             // At difficulty 1001: 35 minutes (2100s)
             // At difficulty 1600: 55 minutes (3300s)
             return 2100.0 + ((difficulty - 1001.0) / 599.0 * 1200.0)
 
-        case 1601...:
+        default:
             // Professional: 55-90 minutes, scaled linearly
             // At difficulty 1601: 55 minutes (3300s)
             // At difficulty 2000: 90 minutes (5400s)
             return 3300.0 + ((difficulty - 1601.0) / 399.0 * 2100.0)
-
-        default:
-            // Fallback for out-of-range values
-            return 600.0
         }
     }
 
@@ -254,28 +251,25 @@ public enum PerformanceScoreCalculator {
     /// Harder puzzles are more forgiving of hint usage
     private static func calculateHintPenaltyCoefficient(difficulty: Double) -> Double {
         switch difficulty {
-        case 1...300:
+        case ...300:
             // Easy: Steep penalty curve
             return 0.30
 
-        case 301...600:
+        case ...600:
             // Medium: Moderate penalty curve
             return 0.22
 
-        case 601...1000:
+        case ...1000:
             // Hard: Gentler penalty curve
             return 0.16
 
-        case 1001...1600:
+        case ...1600:
             // Expert: More forgiving
             return 0.12
 
-        case 1601...:
+        default:
             // Professional: Most forgiving
             return 0.08
-
-        default:
-            return 0.22
         }
     }
 

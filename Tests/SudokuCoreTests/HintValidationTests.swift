@@ -298,4 +298,32 @@ struct HintValidationTests {
 
         #expect(hint == nil, "Without a solution, a lone digit should not trigger a validation hint")
     }
+
+    @Test("A board that matches its solution needs no validation hint")
+    func boardMatchingSolutionReturnsNil() {
+        let state = makeState(grid: validPartialGrid, solution: solutionGrid)
+        #expect(HintFinder.findHint(for: .validation, in: state) == nil)
+    }
+
+    @Test("Applying a hint can clear a cell and pencil a candidate in")
+    func applyingClearAndPencilIn() {
+        let state = makeState(grid: validPartialGrid)
+        let cleared = Puzzle.Index(row: 0, column: 0)
+        let pencilled = Puzzle.Index(row: 4, column: 4)
+        let hint = HintStep(
+            actions: [HintAction(clearPosition: cleared), HintAction(position: pencilled, pencilIn: 5)],
+            technique: .validation
+        )
+        let next = state.applying(hint)
+        #expect(next.grid[0][0] == 0)
+        // Clearing changes the grid, so the cell's options come back.
+        #expect(next.validOptions[0][0] == [1])
+        // Pencilling in leaves candidates to the candidate rules.
+        #expect(next.pencilMarks[4][4] == state.pencilMarks[4][4])
+    }
+
+    @Test("A starting-positions string that isn't 81 characters gives an empty grid")
+    func shortStartingPositions() {
+        #expect(Solution.cells(from: "123") == Solution.empty())
+    }
 }

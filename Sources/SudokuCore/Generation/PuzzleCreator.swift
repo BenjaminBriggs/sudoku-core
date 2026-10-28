@@ -31,110 +31,53 @@ public struct PuzzleCreator {
     }
 
     /// Create a puzzle with a specific difficulty goal
+    ///
+    /// Built on ``SudokuGenerator/createPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)``,
+    /// so the level is the calculator's own and the puzzle never needs guessing.
     /// - Parameters:
     ///   - targetDifficulty: The desired difficulty level
-    ///   - maxAttempts: Maximum number of attempts to generate a matching puzzle
+    ///   - maxAttempts: Maximum number of solutions to try
+    ///   - symmetry: The symmetry the clue layout keeps (defaults to `.none`)
     /// - Returns: A Puzzle with the requested difficulty, or the closest match
     public static func createPuzzleWithDifficulty(
         _ targetDifficulty: PuzzleDifficulty.Level,
-        maxAttempts: Int = 20
+        maxAttempts: Int = 20,
+        symmetry: Symmetry = .none
     ) async throws -> Puzzle {
-        var bestMatch:
-            (
-                puzzle: [[Int]], solution: [[Int]],
-                difficultyResult: SudokuDifficultyCalculator.DifficultyResult
-            )? = nil
-        var bestDifficultyDistance = Int.max
+        let targetRange = targetDifficulty.scoreRange
+        var closest: SteeredPuzzle?
 
-        // Target technique difficulty ranges for different puzzle difficulty levels
-        let difficultyTargets: [PuzzleDifficulty.Level: ClosedRange<Int>] = [
-            .easy: 0...40,  // Up to locked candidates
-            .medium: 41...70,  // Naked/hidden pair, triple techniques
-            .hard: 71...100,  // X-Wing, swordfish, Y-Wing, etc.
-            .expert: 101...115,  // Advanced wings and fish
-            .professional: 116...120,  // Most advanced techniques
-            .custom: 100...120,  // Most advanced techniques
-        ]
+        for _ in 1...max(1, maxAttempts) {
+            // Each attempt is a full generate + search; a caller that has moved on
+            // (a new difficulty, a dismissed screen) should not pay for the rest.
+            try Task.checkCancellation()
 
-        // Get target range for requested difficulty
-        let targetRange = difficultyTargets[targetDifficulty] ?? (0...50)
-
-        for attempt in 1...maxAttempts {
-            // Choose generation strategy based on target difficulty
-            var targetsEmptyCells: ClosedRange<Int>
-            switch targetDifficulty {
-            case .easy:
-                targetsEmptyCells = 35...45
-            case .medium:
-                targetsEmptyCells = 46...55
-            case .hard:
-                targetsEmptyCells = 56...60
-            case .expert:
-                targetsEmptyCells = 58...62
-            case .professional:
-                targetsEmptyCells = 60...64
-            case .custom:
-                targetsEmptyCells = 56...64
-            }
-
-            // Generate a puzzle
-            let solution = SolutionGenerator.generateRandomSolution()
-            let puzzle = await SudokuGenerator.createPuzzle(
-                from: solution,
-                targetEmpty: Int.random(in: targetsEmptyCells)
-            )
-
-            // Skip if not uniquely solvable
-            guard Validator.hasUniqueSolution(puzzle) else { continue }
-
-            // Calculate difficulty - skip if calculation fails
-            let difficultyResult: SudokuDifficultyCalculator.DifficultyResult
-            do {
-                difficultyResult = try SudokuDifficultyCalculator.calculateDifficulty(
-                    for: puzzle
+            guard
+                let steered = SudokuGenerator.createPuzzle(
+                    level: targetDifficulty,
+                    symmetry: symmetry,
+                    bestEffort: true
                 )
-            } catch {
-                // Skip puzzles that fail difficulty calculation
-                continue
+            else { continue }
+            if steered.matchesLevel {
+                return steered.puzzle
             }
-
-            // Skip if the puzzle couldn't be solved using our techniques
-            guard difficultyResult.wasSolved else { continue }
-
-            // Check if difficulty matches our target
-            let highestDifficulty = difficultyResult.hardestTechnique?.difficulty ?? 0
-            let difficultyDistance = distanceToTargetRange(
-                highestDifficulty, targetRange: targetRange)
-
-            // If we have a perfect match, use it immediately
-            if difficultyDistance == 0 {
-                bestMatch = (puzzle, solution, difficultyResult)
-                break
+            let distance = distanceToTargetRange(Int(steered.result.score), targetRange: targetRange)
+            let closestDistance = closest.map {
+                distanceToTargetRange(Int($0.result.score), targetRange: targetRange)
             }
-
-            // Update best match if this is closer to our target
-            if difficultyDistance < bestDifficultyDistance {
-                bestMatch = (puzzle, solution, difficultyResult)
-                bestDifficultyDistance = difficultyDistance
-            }
-
-            // If we're close enough, stop early
-            if bestDifficultyDistance < 10 && attempt > 5 {
-                break
+            if distance < closestDistance ?? .max {
+                closest = steered
             }
         }
+        try Task.checkCancellation()
 
-        // Create the puzzle using the best match
-        if let (puzzle, solution, difficultyResult) = bestMatch {
-            return Puzzle(
-                solution: solution,
-                startingState: puzzle,
-                difficulty: difficultyResult.puzzleDifficulty
-            )
+        if let closest {
+            return closest.puzzle
         }
 
         // If we couldn't find a suitable puzzle, generate a basic one
-        let (solution, startingState) = await SudokuGenerator.generatePuzzle()
+        let (solution, startingState) = await SudokuGenerator.generatePuzzle(symmetry: symmetry)
         return try await createPuzzle(solution: solution, startingState: startingState)
     }
 

@@ -1,0 +1,44 @@
+name: Soak
+
+# Every corpus puzzle at every state, plus freshly generated puzzles, checked against HoDoKu.
+# Nightly, so each run tries new puzzles even when nothing has changed, or when started by hand.
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: soak
+  cancel-in-progress: false
+
+env:
+  # The Xcode the package is developed with. The xcode-27 image is GitHub's preview of it.
+  DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+  # The benchmark target links jemalloc, which the runners don't have.
+  BENCHMARK_DISABLE_JEMALLOC: "true"
+
+jobs:
+  soak:
+    name: Soak
+    runs-on: xcode-27
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -version && java -version
+      - run: scripts/hodoku/fetch.sh "$RUNNER_TEMP/hodoku"
+      - run: swift test -c release -Xswiftc -enable-testing
+        env:
+          SUDOKU_VERIFY_ALL: "1"
+          SUDOKU_SOAK_GENERATE: "20"
+          SUDOKU_SOAK_FAILURES: ${{ runner.temp }}/soak-failures.jsonl
+          SUDOKU_SOAK_GENERATED_OUT: ${{ runner.temp }}/soak-generated.json
+          SUDOKU_HODOKU_JAR: ${{ runner.temp }}/hodoku/HoDoKu.jar
+          SUDOKU_HODOKU_REGLIB: ${{ runner.temp }}/hodoku/reglib-1.3.txt
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: soak-failures
+          path: |
+            ${{ runner.temp }}/soak-failures.jsonl
+            ${{ runner.temp }}/soak-generated.json
+          if-no-files-found: ignore

@@ -35,16 +35,17 @@ extension Board {
     /// ```
     public func mark(positions: Set<Puzzle.Index>, as value: Int?) {
         guard positions.isEmpty == false else { return }
-        saveState()
-        for position in positions where cell(at: position).isGiven == false {
-            var cell = self.cells[position.linerIndex]
-            cell.value = value
-            cell.ruledOutCandidates.removeAll()
-            cell.simplePencilMarks.removeAll()
-            cell.advancedPencilMarks.removeAll()
-            self.cells[position.linerIndex] = cell
+        recordingUndo {
+            for position in positions where cell(at: position).isGiven == false {
+                var cell = self.cells[position.linerIndex]
+                cell.value = value
+                cell.ruledOutCandidates.removeAll()
+                cell.simplePencilMarks.removeAll()
+                cell.advancedPencilMarks.removeAll()
+                self.cells[position.linerIndex] = cell
+            }
+            refreshDerivedState()
         }
-        refreshDerivedState()
     }
 
     /// Clears cells, removing values, pencil marks, and background colors.
@@ -55,20 +56,21 @@ extension Board {
     /// - Parameter positions: Set of positions to clear.
     public func clearCell(at positions: Set<Puzzle.Index>) {
         guard positions.isEmpty == false else { return }
-        saveState()
-        for position in positions {
-            var cell = self.cells[position.linerIndex]
-            if cell.isGiven == false {
-                cell.value = nil
+        recordingUndo {
+            for position in positions {
+                var cell = self.cells[position.linerIndex]
+                if cell.isGiven == false {
+                    cell.value = nil
+                }
+                cell.ruledOutCandidates.removeAll()
+                cell.simplePencilMarks.removeAll()
+                cell.advancedPencilMarks.removeAll()
+                cell.background = .clear
+                self.cells[position.linerIndex] = cell
             }
-            cell.ruledOutCandidates.removeAll()
-            cell.simplePencilMarks.removeAll()
-            cell.advancedPencilMarks.removeAll()
-            cell.background = .clear
-            self.cells[position.linerIndex] = cell
-        }
 
-        refreshDerivedState()
+            refreshDerivedState()
+        }
     }
 
     /// Toggles simple pencil marks in the specified cells.
@@ -83,21 +85,22 @@ extension Board {
     ///   - value: The candidate number (1-9) to toggle.
     public func pencil(positions: Set<Puzzle.Index>, as value: Int) {
         guard positions.isEmpty == false else { return }
-        saveState()
-        let remove = positions
-            .map(cell(at:))
-            .filter { $0.value == nil }
-            .map(\.simplePencilMarks)
-            .allSatisfy { $0.contains(value) }
-        for position in positions where cell(at: position).value == nil {
-            if remove {
-                self.cells[position.linerIndex]
-                    .simplePencilMarks
-                    .remove(value)
-            } else {
-                self.cells[position.linerIndex]
-                    .simplePencilMarks
-                    .insert(value)
+        recordingUndo {
+            let remove = positions
+                .map(cell(at:))
+                .filter { $0.value == nil }
+                .map(\.simplePencilMarks)
+                .allSatisfy { $0.contains(value) }
+            for position in positions where cell(at: position).value == nil {
+                if remove {
+                    self.cells[position.linerIndex]
+                        .simplePencilMarks
+                        .remove(value)
+                } else {
+                    self.cells[position.linerIndex]
+                        .simplePencilMarks
+                        .insert(value)
+                }
             }
         }
     }
@@ -116,21 +119,22 @@ extension Board {
     ///   - value: The candidate number (1-9) to toggle.
     public func advancedPencil(positions: Set<Puzzle.Index>, as value: Int) {
         guard positions.isEmpty == false else { return }
-        saveState()
-        let remove = positions
-            .map(cell(at:))
-            .filter { $0.value == nil }
-            .map(\.advancedPencilMarks)
-            .allSatisfy { $0.contains(value) }
-        for position in positions where cell(at: position).value == nil {
-            if remove {
-                self.cells[position.linerIndex]
-                    .advancedPencilMarks
-                    .remove(value)
-            } else {
-                self.cells[position.linerIndex]
-                    .advancedPencilMarks
-                    .insert(value)
+        recordingUndo {
+            let remove = positions
+                .map(cell(at:))
+                .filter { $0.value == nil }
+                .map(\.advancedPencilMarks)
+                .allSatisfy { $0.contains(value) }
+            for position in positions where cell(at: position).value == nil {
+                if remove {
+                    self.cells[position.linerIndex]
+                        .advancedPencilMarks
+                        .remove(value)
+                } else {
+                    self.cells[position.linerIndex]
+                        .advancedPencilMarks
+                        .insert(value)
+                }
             }
         }
     }
@@ -147,18 +151,19 @@ extension Board {
     ///   - value: The background color to apply.
     public func color(positions: Set<Puzzle.Index>, as value: Cell.Background) {
         guard positions.isEmpty == false else { return }
-        saveState()
-        let remove = positions
-            .map(cell(at:))
-            .map(\.background)
-            .allSatisfy { $0 == value }
-        for position in positions {
-            if remove {
-                self.cells[position.linerIndex]
-                    .background = .clear
-            } else {
-                self.cells[position.linerIndex]
-                    .background = value
+        recordingUndo {
+            let remove = positions
+                .map(cell(at:))
+                .map(\.background)
+                .allSatisfy { $0 == value }
+            for position in positions {
+                if remove {
+                    self.cells[position.linerIndex]
+                        .background = .clear
+                } else {
+                    self.cells[position.linerIndex]
+                        .background = value
+                }
             }
         }
     }
@@ -176,17 +181,18 @@ extension Board {
     ///   - value: The candidate number (1-9) to eliminate.
     public func ruleOut(positions: Set<Puzzle.Index>, as value: Int) {
         guard positions.isEmpty == false else { return }
-        saveState()
-        for position in positions where cell(at: position).value == nil {
-            self.cells[position.linerIndex]
-                .ruledOutCandidates
-                .insert(value)
-            self.cells[position.linerIndex]
-                .simplePencilMarks
-                .remove(value)
-            self.cells[position.linerIndex]
-                .advancedPencilMarks
-                .remove(value)
+        recordingUndo {
+            for position in positions where cell(at: position).value == nil {
+                self.cells[position.linerIndex]
+                    .ruledOutCandidates
+                    .insert(value)
+                self.cells[position.linerIndex]
+                    .simplePencilMarks
+                    .remove(value)
+                self.cells[position.linerIndex]
+                    .advancedPencilMarks
+                    .remove(value)
+            }
         }
     }
 
@@ -203,7 +209,7 @@ extension Board {
         saveState()
         isPerformingAtomicChange = true
         defer { isPerformingAtomicChange = false }
-        for action in hint.actions {
+        for action in redirectingGivens(in: hint.actions) {
             switch action.action {
             case .clear:
                 clearCell(at: [action.position])
@@ -225,5 +231,28 @@ extension Board {
             }
         }
         updateCellValidation()
+    }
+
+    /// Moves any `.clear` aimed at a given cell onto the player's cell that clashes with it.
+    ///
+    /// `HintFinder.checkValidity` works from `BoardState`, which carries values but not
+    /// which cells are givens, and it names the *later-scanned* duplicate. When that is a
+    /// given, the action cannot be carried out and the player's own mistake - the only cell
+    /// they can change - is left standing.
+    private func redirectingGivens(in actions: [HintAction]) -> [HintAction] {
+        actions.map { action in
+            guard case .clear = action.action else { return action }
+            let target = cell(at: action.position)
+            guard target.isGiven, let digit = target.value else { return action }
+            let culprit = cells.first { candidate in
+                candidate.isGiven == false
+                    && candidate.value == digit
+                    && (candidate.position.row == action.position.row
+                        || candidate.position.column == action.position.column
+                        || candidate.position.houseNumber == action.position.houseNumber)
+            }
+            guard let culprit else { return action }
+            return HintAction(clearPosition: culprit.position)
+        }
     }
 }

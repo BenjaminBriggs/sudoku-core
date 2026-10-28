@@ -2,7 +2,7 @@
 //  TechniqueMapping.swift
 //  SudokuCore
 //
-//  Maps internal HintTechnique to external standard identifiers.
+//  Maps a TechniqueInfo to external standard identifiers.
 //
 
 import Foundation

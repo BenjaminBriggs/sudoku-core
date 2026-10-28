@@ -44,7 +44,7 @@ struct TechniqueTests {
         #expect(TechniqueInfo.validation.difficulty == 0)
         #expect(TechniqueInfo.unknown.difficulty == 9999)
         #expect(TechniqueInfo.xyzWing.hodokuPoints == 130)
-        // 25 = 23 real techniques + validation + unknown, one per legacy enum case.
-        #expect(TechniqueInfo.allClassic.count == 25)
+        // 35 = 33 real techniques + validation + unknown, one per legacy enum case.
+        #expect(TechniqueInfo.allClassic.count == 35)
     }
 }

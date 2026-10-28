@@ -145,19 +145,69 @@ public struct XYZWingTechnique: HintTechnique {
     }
 }
 
-public struct YWingTechnique: HintTechnique {
-    public let info: TechniqueInfo = .yWing
-    public init() {}
-    public func findHint(in state: BoardState) -> HintStep? {
-        HintFinder.findYWing(in: state)
-    }
-}
-
 public struct WWingTechnique: HintTechnique {
     public let info: TechniqueInfo = .wWing
     public init() {}
     public func findHint(in state: BoardState) -> HintStep? {
         HintFinder.findWWing(in: state)
+    }
+}
+
+public struct CraneTechnique: HintTechnique {
+    public let info: TechniqueInfo = .crane
+    public init() {}
+    public func findHint(in state: BoardState) -> HintStep? {
+        HintFinder.findCrane(in: state)
+    }
+}
+
+/// Unique Rectangle types 1–5. Silent unless ``BoardState/assumesUniqueSolution``.
+public struct UniqueRectangleTechnique: HintTechnique {
+    public let type: Int
+    public var info: TechniqueInfo {
+        switch type {
+        case 1: return .uniqueRectangleType1
+        case 2: return .uniqueRectangleType2
+        case 3: return .uniqueRectangleType3
+        case 4: return .uniqueRectangleType4
+        default: return .uniqueRectangleType5
+        }
+    }
+    public init(type: Int) {
+        precondition((1...5).contains(type))
+        self.type = type
+    }
+    public func findHint(in state: BoardState) -> HintStep? {
+        HintFinder.findUniqueRectangle(type: type, in: state)
+    }
+}
+
+/// BUG+1. Silent unless ``BoardState/assumesUniqueSolution``.
+public struct BUGTechnique: HintTechnique {
+    public let info: TechniqueInfo = .bug
+    public init() {}
+    public func findHint(in state: BoardState) -> HintStep? {
+        HintFinder.findBUG(in: state)
+    }
+}
+
+/// 4- to 7-Y-Wing.
+public struct NYWingTechnique: HintTechnique {
+    public let size: Int
+    public var info: TechniqueInfo {
+        switch size {
+        case 4: return .fourYWing
+        case 5: return .fiveYWing
+        case 6: return .sixYWing
+        default: return .sevenYWing
+        }
+    }
+    public init(size: Int) {
+        precondition((4...7).contains(size))
+        self.size = size
+    }
+    public func findHint(in state: BoardState) -> HintStep? {
+        HintFinder.findNYWing(size: size, technique: info, in: state)
     }
 }
 
@@ -182,14 +232,24 @@ public enum ClassicTechniques {
         FishTechnique(size: 3, finned: false),
         SkyscraperTechnique(),
         TwoStringKiteTechnique(),
+        CraneTechnique(),
         EmptyRectangleTechnique(),
         FishTechnique(size: 3, finned: true),
         WWingTechnique(),
+        UniqueRectangleTechnique(type: 1),
+        UniqueRectangleTechnique(type: 2),
+        UniqueRectangleTechnique(type: 4),
+        UniqueRectangleTechnique(type: 5),
         FishTechnique(size: 4, finned: false),
+        UniqueRectangleTechnique(type: 3),
         FishTechnique(size: 4, finned: true),
         XYWingTechnique(),
-        YWingTechnique(),
+        BUGTechnique(),
         XYZWingTechnique(),
+        NYWingTechnique(size: 4),
+        NYWingTechnique(size: 5),
+        NYWingTechnique(size: 6),
+        NYWingTechnique(size: 7),
     ]
 
     /// Look up a classic technique by id.

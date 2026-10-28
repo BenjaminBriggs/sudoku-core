@@ -106,6 +106,8 @@ let hint = HintFinder.firstHint(
 )
 ```
 
+The classic uniqueness techniques (Unique Rectangles and BUG+1) stay sound alongside constraints because ``BoardState/assumesUniqueSolution`` means the givens have one solution under classic rules alone, which is what `Board` checks. Don't set it because your constraints make the puzzle unique: a deadly pattern that breaks a cage sum isn't a second solution, so the uniqueness argument no longer holds.
+
 Namespace your ``TechniqueID``s with a module prefix (`killer.cageLastCell`, `myApp.thermoSweep`) — bare camel-case ids are reserved for the classic techniques, and collisions silently shadow built-ins in id-based lookups. Leave the SE/HoDoKu rating fields of ``TechniqueInfo`` nil: the package does not rate variant puzzles.
 
 ## The killer module as a template

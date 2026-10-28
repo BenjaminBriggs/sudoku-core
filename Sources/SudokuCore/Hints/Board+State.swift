@@ -31,7 +31,8 @@ extension Board {
             pencilMarks: pencilMarks,
             validOptions: validOptions,
             solution: self.solution,
-            constraints: self.constraints
+            constraints: self.constraints,
+            assumesUniqueSolution: hasUniqueSolution
         )
     }
 }

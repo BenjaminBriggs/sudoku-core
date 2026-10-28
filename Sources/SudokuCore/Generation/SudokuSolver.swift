@@ -52,7 +52,7 @@ public enum SudokuSolver {
         }
         
         // Check if the puzzle is already solved by Arc Consistency alone
-        let initialSolution = extractSolution(from: workingDomains, in: grid)
+        let initialSolution = extractSolution(from: workingDomains)
         if isSolutionComplete(initialSolution) {
             return (initialSolution, acCallCount)
         }
@@ -60,7 +60,6 @@ public enum SudokuSolver {
         // If not solved, use domain splitting with Arc Consistency
         if let solution = solveWithDomainSplitting(
             domains: workingDomains,
-            in: grid,
             callCount: &acCallCount
         ) {
             return (solution, acCallCount)
@@ -184,16 +183,14 @@ public enum SudokuSolver {
     /// Extract the current solution from domains
     /// - Parameter domains: The domain grid
     /// - Returns: The solution based on current domains
-    private static func extractSolution(from domains: DomainGrid, in grid: [[Int]]) -> [[Int]] {
+    private static func extractSolution(from domains: DomainGrid) -> [[Int]] {
         var solution = Array(repeating: Array(repeating: 0, count: 9), count: 9)
         
         for row in 0..<9 {
             for col in 0..<9 {
+                // A filled cell's domain is always its one value.
                 if domains[row][col].count == 1, let value = domains[row][col].first {
                     solution[row][col] = value
-                } else if grid[row][col] != 0 {
-                    // Preserve original values
-                    solution[row][col] = grid[row][col]
                 }
             }
         }
@@ -248,13 +245,12 @@ public enum SudokuSolver {
     /// - Returns: Solution if found, nil otherwise
     private static func solveWithDomainSplitting(
         domains: DomainGrid,
-        in grid: [[Int]],
         callCount: inout Int
     ) -> [[Int]]? {
         // Find cell with minimum remaining values
         guard let (row, col, values) = findMRVCell(in: domains) else {
             // No cell with multiple values found, puzzle should be solved
-            return extractSolution(from: domains, in: grid)
+            return extractSolution(from: domains)
         }
         
         // Try each value in the domain
@@ -273,7 +269,6 @@ public enum SudokuSolver {
                 // Recursively solve
                 if let solution = solveWithDomainSplitting(
                     domains: branchDomains,
-                    in: grid,
                     callCount: &callCount
                 ) {
                     return solution

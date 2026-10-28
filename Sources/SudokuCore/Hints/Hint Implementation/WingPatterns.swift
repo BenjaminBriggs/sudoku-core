@@ -12,7 +12,6 @@ extension HintFinder {
     /// Wing pattern types
     private enum WingType {
         case xy      // Pivot: 2 candidates, strict 1:1 sharing
-        case y       // Pivot: 2 candidates, relaxed constraints
         case xyz     // Pivot: 3 candidates, wings must be neighbors
     }
 
@@ -24,14 +23,6 @@ extension HintFinder {
     /// - Returns: A `HintStep` with eliminations, or `nil` if no XY-Wing exists.
     static func findXYWing(in state: BoardState) -> HintStep? {
         findWingPattern(type: .xy, technique: .xyWing, in: state)
-    }
-
-    /// Finds a Y-Wing pattern, a relaxed variant of XY-Wing where the pivot's candidates
-    /// overlap with the wings but without strict 1:1 sharing requirements.
-    /// - Parameter state: The current board state snapshot.
-    /// - Returns: A `HintStep` with eliminations, or `nil` if no Y-Wing exists.
-    static func findYWing(in state: BoardState) -> HintStep? {
-        findWingPattern(type: .y, technique: .yWing, in: state)
     }
 
     /// Finds an XYZ-Wing pattern where a tri-value pivot and two bi-value wing cells share
@@ -87,7 +78,7 @@ extension HintFinder {
         // Select pivot cells based on wing type
         let pivotCells: [(Puzzle.Index, Set<Int>)]
         switch type {
-        case .xy, .y:
+        case .xy:
             pivotCells = biValueCells
         case .xyz:
             pivotCells = triValueCells
@@ -219,9 +210,6 @@ extension HintFinder {
         case .xy:
             return validateXYWing(pivot: pivotCandidates, wingA: wingACandidates, wingB: wingBCandidates)
 
-        case .y:
-            return validateYWing(pivot: pivotCandidates, wingA: wingACandidates, wingB: wingBCandidates)
-
         case .xyz:
             return validateXYZWing(pivot: pivotCandidates, wingA: wingACandidates, wingB: wingBCandidates)
         }
@@ -253,41 +241,6 @@ extension HintFinder {
         let x = pivotWingACommon.first!
         let y = pivotWingBCommon.first!
 
-        guard x != y else { return nil }
-
-        // Wings share a common digit (the elimination digit)
-        let z1 = wingA.subtracting([x]).first!
-        let z2 = wingB.subtracting([y]).first!
-
-        return z1 == z2 ? z1 : nil
-    }
-
-    /// Validates a Y-Wing pattern.
-    ///
-    /// Each wing must share exactly one distinct candidate with the pivot. If pivot is {X, Y},
-    /// one wing must share X and the other must share Y. Both wings' remaining candidate must
-    /// be the same digit Z — the elimination digit.
-    ///
-    /// - Parameters:
-    ///   - pivot: The pivot cell's candidate set.
-    ///   - wingA: The first wing cell's candidate set.
-    ///   - wingB: The second wing cell's candidate set.
-    /// - Returns: The elimination digit Z, or `nil` if the pattern is invalid.
-    private static func validateYWing(
-        pivot: Set<Int>,
-        wingA: Set<Int>,
-        wingB: Set<Int>
-    ) -> Int? {
-        // Each wing shares exactly 1 candidate with pivot
-        let pivotWingACommon = pivot.intersection(wingA)
-        guard pivotWingACommon.count == 1 else { return nil }
-
-        let pivotWingBCommon = pivot.intersection(wingB)
-        guard pivotWingBCommon.count == 1 else { return nil }
-
-        // The shared candidates must be different
-        let x = pivotWingACommon.first!
-        let y = pivotWingBCommon.first!
         guard x != y else { return nil }
 
         // Wings share a common digit (the elimination digit)

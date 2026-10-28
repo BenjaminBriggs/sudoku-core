@@ -8,6 +8,9 @@ import Foundation
 /// the legacy `HintTechnique` enum's raw-value encoding, so shipped puzzle JSON
 /// keeps decoding. Raw values for classic techniques must never change.
 ///
+/// `"yWing"` was a duplicate of XY-Wing and has merged into it, so it reads as
+/// `"xyWing"`: puzzles and profiles saved with that name still find XY-Wing.
+///
 /// Ids are not validated and nothing prevents collisions — a technique minted
 /// with a classic id (e.g. `"nakedSingle"`) silently shadows the built-in in
 /// id-based lookups and rating maps. Namespace your own ids with a module
@@ -17,7 +20,7 @@ public struct TechniqueID: RawRepresentable, Hashable, Sendable,
     ExpressibleByStringLiteral, CustomStringConvertible
 {
     public let rawValue: String
-    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(rawValue: String) { self.rawValue = rawValue == "yWing" ? "xyWing" : rawValue }
     public init(stringLiteral value: String) { self.init(rawValue: value) }
     public var description: String { rawValue }
 }
@@ -103,23 +106,41 @@ extension TechniqueInfo {
     public static let finnedJellyfish = classic(
         "finnedJellyfish", 105, "Finned Jellyfish", 5.1, 130)
     public static let xyWing = classic("xyWing", 110, "XY-Wing", 4.5, 110)
-    public static let yWing = classic("yWing", 110, "Y-Wing", 4.3, 100)
     public static let xyzWing = classic("xyzWing", 120, "XYZ-Wing", 5.2, 130)
+    public static let crane = classic("crane", 91, "Crane", 4.0, 80)
+    public static let uniqueRectangleType1 = classic(
+        "uniqueRectangleType1", 96, "Unique Rectangle Type 1", 4.5, 100)
+    public static let uniqueRectangleType2 = classic(
+        "uniqueRectangleType2", 97, "Unique Rectangle Type 2", 4.5, 100)
+    public static let uniqueRectangleType3 = classic(
+        "uniqueRectangleType3", 101, "Unique Rectangle Type 3", 4.6, 100)
+    public static let uniqueRectangleType4 = classic(
+        "uniqueRectangleType4", 98, "Unique Rectangle Type 4", 4.5, 100)
+    public static let uniqueRectangleType5 = classic(
+        "uniqueRectangleType5", 99, "Unique Rectangle Type 5", 4.6, 100)
+    public static let bug = classic("bug", 115, "BUG+1", 5.6, 100)
+    public static let fourYWing = classic("fourYWing", 125, "4-Y-Wing", 5.4, 140)
+    public static let fiveYWing = classic("fiveYWing", 130, "5-Y-Wing", 5.6, 160)
+    public static let sixYWing = classic("sixYWing", 135, "6-Y-Wing", 5.8, 180)
+    public static let sevenYWing = classic("sevenYWing", 140, "7-Y-Wing", 6.0, 200)
     public static let unknown = classic("unknown", 9999, "Unknown", 8.0, 200)
 
-    /// All classic technique infos, one per legacy enum case (25 total), in the exact
+    /// All classic technique infos, one per legacy enum case (35 total), in the exact
     /// order the legacy `orderedCases` produced: stable sort by difficulty over enum
     /// declaration order. Ties resolve by declaration order — that is why swordfish
-    /// (difficulty 90, declared before skyscraper/twoStringKite) precedes them,
-    /// finnedSwordfish precedes wWing (95), and xyWing precedes yWing (110).
+    /// (difficulty 90, declared before skyscraper/twoStringKite) precedes them and
+    /// finnedSwordfish precedes wWing (95).
     public static let allClassic: [TechniqueInfo] = [
         .validation, .nakedSingle, .hiddenSingle,
         .lockedCandidatesPointing, .lockedCandidatesClaiming,
         .nakedPair, .hiddenPair, .nakedTriple, .hiddenTriple, .nakedQuad, .hiddenQuad,
         .xWing, .finnedXWing,
-        .swordfish, .skyscraper, .twoStringKite, .emptyRectangle,
-        .finnedSwordfish, .wWing, .jellyfish, .finnedJellyfish,
-        .xyWing, .yWing, .xyzWing, .unknown,
+        .swordfish, .skyscraper, .twoStringKite, .crane, .emptyRectangle,
+        .finnedSwordfish, .wWing,
+        .uniqueRectangleType1, .uniqueRectangleType2, .uniqueRectangleType4,
+        .uniqueRectangleType5, .jellyfish, .uniqueRectangleType3, .finnedJellyfish,
+        .xyWing, .bug, .xyzWing,
+        .fourYWing, .fiveYWing, .sixYWing, .sevenYWing, .unknown,
     ]
 }
 
