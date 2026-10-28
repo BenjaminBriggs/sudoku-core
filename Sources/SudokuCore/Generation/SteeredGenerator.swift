@@ -171,9 +171,17 @@ private struct Steer {
             return .failure(.givens)
         }
 
-        // Entry: the smallest prefix whose puzzle reaches the level and the tedium window
-        let entry = smallestPrefix(of: removed, counts: shortest...longest) {
+        // Entry: the smallest prefix whose puzzle reaches the level and the tedium window.
+        // The window is a preference and the clue range a constraint: when nothing in the
+        // range reaches the window (a Beginner window needs about 30 blanks; an Intermediate
+        // one about 45), settle for the smallest prefix that reaches the level.
+        var entry = smallestPrefix(of: removed, counts: shortest...longest) {
             $0.needsGuessing || $0.level > level || ($0.level == level && $0.tedium >= range.lowerBound)
+        }
+        if entry == nil, ratings < maxRatings {
+            entry = smallestPrefix(of: removed, counts: shortest...longest) {
+                $0.needsGuessing || $0.level >= level
+            }
         }
         if Task.isCancelled { return .failure(.cancelled) }
         guard let entry else {

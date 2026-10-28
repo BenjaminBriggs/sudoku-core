@@ -104,7 +104,9 @@ struct SteeredGeneratorTests {
         grid.joined().count { $0 != 0 }
     }
 
-    @Test("A clue range keeps the puzzle's clue count in it", arguments: [26...30, 31...40])
+    // Intermediate needs a step beyond singles, which random removal orders first reach at
+    // about 25 to 30 clues: puzzles with 31 or more are singles-only almost always.
+    @Test("A clue range keeps the puzzle's clue count in it", arguments: [23...26, 27...30])
     func cluesInRange(_ givens: ClosedRange<Int>) throws {
         let steered = try #require(
             Self.firstFound(tries: 10) { SudokuGenerator.createPuzzle(level: .medium, givens: givens) }
