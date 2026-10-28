@@ -106,18 +106,17 @@ Puzzles are immutable and can be shared, while boards are mutable game sessions.
 
 ## Difficulty Rating
 
-SudokuCore uses industry-standard difficulty ratings:
+SudokuCore rates a puzzle by solving it the way a person would:
+
+### Score
+
+A cumulative score over every technique the solve needs, on SudokuCore's own scale, which sets the puzzle's level. ``PuzzleDifficulty/Level/scoreRange`` gives each level's range.
 
 ### HoDoKu Rating
 
-A cumulative score based on all techniques needed to solve:
-- **Beginner (1-300)**: Basic singles
-- **Intermediate (301-600)**: Pairs, triples, locked candidates
-- **Advanced (601-1000)**: Wings, fish patterns
-- **Expert (1001-1600)**: Complex chains
-- **Master (1601+)**: Extreme techniques
+An estimate of the score and level HoDoKu itself gives the puzzle, for comparing with HoDoKu.
 
-See ``PuzzleDifficulty`` for complete details.
+See <doc:DifficultyRating> for complete details.
 
 ### Sudoku Explainer (SE) Rating
 

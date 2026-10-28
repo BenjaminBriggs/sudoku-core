@@ -99,7 +99,7 @@ extension HintFinder {
 
         // Builds a hint, ordering removals so output is deterministic.
         func hint(
-            _ technique: HintTechnique,
+            _ technique: TechniqueInfo,
             focus: [Int],
             removals: [(Puzzle.Index, Int)],
             units: [SudokuUnit] = [],

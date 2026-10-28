@@ -153,7 +153,7 @@ struct PuzzleCreatorLevelTests {
 }
 
 struct DifficultyMeasurementTests {
-    private func result(_ techniques: [HintTechnique]) -> SudokuDifficultyCalculator.DifficultyResult {
+    private func result(_ techniques: [TechniqueInfo]) -> SudokuDifficultyCalculator.DifficultyResult {
         .init(level: .hard, score: 700, techniquesUsed: techniques, iterationCount: techniques.count, wasSolved: true)
     }
 

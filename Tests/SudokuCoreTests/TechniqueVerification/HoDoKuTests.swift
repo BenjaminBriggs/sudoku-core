@@ -78,7 +78,7 @@ enum HoDoKu {
 
     /// HoDoKu's types and the techniques they correspond to. A full house is the hint
     /// finder's naked single; HoDoKu's Locked Pairs and Triples are naked subsets.
-    static let techniques: [String: [HintTechnique]] = [
+    static let techniques: [String: [TechniqueInfo]] = [
         "fh": [.nakedSingle], "n1": [.nakedSingle], "h1": [.hiddenSingle],
         "lc1": [.lockedCandidatesPointing], "lc2": [.lockedCandidatesClaiming],
         "n2": [.nakedPair], "l2": [.nakedPair], "n3": [.nakedTriple], "l3": [.nakedTriple], "n4": [.nakedQuad],
@@ -182,6 +182,20 @@ enum HoDoKu {
         return out
     }
 
+    /// HoDoKu's own rating of each keyed grid, with its default settings: nil where HoDoKu can't
+    /// solve it.
+    static func ratings(for grids: [(key: String, grid: [[Int]])]) throws -> [String: (score: Int, level: HoDoKuLevel)?] {
+        var out: [String: (score: Int, level: HoDoKuLevel)?] = [:]
+        let lines = grids.map { "\($0.key)\t\($0.grid.flatMap { $0 }.map(String.init).joined())" }
+        for line in try run("rate", lines) {
+            let fields = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
+            guard fields.count >= 4, let score = Int(fields[2]) else { continue }
+            let level = HoDoKuLevel(rawValue: fields[3].lowercased())
+            out[fields[0]] = fields[1] == "1" ? level.map { (score, $0) } : .some(nil)
+        }
+        return out
+    }
+
     // MARK: Differences of definition
 
     /// HoDoKu's steps at `state` in the hint finder's terms. Where the two define a technique
@@ -211,7 +225,7 @@ enum HoDoKu {
 
     /// One HoDoKu step in the hint finder's terms: the techniques it counts as, after the
     /// differences of definition above, and the moves it makes.
-    static func interpret(_ step: HoDoKuStep, in state: BoardState) -> (targets: [HintTechnique], moves: Set<Move>) {
+    static func interpret(_ step: HoDoKuStep, in state: BoardState) -> (targets: [TechniqueInfo], moves: Set<Move>) {
         var moves = step.moves
         var targets = techniques[step.type] ?? []
         switch step.type {
@@ -481,7 +495,7 @@ struct HoDoKuTests {
         let ordered = states.filter { Int($0.key.split(separator: "-").last!)! % 2 == 0 }
             + states.filter { Int($0.key.split(separator: "-").last!)! % 2 == 1 }
         var lines: [String] = []
-        for technique in HintTechnique.orderedCases where LibraryCase.writtenCode[technique] != nil {
+        for technique in TechniqueInfo.allClassic where LibraryCase.writtenCode[technique] != nil {
             var used: Set<String> = []
             for (key, state) in ordered where used.count < 6 {
                 let parts = key.split(separator: "-")

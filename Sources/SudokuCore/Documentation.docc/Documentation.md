@@ -9,7 +9,7 @@ SudokuCore is the engine behind a Sudoku application: the game logic, puzzle gen
 - **Game State Management**: The ``Board`` class manages the entire game state with undo/redo support
 - **Puzzle Generation**: Create puzzles at various difficulty levels with guaranteed unique solutions
 - **Hint System**: Find solving techniques from basic to advanced patterns, each with a structured ``HintReasoning`` record for app-side presentation
-- **Difficulty Rating**: Calculate puzzle difficulty using industry-standard HoDoKu and Sudoku Explainer ratings
+- **Difficulty Rating**: Rate puzzle difficulty with a cumulative score, a Sudoku Explainer rating and an estimate of HoDoKu's rating
 - **Validation**: Check puzzle validity, solution uniqueness, and player progress
 
 ## Topics
@@ -57,6 +57,9 @@ SudokuCore is the engine behind a Sudoku application: the game logic, puzzle gen
 - <doc:HintSystem>
 - ``HintFinder``
 - ``HintTechnique``
+- ``TechniqueInfo``
+- ``TechniqueID``
+- ``ClassicTechniques``
 - ``HintStep``
 - ``HintAction``
 - ``HintReasoning``
@@ -68,11 +71,24 @@ SudokuCore is the engine behind a Sudoku application: the game logic, puzzle gen
 - ``BoardStateParser``
 - ``BoardStringFormat``
 
+### Variants and Constraints
+
+- <doc:ExtendingWithVariants>
+- ``Constraint``
+- ``AnyConstraint``
+- ``ConstraintRegistry``
+- ``ConstraintViolation``
+- ``ConstraintDecodingError``
+- ``UnknownConstraint``
+- ``PuzzlePresentation``
+
 ### Rating and Performance
 
 - <doc:DifficultyRating>
 - ``SolvePathEmitter``
+- ``ScoreCalculator``
 - ``HoDoKuCalculator``
+- ``HoDoKuLevel``
 - ``SECalculator``
 - ``TimeEstimator``
 - ``PersonalizedCalibrator``

@@ -22,10 +22,10 @@ extension HintFinder {
     ///
     /// - Parameters:
     ///   - n: The number of cells and digits (4 to 7).
-    ///   - technique: The `HintTechnique` to tag the result with.
+    ///   - technique: The `TechniqueInfo` to tag the result with.
     ///   - state: The current board state snapshot.
     /// - Returns: A `HintStep` for the first n-Y-Wing found, or `nil`.
-    static func findNYWing(size n: Int, technique: HintTechnique, in state: BoardState) -> HintStep? {
+    static func findNYWing(size n: Int, technique: TechniqueInfo, in state: BoardState) -> HintStep? {
         let grid = state.grid
         let pencilMarks = state.pencilMarks
 

@@ -30,11 +30,13 @@ generated puzzles as well (see `GeneratedPuzzleTests`).
 
 Without HoDoKu, `swift test` still compares every hint with HoDoKu's findings recorded in
 `Tests/SudokuCoreTests/Fixtures/hodoku.json`, for the first corpus puzzle of each level at every
-state. After a change to the corpus or to HoDoKu's version, rewrite it with:
+state, and `HoDoKuCalculator`'s estimates with HoDoKu's ratings recorded in
+`Tests/SudokuCoreTests/Fixtures/hodoku-ratings.json`. After a change to the corpus or to HoDoKu's
+version, rewrite both with:
 
 ```bash
 SUDOKU_HODOKU_JAR=~/hodoku/HoDoKu.jar SUDOKU_HODOKU_VERSION="HoDoKu2 2.6.0" SUDOKU_UPDATE_HODOKU_FIXTURE=1 \
-    swift test -c release -Xswiftc -enable-testing --filter HoDoKuTests
+    swift test -c release -Xswiftc -enable-testing --filter HoDoKu
 ```
 
 ## What's compared
@@ -74,3 +76,19 @@ The hint finder also makes some deductions HoDoKu doesn't look for:
   misses a W-Wing where one link cell sees both. Its AICs still find these eliminations.
 
 HoDoKu's own BUG+1 search throws on a few states. There it gives no verdict on BUG+1.
+
+## Ratings
+
+`HoDoKuCalculator` estimates the score and level HoDoKu gives a puzzle: the hint finder solves it
+in HoDoKu's order, scoring HoDoKu's points. `HoDoKuRatingTests` asks HoDoKu to rate the puzzles in
+`hodoku-ratings.json` (150 shipped puzzles the hint finder solves, 30 per level) and the corpus
+puzzles, with HoDoKu's default settings, and checks the estimates over them:
+
+- at least 85% at HoDoKu's level, and 98% within one level;
+- a median score error of at most 10%, and a total within 10% of HoDoKu's.
+
+They can't match every puzzle: HoDoKu has techniques the hint finder doesn't, such as chains,
+Sue de Coq, Hidden Rectangles, Unique Rectangle type 6 and Remote Pairs, and a 4- to 7-Y-Wing
+counts as the XY-Chain HoDoKu finds it as. When written, the estimates gave HoDoKu's level for
+139 of the 150 recorded puzzles, and for 96% of the 3,745 shipped puzzles the hint finder solves.
+The live test also checks HoDoKu still gives the recorded ratings.

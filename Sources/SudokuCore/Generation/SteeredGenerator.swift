@@ -31,7 +31,7 @@ public enum SteerMiss: Error, Sendable {
 }
 
 extension PuzzleDifficulty.Level {
-    /// The HoDoKu scores `SudokuDifficultyCalculator` places at this level.
+    /// The scores `SudokuDifficultyCalculator` places at this level.
     public var scoreRange: ClosedRange<Int> {
         switch self {
         case .easy: 0...300
@@ -107,9 +107,11 @@ extension SudokuGenerator {
         }
         let matches = level.scoreRange.contains(Int(found.result.score))
         guard matches || bestEffort else { return .failure(steer.givensBlocked ? .givens : .level) }
+        // Steering rates without the HoDoKu estimate; the puzzle it keeps gets one.
+        let result = (try? SudokuDifficultyCalculator.calculateDifficulty(for: found.grid)) ?? found.result
         return .success(SteeredPuzzle(
-            puzzle: Puzzle(solution: solution, startingState: found.grid, difficulty: found.result.puzzleDifficulty),
-            result: found.result,
+            puzzle: Puzzle(solution: solution, startingState: found.grid, difficulty: result.puzzleDifficulty),
+            result: result,
             matchesLevel: matches,
             ratings: steer.ratings
         ))
@@ -253,7 +255,7 @@ private struct Steer {
     /// Rates `grid`, counting the rating and keeping it as `best` when it's the closest yet.
     private mutating func rate(_ grid: [[Int]]) -> SudokuDifficultyCalculator.DifficultyResult? {
         ratings += 1
-        guard let result = try? SudokuDifficultyCalculator.calculateDifficulty(for: grid) else { return nil }
+        guard let result = try? SudokuDifficultyCalculator.calculateDifficulty(for: grid, estimatingHoDoKu: false) else { return nil }
         if result.needsGuessing == false {
             let distance = distance(Int(result.score))
             if best.map({ distance < self.distance(Int($0.result.score)) }) ?? true {

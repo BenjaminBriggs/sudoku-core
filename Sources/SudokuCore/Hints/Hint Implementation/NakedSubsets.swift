@@ -15,10 +15,10 @@ extension HintFinder {
     /// meaning those digits can be eliminated from all other cells in the unit.
     /// - Parameters:
     ///   - n: The subset size (2 = naked pair, 3 = naked triple, 4 = naked quad).
-    ///   - technique: The `HintTechnique` to label the result with.
+    ///   - technique: The `TechniqueInfo` to label the result with.
     ///   - state: The current immutable board snapshot to analyse.
     /// - Returns: A `HintStep` with candidate removal actions, or `nil` if no naked subset is found.
-    static func findNakedSubsets(n: Int, technique: HintTechnique, in state: BoardState)
+    static func findNakedSubsets(n: Int, technique: TechniqueInfo, in state: BoardState)
         -> HintStep?
     {
         // Check all units (rows, columns, houses)
@@ -40,13 +40,13 @@ extension HintFinder {
     /// - Parameters:
     ///   - n: The subset size (2 = pair, 3 = triple, 4 = quad).
     ///   - unit: The row, column, or box to search.
-    ///   - technique: The `HintTechnique` to label the result with.
+    ///   - technique: The `TechniqueInfo` to label the result with.
     ///   - state: The current board state.
     /// - Returns: A `HintStep` with candidate removal actions, or `nil` if no naked subset is found.
     private static func findNakedSubsetsInUnit(
         n: Int,
         unit: SudokuUnit,
-        technique: HintTechnique,
+        technique: TechniqueInfo,
         state: BoardState
     ) -> HintStep? {
         // Get all empty cells with their candidates in this unit

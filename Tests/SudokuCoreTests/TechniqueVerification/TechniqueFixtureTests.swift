@@ -44,7 +44,7 @@ struct Sketch {
 /// near-miss that must stay silent).
 struct TechniqueFixture: CustomTestStringConvertible, Sendable {
     let name: String
-    let technique: HintTechnique
+    let technique: TechniqueInfo
     let state: BoardState
     /// "r1c2#3" names, matching `Reference.Candidate.description`.
     let eliminations: Set<String>
@@ -52,7 +52,7 @@ struct TechniqueFixture: CustomTestStringConvertible, Sendable {
 
     var testDescription: String { name }
 
-    init(_ name: String, _ technique: HintTechnique, eliminations: Set<String> = [], build: (inout Sketch) -> Void) {
+    init(_ name: String, _ technique: TechniqueInfo, eliminations: Set<String> = [], build: (inout Sketch) -> Void) {
         var sketch = Sketch()
         build(&sketch)
         self.name = name
@@ -63,7 +63,7 @@ struct TechniqueFixture: CustomTestStringConvertible, Sendable {
     }
 
     /// A fixture from a real board: 81 digits (0 for empty) and each cell's candidates.
-    init(_ name: String, _ technique: HintTechnique, grid: String, candidates: String, unique: Bool = true,
+    init(_ name: String, _ technique: TechniqueInfo, grid: String, candidates: String, unique: Bool = true,
          eliminations: Set<String> = [], placements: Set<String> = []) {
         let values = grid.map { Int(String($0))! }
         let cells = candidates.split(separator: ",", omittingEmptySubsequences: false).map { Set($0.compactMap { Int(String($0)) }) }

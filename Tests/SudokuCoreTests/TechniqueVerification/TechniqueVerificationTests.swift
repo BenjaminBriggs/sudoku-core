@@ -117,7 +117,7 @@ struct SplitMix64: RandomNumberGenerator {
 }
 
 struct TechniqueVerificationTests {
-    static let techniques = HintTechnique.orderedCases.filter { $0 != .validation && $0 != .unknown }
+    static let techniques = TechniqueInfo.allClassic.filter { $0 != .validation && $0 != .unknown }
 
     /// Every state on the puzzle's solve path, each followed by a copy with about a quarter of
     /// its wrong candidates removed. Thinning reaches patterns the path alone never shows,

@@ -7,40 +7,107 @@
 import Foundation
 
 public struct Puzzle: Codable, Hashable, Identifiable, Sendable {
+    /// Identity of the puzzle's content. Unless an id is given, it is derived by
+    /// ``derivedID(startingState:constraints:)``: the 81-digit starting state, and
+    /// for a puzzle with constraints a `~` followed by each constraint's
+    /// ``Constraint/identity``, sorted and joined by `_`. Solution and presentation
+    /// never take part. Decoding keeps whatever id the JSON carries.
     public let id: String
     public let solution: [[Int]]
     public let startingState: [[Int]]
     public let difficulty: PuzzleDifficulty
+    /// Additive variant rules (e.g. killer cages). Empty for classic puzzles.
+    public let constraints: [AnyConstraint]
+    /// Opaque presentation payload (overlay SVG, rules text) the app renders.
+    public let presentation: PuzzlePresentation?
+
+    /// - Parameter id: An authored id, for bespoke puzzles whose rules live only in
+    ///   `presentation` and so cannot be told apart by their givens and constraints.
+    ///   Pass `nil` to derive the id from the content.
     public init(
+        id: String? = nil,
         solution: [[Int]],
         startingState: [[Int]],
-        difficulty: PuzzleDifficulty
+        difficulty: PuzzleDifficulty,
+        constraints: [AnyConstraint] = [],
+        presentation: PuzzlePresentation? = nil
     ) {
-        self.id = startingState.flatString(empty: "0")
+        self.id = id ?? Self.derivedID(startingState: startingState, constraints: constraints)
         self.solution = solution
         self.startingState = startingState
         self.difficulty = difficulty
+        self.constraints = constraints
+        self.presentation = presentation
+    }
+
+    /// The id a puzzle gets when none is authored: the starting state's 81 digits,
+    /// plus `~` and the sorted constraint identities joined by `_` when there are
+    /// constraints. Classic puzzles keep the id they have always had.
+    public static func derivedID(startingState: [[Int]], constraints: [AnyConstraint]) -> String {
+        var id = startingState.flatString(empty: "0")
+        if constraints.isEmpty == false {
+            id += "~" + constraints.map(\.identity).sorted().joined(separator: "_")
+        }
+        return id
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, solution, startingState, difficulty, constraints, presentation
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.solution = try container.decode([[Int]].self, forKey: .solution)
+        self.startingState = try container.decode([[Int]].self, forKey: .startingState)
+        self.difficulty = try container.decode(PuzzleDifficulty.self, forKey: .difficulty)
+        self.constraints =
+            try container.decodeIfPresent([AnyConstraint].self, forKey: .constraints) ?? []
+        self.presentation =
+            try container.decodeIfPresent(PuzzlePresentation.self, forKey: .presentation)
+    }
+
+    /// Classic puzzles encode exactly as they did before constraints existed: the
+    /// `constraints` key appears only when there are constraints, and
+    /// `presentation` only when set.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(solution, forKey: .solution)
+        try container.encode(startingState, forKey: .startingState)
+        try container.encode(difficulty, forKey: .difficulty)
+        if constraints.isEmpty == false {
+            try container.encode(constraints, forKey: .constraints)
+        }
+        try container.encodeIfPresent(presentation, forKey: .presentation)
+    }
+}
+
+/// Presentation payload for bespoke puzzles. Opaque to core; the app renders it.
+public struct PuzzlePresentation: Codable, Hashable, Sendable {
+    /// SVG drawn over the grid (cage outlines, decorations). Coordinate system is app-defined.
+    public let overlaySVG: String?
+    /// Human-readable rules, as authored. Core never interprets this.
+    public let rulesText: String?
+
+    public init(overlaySVG: String? = nil, rulesText: String? = nil) {
+        self.overlaySVG = overlaySVG
+        self.rulesText = rulesText
     }
 }
 
 /// Represents the intrinsic difficulty of a Sudoku puzzle
 ///
-/// # HoDoKu Rating System
-/// The `score` field represents the puzzle's HoDoKu cumulative effort rating,
-/// calculated by summing points for each solving technique used. This is a well-established
-/// standard used by the Sudoku community.
-///
-/// ## Difficulty Levels (HoDoKu Points)
-/// - **Beginner (1-300)**: Primarily basic techniques (naked/hidden singles)
-/// - **Intermediate (301-600)**: Intermediate techniques (pairs, triples, locked candidates)
-/// - **Advanced (601-1000)**: Advanced techniques (X-Wing, Swordfish, Wings)
-/// - **Expert (1001-1600)**: Complex chains and advanced patterns
-/// - **Master (1601-2000+)**: Extreme techniques and complex solving paths
-/// - **Custom (>2000)**: Special or modified puzzles
+/// # Score
+/// The `score` field is SudokuCore's cumulative effort score: the sum of
+/// ``TechniqueInfo/scorePoints`` over each step of the solve (see ``ScoreCalculator``).
+/// ``Level/scoreRange`` gives each level's range.
 ///
 /// ## Additional Ratings
 /// - **seRating**: Sudoku Explainer rating (difficulty of hardest technique)
-/// - **hodokuRating**: Same as score, stored separately for clarity
+/// - **hodokuRating** and **hodokuLevel**: ``HoDoKuCalculator``'s estimate of HoDoKu's own
+///   score and level. Puzzles rated before SudokuCore 2.0 hold their `score` in `hodokuRating`
+///   and have no `hodokuLevel`.
 /// - **estimatedTimeSeconds**: Predicted completion time
 ///
 /// This base rating is separate from performance scoring, which evaluates how well
@@ -50,23 +117,26 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
     public let level: Level
 
     /// Most advanced technique required to solve the puzzle
-    public let hardestTechnique: HintTechnique
+    public let hardestTechnique: TechniqueID
 
-    /// HoDoKu cumulative effort rating
+    /// Cumulative effort score: the sum of each solve step's ``TechniqueInfo/scorePoints``,
+    /// on SudokuCore's own scale rather than HoDoKu's.
     /// Represents intrinsic puzzle difficulty independent of player performance
     public let score: Int
 
     /// Optional standard ratings and time estimate
     public let seRating: Double?
     public let hodokuRating: Int?
+    public let hodokuLevel: HoDoKuLevel?
     public let estimatedTimeSeconds: Int?
 
     public init(
         level: Level,
-        hardestTechnique: HintTechnique,
+        hardestTechnique: TechniqueID,
         score: Int,
         seRating: Double? = nil,
         hodokuRating: Int? = nil,
+        hodokuLevel: HoDoKuLevel? = nil,
         estimatedTimeSeconds: Int? = nil
     ) {
         self.level = level
@@ -74,6 +144,7 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
         self.score = score
         self.seRating = seRating
         self.hodokuRating = hodokuRating
+        self.hodokuLevel = hodokuLevel
         self.estimatedTimeSeconds = estimatedTimeSeconds
     }
 
@@ -118,7 +189,7 @@ extension Puzzle {
             ],
             difficulty: PuzzleDifficulty(
                 level: .easy,
-                hardestTechnique: .hiddenSingle,
+                hardestTechnique: TechniqueInfo.hiddenSingle.id,
                 score: 0
             )
         )

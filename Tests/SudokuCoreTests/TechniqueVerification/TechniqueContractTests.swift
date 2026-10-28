@@ -13,19 +13,40 @@ import Testing
 struct TechniqueNameTests {
     @Test("Every technique round-trips through its name")
     func roundTrip() throws {
-        for technique in HintTechnique.allCases {
-            #expect(HintTechnique(rawValue: technique.rawValue) == technique)
+        let ids = TechniqueInfo.allClassic.map(\.id)
+        for id in ids {
+            #expect(TechniqueID(rawValue: id.rawValue) == id)
         }
-        let data = try JSONEncoder().encode(HintTechnique.allCases)
-        #expect(try JSONDecoder().decode([HintTechnique].self, from: data) == HintTechnique.allCases)
+        let data = try JSONEncoder().encode(ids)
+        #expect(try JSONDecoder().decode([TechniqueID].self, from: data) == ids)
+        #expect(try JSONDecoder().decode([TechniqueInfo].self, from: JSONEncoder().encode(TechniqueInfo.allClassic))
+            == TechniqueInfo.allClassic)
     }
 
     @Test("The retired Y-Wing name decodes as XY-Wing")
     func legacyYWing() throws {
-        #expect(HintTechnique(rawValue: "yWing") == .xyWing)
-        let decoded = try JSONDecoder().decode([HintTechnique].self, from: Data(#"["yWing","xyWing"]"#.utf8))
-        #expect(decoded == [.xyWing, .xyWing])
-        #expect(HintTechnique(rawValue: "notATechnique") == nil)
+        #expect(TechniqueID(rawValue: "yWing") == TechniqueInfo.xyWing.id)
+        let decoded = try JSONDecoder().decode([TechniqueID].self, from: Data(#"["yWing","xyWing"]"#.utf8))
+        #expect(decoded == [TechniqueInfo.xyWing.id, TechniqueInfo.xyWing.id])
+        #expect(ClassicTechniques.technique(for: "yWing")?.info == .xyWing)
+        #expect(ClassicTechniques.technique(for: "notATechnique") == nil)
+    }
+
+    @Test("A puzzle saved with the retired Y-Wing name reads as XY-Wing")
+    func legacyYWingPuzzle() throws {
+        let difficulty = PuzzleDifficulty(level: .hard, hardestTechnique: TechniqueInfo.xyWing.id, score: 700)
+        let json = String(decoding: try JSONEncoder().encode(difficulty), as: UTF8.self)
+            .replacingOccurrences(of: #""xyWing""#, with: #""yWing""#)
+        #expect(json.contains(#""yWing""#))
+        let decoded = try JSONDecoder().decode(PuzzleDifficulty.self, from: Data(json.utf8))
+        #expect(decoded.hardestTechnique == TechniqueInfo.xyWing.id)
+    }
+
+    @Test("The classic set is in solve order and matches the classic infos")
+    func classicOrder() {
+        let infos = ClassicTechniques.all.map(\.info)
+        #expect(infos == TechniqueInfo.allClassic.filter { $0 != .unknown })
+        #expect(zip(infos, infos.dropFirst()).allSatisfy { $0.difficulty <= $1.difficulty })
     }
 }
 
@@ -66,6 +87,7 @@ struct RatingSnapshot: Codable, Equatable, Sendable, CustomTestStringConvertible
     let score: Double
     let seRating: Double?
     let hodokuRating: Int?
+    let hodokuLevel: String?
     let hardestTechnique: String?
     let needsGuessing: Bool
 
@@ -77,6 +99,7 @@ struct RatingSnapshot: Codable, Equatable, Sendable, CustomTestStringConvertible
         score = result.score
         seRating = result.seRating
         hodokuRating = result.hodokuRating
+        hodokuLevel = result.hodokuLevel?.rawValue
         hardestTechnique = result.hardestTechnique?.rawValue
         needsGuessing = result.needsGuessing
     }

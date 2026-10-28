@@ -29,7 +29,7 @@ struct LibraryCase: Sendable, CustomTestStringConvertible {
     let code: String
     /// True when the technique must not fire (variant "x").
     let mustNotFire: Bool
-    let technique: HintTechnique
+    let technique: TechniqueInfo
     let state: BoardState
     let expected: Set<Move>
 
@@ -39,7 +39,7 @@ struct LibraryCase: Sendable, CustomTestStringConvertible {
     /// naked subsets; sashimi and Siamese fish are finned fish; a Dual Kite or Dual Empty
     /// Rectangle is two of them, so the hint finder finds one at a time. Turbot Fish (0403)
     /// covers shapes the hint finder doesn't have, and HoDoKuTests checks the Crane-shaped ones.
-    static let hodokuCodes: [String: HintTechnique] = [
+    static let hodokuCodes: [String: TechniqueInfo] = [
         "0000": .nakedSingle, "0002": .hiddenSingle, "0003": .nakedSingle,
         "0100": .lockedCandidatesPointing, "0101": .lockedCandidatesClaiming,
         "0110": .nakedPair, "0111": .nakedTriple,
@@ -57,12 +57,12 @@ struct LibraryCase: Sendable, CustomTestStringConvertible {
     ]
 
     /// Our codes for the techniques HoDoKu doesn't have. (A 4-Y-Wing is HoDoKu's WXYZ-Wing.)
-    static let ownCodes: [String: HintTechnique] = [
+    static let ownCodes: [String: TechniqueInfo] = [
         "M100": .crane, "M105": .fiveYWing, "M106": .sixYWing, "M107": .sevenYWing,
     ]
 
     /// The code each technique is written under in our library.
-    static let writtenCode: [HintTechnique: String] = [
+    static let writtenCode: [TechniqueInfo: String] = [
         .nakedSingle: "0003", .hiddenSingle: "0002",
         .lockedCandidatesPointing: "0100", .lockedCandidatesClaiming: "0101",
         .nakedPair: "0200", .nakedTriple: "0201", .nakedQuad: "0202",
@@ -76,13 +76,13 @@ struct LibraryCase: Sendable, CustomTestStringConvertible {
         .fiveYWing: "M105", .sixYWing: "M106", .sevenYWing: "M107",
     ]
 
-    static func load(_ text: String, library: String, codes: [String: HintTechnique]) -> [LibraryCase] {
+    static func load(_ text: String, library: String, codes: [String: TechniqueInfo]) -> [LibraryCase] {
         text.split(separator: "\n", omittingEmptySubsequences: false).enumerated().compactMap { index, line in
             parse(line.trimmingCharacters(in: .whitespacesAndNewlines), line: index + 1, library: library, codes: codes)
         }
     }
 
-    static func parse(_ text: String, line: Int, library: String, codes: [String: HintTechnique]) -> LibraryCase? {
+    static func parse(_ text: String, line: Int, library: String, codes: [String: TechniqueInfo]) -> LibraryCase? {
         guard text.hasPrefix(":") else { return nil }
         let fields = text.split(separator: ":", omittingEmptySubsequences: false).map(String.init)
         guard fields.count >= 7 else { return nil }
@@ -132,7 +132,7 @@ struct LibraryCase: Sendable, CustomTestStringConvertible {
 
     /// `state` as a library line: `technique` must give `expected` there, or with `mustNotFire`,
     /// nothing. `startingState` tells given digits from placed ones.
-    static func line(_ technique: HintTechnique, digits: [Int], state: BoardState, startingState: [[Int]],
+    static func line(_ technique: TechniqueInfo, digits: [Int], state: BoardState, startingState: [[Int]],
                      expected: Set<Move>, mustNotFire: Bool = false) -> String {
         let givens = (0..<81).map { i -> String in
             let value = state.grid[i / 9][i % 9]

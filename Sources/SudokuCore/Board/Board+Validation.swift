@@ -12,7 +12,23 @@ extension Board {
     }
 
     internal func updateCellValidation(grid: [[Int]]) {
-        let validOptions = Validator.validOptions(for: grid)
+        var validOptions = Validator.validOptions(for: grid)
+        constraintViolations = []
+        if constraints.isEmpty == false {
+            BoardState.pruneToFixpoint(
+                candidates: &validOptions, grid: grid,
+                solution: solution, constraints: constraints)
+            let snapshot = BoardState(
+                grid: grid,
+                pencilMarks: validOptions,
+                validOptions: validOptions,
+                solution: solution,
+                constraints: constraints
+            )
+            constraintViolations = constraints.enumerated().flatMap { index, constraint in
+                constraint.base.violations(in: snapshot).map { $0.indexed(index) }
+            }
+        }
         for (index, cell) in self.cells.enumerated() {
             self.cells[index].validOptions = validOptions[cell.position.row][cell.position.column]
         }
@@ -138,7 +154,9 @@ extension Board {
         self.completedHouses = completedHouses
         self.completedNumbers = completedNumbers
 
-        if (try? Validator.isCompleteAndValidSolution(grid)) == true {
+        if (try? Validator.isCompleteAndValidSolution(grid)) == true,
+            constraintViolations.isEmpty
+        {
             self.isSolved = true
         } else {
             self.isSolved = false

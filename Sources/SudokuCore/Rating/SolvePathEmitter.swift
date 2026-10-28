@@ -9,12 +9,12 @@ import Foundation
 
 public enum SolvePathEmitter {
     public struct SolveStep: Sendable, Equatable {
-        public let technique: HintTechnique
+        public let technique: TechniqueInfo
         public let actions: [HintAction]
         public let eliminations: Int
         public let placements: Int
 
-        public init(technique: HintTechnique, actions: [HintAction]) {
+        public init(technique: TechniqueInfo, actions: [HintAction]) {
             self.technique = technique
             self.actions = actions
             self.eliminations = actions.reduce(0) { acc, a in
@@ -34,7 +34,7 @@ public enum SolvePathEmitter {
     }
 
     /// Produce a deterministic solve path by repeatedly applying the first-found hint
-    /// based on `HintTechnique.orderedCases`.
+    /// based on `ClassicTechniques.all`.
     ///
     /// The uniqueness techniques join in only when the grid has exactly one solution, which
     /// is checked here so every caller rates the same way.
@@ -43,6 +43,16 @@ public enum SolvePathEmitter {
     ///   - maxIterations: safety cap to avoid infinite loops
     /// - Returns: `SolvePath` with ordered steps and final state
     public static func emit(from initialGrid: [[Int]], maxIterations: Int = 300) -> SolvePath {
+        emit(from: initialGrid, maxIterations: maxIterations) { HintFinder.firstHint(in: $0) }
+    }
+
+    /// ``emit(from:maxIterations:)``, taking each step from `nextHint` instead of the hint
+    /// finder's own order.
+    static func emit(
+        from initialGrid: [[Int]],
+        maxIterations: Int = 300,
+        nextHint: (BoardState) -> HintStep?
+    ) -> SolvePath {
         let isUnique = Validator.solutionCount(of: initialGrid).isUnique
         var state = BoardState.fromGrid(initialGrid, assumingUniqueSolution: isUnique)
         var steps: [SolveStep] = []
@@ -52,7 +62,7 @@ public enum SolvePathEmitter {
             iterations += 1
             if iterations > maxIterations { break }
 
-            guard let hint = HintFinder.firstHint(in: state) else { break }
+            guard let hint = nextHint(state) else { break }
             let step = SolveStep(
                 technique: hint.technique,
                 actions: hint.actions

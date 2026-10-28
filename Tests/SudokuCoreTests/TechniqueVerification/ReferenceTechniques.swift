@@ -101,10 +101,10 @@ enum Reference {
     // MARK: - Dispatch
 
     /// What every technique licenses on `state`, sharing the one n-Y-Wing enumeration.
-    static func licensedAll(_ techniques: [HintTechnique], in state: BoardState) -> [HintTechnique: Licensed] {
+    static func licensedAll(_ techniques: [TechniqueInfo], in state: BoardState) -> [TechniqueInfo: Licensed] {
         let wings = nYWings(Board(state))
-        let sizes: [HintTechnique: Int] = [.fourYWing: 4, .fiveYWing: 5, .sixYWing: 6, .sevenYWing: 7]
-        var out: [HintTechnique: Licensed] = [:]
+        let sizes: [TechniqueInfo: Int] = [.fourYWing: 4, .fiveYWing: 5, .sixYWing: 6, .sevenYWing: 7]
+        var out: [TechniqueInfo: Licensed] = [:]
         for technique in techniques {
             if let size = sizes[technique] {
                 out[technique] = wings[size] ?? Licensed()
@@ -115,7 +115,7 @@ enum Reference {
         return out
     }
 
-    static func licensed(_ technique: HintTechnique, in state: BoardState) -> Licensed {
+    static func licensed(_ technique: TechniqueInfo, in state: BoardState) -> Licensed {
         let board = Board(state)
         switch technique {
         case .nakedSingle: return nakedSingles(board)
@@ -156,7 +156,7 @@ enum Reference {
             case .uniqueRectangleType5: return uniqueRectangle(board, type: 5)
             default: return bug(board)
             }
-        case .validation, .unknown: return Licensed()
+        default: return Licensed()  // validation, unknown, and techniques core doesn't ship
         }
     }
 
