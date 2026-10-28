@@ -20,6 +20,17 @@ struct PuzzleCodableTests {
         #expect(puzzle.difficulty.hardestTechnique == TechniqueInfo.hiddenSingle.id)
     }
 
+    @Test("Classic puzzle JSON has no constraints or presentation keys")
+    func classicShapeUnchanged() throws {
+        let data = try JSONEncoder().encode(Puzzle.example())
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(Set(object.keys) == ["id", "solution", "startingState", "difficulty"])
+        // And byte-for-byte what the pre-constraint shape encodes to.
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        #expect(try encoder.encode(Puzzle.example()) == encoder.encode(LegacyPuzzleShape.example))
+    }
+
     @Test("A decoded puzzle keeps its authored id")
     func decodedIDKept() throws {
         var legacy = LegacyPuzzleShape.example

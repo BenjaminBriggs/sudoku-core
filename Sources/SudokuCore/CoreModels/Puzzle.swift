@@ -51,6 +51,10 @@ public struct Puzzle: Codable, Hashable, Identifiable, Sendable {
         return id
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case id, solution, startingState, difficulty, constraints, presentation
+    }
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.id = try container.decode(String.self, forKey: .id)
@@ -63,6 +67,20 @@ public struct Puzzle: Codable, Hashable, Identifiable, Sendable {
             try container.decodeIfPresent(PuzzlePresentation.self, forKey: .presentation)
     }
 
+    /// Classic puzzles encode exactly as they did before constraints existed: the
+    /// `constraints` key appears only when there are constraints, and
+    /// `presentation` only when set.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(solution, forKey: .solution)
+        try container.encode(startingState, forKey: .startingState)
+        try container.encode(difficulty, forKey: .difficulty)
+        if constraints.isEmpty == false {
+            try container.encode(constraints, forKey: .constraints)
+        }
+        try container.encodeIfPresent(presentation, forKey: .presentation)
+    }
 }
 
 /// Presentation payload for bespoke puzzles. Opaque to core; the app renders it.
