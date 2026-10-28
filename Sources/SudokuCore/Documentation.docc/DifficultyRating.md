@@ -4,36 +4,37 @@ Understand how SudokuCore calculates and uses puzzle difficulty ratings.
 
 ## Overview
 
-SudokuCore uses industry-standard rating systems to measure puzzle difficulty objectively. Understanding these systems helps you generate puzzles at appropriate difficulty levels and provide accurate difficulty information to players.
+SudokuCore rates a puzzle by solving it the way a person would and scoring the techniques the solve needs. Understanding the ratings helps you generate puzzles at appropriate difficulty levels and provide accurate difficulty information to players.
 
 ## Rating Systems
 
-### HoDoKu Rating (Cumulative)
+### Score (Cumulative)
 
-The HoDoKu rating is a cumulative score that sums the points for every solving technique used:
+A puzzle's ``PuzzleDifficulty/score`` adds up a fixed number of points for every step of the solve. The method is HoDoKu's, but the points and the level ranges are SudokuCore's own, so a score can't be compared with a rating from HoDoKu itself. Some API still carries HoDoKu's name: ``HoDoKuCalculator`` computes the score, and `hodokuRating` reports it.
 
 ```swift
 let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 45...55)
 let info = try SudokuDifficultyCalculator.calculateDifficulty(for: starting)
-print("HoDoKu score: \(info.hodokuRating ?? 0)")
-// Example output: "HoDoKu score: 450"
+print("Score: \(info.score)")
+// Example output: "Score: 450.0"
 ```
 
 #### Difficulty Levels
 
-The ``PuzzleDifficulty`` documentation defines these ranges:
+``PuzzleDifficulty/Level/scoreRange`` maps the score to a level:
 
-| Level | HoDoKu Range | Description |
-|-------|--------------|-------------|
-| Beginner | 1-300 | Primarily naked and hidden singles |
-| Intermediate | 301-600 | Pairs, triples, locked candidates |
-| Advanced | 601-1000 | X-Wing, Swordfish, basic wings |
-| Expert | 1001-1600 | Complex chains, advanced patterns |
-| Master | 1601-2000+ | Extreme techniques |
+| Level | Score |
+|-------|-------|
+| ``PuzzleDifficulty/Level/easy`` | 0–300 |
+| ``PuzzleDifficulty/Level/medium`` | 301–600 |
+| ``PuzzleDifficulty/Level/hard`` | 601–1000 |
+| ``PuzzleDifficulty/Level/expert`` | 1001–1600 |
+| ``PuzzleDifficulty/Level/professional`` | 1601–2000 |
+| ``PuzzleDifficulty/Level/custom`` | 2001 and up |
 
 #### Point Values
 
-Each technique contributes a fixed number of points to the cumulative score, regardless of how many eliminations the step produces:
+Each step adds its technique's ``TechniqueInfo/scorePoints``, regardless of how many eliminations the step produces:
 
 - **Naked Single**: 10 points
 - **Hidden Single**: 12 points
@@ -43,7 +44,7 @@ Each technique contributes a fixed number of points to the cumulative score, reg
 - **Swordfish**: 90 points
 - **XY-Wing**: 110 points
 
-See ``TechniqueInfo/hodokuPoints`` for the complete list.
+Every classic ``TechniqueInfo`` constant carries its points. The scale was tuned together with the level ranges, and differs from HoDoKu's: HoDoKu 2.6 gives a naked single 4 points and an X-Wing 140.
 
 ### Sudoku Explainer Rating (Peak Difficulty)
 
@@ -76,7 +77,7 @@ let info = try SudokuDifficultyCalculator.calculateDifficulty(for: starting)
 let puzzle = Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
 
 print("Level: \(puzzle.difficulty.level)")
-print("HoDoKu: \(puzzle.difficulty.score)")
+print("Score: \(puzzle.difficulty.score)")
 print("SE: \(puzzle.difficulty.seRating ?? 0)")
 print("Hardest technique: \(puzzle.difficulty.hardestTechnique)")
 ```
@@ -99,9 +100,9 @@ print("Calculated difficulty: \(info.score)")
 ``SudokuDifficultyCalculator`` is a convenience over lower-level types you can use directly:
 
 1. ``SolvePathEmitter`` simulates a human solve, applying the easiest applicable hint at each step and recording a technique-annotated path.
-2. ``HoDoKuCalculator`` sums fixed per-technique points over that path (cumulative effort).
+2. ``HoDoKuCalculator`` sums each step's ``TechniqueInfo/scorePoints`` over that path (cumulative effort).
 3. ``SECalculator`` reports the hardest technique on the path (peak difficulty).
-4. ``TimeEstimator`` converts a HoDoKu rating into a baseline time estimate.
+4. ``TimeEstimator`` converts a score into a baseline time estimate.
 
 Use them directly when you want the solve path itself or both ratings without re-solving:
 
@@ -114,7 +115,7 @@ for step in path.steps {
 
 let hodoku = HoDoKuCalculator.compute(from: path)
 let se = SECalculator.compute(from: path)
-print("HoDoKu \(hodoku.rating) (\(hodoku.classLabel)), SE \(se.rating)")
+print("Score \(hodoku.rating) (\(hodoku.classLabel)), SE \(se.rating)")
 print(hodoku.breakdown)  // techniqueId -> total points
 ```
 
@@ -169,7 +170,7 @@ func generatePuzzleWithConstraints() async -> Puzzle? {
         guard let info = try? SudokuDifficultyCalculator.calculateDifficulty(for: starting) else { continue }
         let puzzle = Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
 
-        // Want a puzzle in the 700-800 HoDoKu range
+        // Want a puzzle scoring 700-800
         if let hodoku = info.hodokuRating, (700...800).contains(hodoku) {
             return puzzle
         }
@@ -220,7 +221,7 @@ The cumulative score reflects all techniques used:
 // - 8 hidden singles (8 × 12 = 96)
 // - 3 naked pairs (3 × 20 = 60)
 // - 1 X-Wing (1 × 60 = 60)
-// Total HoDoKu score = 516 (Intermediate)
+// Total score = 516 (medium)
 ```
 
 ### Empty Cell Influence
@@ -238,7 +239,7 @@ Puzzle difficulty is intrinsic; player performance is how well a particular solv
 
 ```swift
 let result = PerformanceScoreCalculator.calculateScore(
-    baseDifficulty: puzzle.difficulty.score,        // HoDoKu rating
+    baseDifficulty: puzzle.difficulty.score,        // the puzzle's score
     elapsedTime: Date().timeIntervalSince(startTime),
     hintsUsed: board.hintsUsed,
     errorCount: board.incorrectMoves,

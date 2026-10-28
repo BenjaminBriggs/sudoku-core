@@ -49,8 +49,10 @@ public struct TechniqueInfo: Codable, Hashable, Sendable, Identifiable {
     public let seStepValue: Double?
     /// HoDoKu identifier, nil for unrated techniques.
     public let hodokuId: String?
-    /// HoDoKu base points, nil for unrated techniques.
-    public let hodokuPoints: Double?
+    /// Points each step with this technique adds to a puzzle's ``PuzzleDifficulty/score``,
+    /// nil for unrated techniques. SudokuCore's own scale, tuned together with
+    /// ``PuzzleDifficulty/Level/scoreRange``; not HoDoKu's step scores.
+    public let scorePoints: Double?
 
     public init(
         id: TechniqueID,
@@ -58,14 +60,14 @@ public struct TechniqueInfo: Codable, Hashable, Sendable, Identifiable {
         seId: String? = nil,
         seStepValue: Double? = nil,
         hodokuId: String? = nil,
-        hodokuPoints: Double? = nil
+        scorePoints: Double? = nil
     ) {
         self.id = id
         self.difficulty = difficulty
         self.seId = seId
         self.seStepValue = seStepValue
         self.hodokuId = hodokuId
-        self.hodokuPoints = hodokuPoints
+        self.scorePoints = scorePoints
     }
 }
 
@@ -73,11 +75,11 @@ extension TechniqueInfo {
     /// Classic constant builder keeping seId == hodokuId, as the legacy enum did.
     private static func classic(
         _ id: TechniqueID, _ difficulty: Int, _ seId: String,
-        _ seStepValue: Double, _ hodokuPoints: Double
+        _ seStepValue: Double, _ scorePoints: Double
     ) -> TechniqueInfo {
         TechniqueInfo(
             id: id, difficulty: difficulty, seId: seId,
-            seStepValue: seStepValue, hodokuId: seId, hodokuPoints: hodokuPoints)
+            seStepValue: seStepValue, hodokuId: seId, scorePoints: scorePoints)
     }
 
     public static let validation = classic("validation", 0, "Validation", 0.0, 0)

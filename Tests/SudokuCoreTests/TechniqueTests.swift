@@ -38,12 +38,12 @@ struct TechniqueTests {
     @Test("Classic constants preserve enum metadata")
     func classicMetadata() {
         #expect(TechniqueInfo.nakedSingle.difficulty == 10)
-        #expect(TechniqueInfo.nakedSingle.hodokuPoints == 10)
+        #expect(TechniqueInfo.nakedSingle.scorePoints == 10)
         #expect(TechniqueInfo.nakedSingle.seStepValue == 1.2)
         #expect(TechniqueInfo.nakedSingle.seId == "Single")
         #expect(TechniqueInfo.validation.difficulty == 0)
         #expect(TechniqueInfo.unknown.difficulty == 9999)
-        #expect(TechniqueInfo.xyzWing.hodokuPoints == 130)
+        #expect(TechniqueInfo.xyzWing.scorePoints == 130)
         // 35 = 33 real techniques + validation + unknown, one per legacy enum case.
         #expect(TechniqueInfo.allClassic.count == 35)
     }

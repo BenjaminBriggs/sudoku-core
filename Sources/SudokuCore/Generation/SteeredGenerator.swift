@@ -31,7 +31,7 @@ public enum SteerMiss: Error, Sendable {
 }
 
 extension PuzzleDifficulty.Level {
-    /// The HoDoKu scores `SudokuDifficultyCalculator` places at this level.
+    /// The scores `SudokuDifficultyCalculator` places at this level.
     public var scoreRange: ClosedRange<Int> {
         switch self {
         case .easy: 0...300

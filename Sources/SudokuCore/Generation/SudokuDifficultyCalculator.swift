@@ -140,7 +140,8 @@ public enum SudokuDifficultyCalculator {
         /// The calculated difficulty level
         public let level: PuzzleDifficulty.Level
 
-        /// The difficulty score in HoDoKu points (see the class-level difficulty ranges)
+        /// The difficulty score: the sum of each step's ``TechniqueInfo/scorePoints``
+        /// (see ``PuzzleDifficulty/Level/scoreRange``)
         public let score: Double
 
         /// All techniques that were used to solve the puzzle

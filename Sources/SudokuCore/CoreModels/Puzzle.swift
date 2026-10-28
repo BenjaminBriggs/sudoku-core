@@ -86,7 +86,8 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
     /// Most advanced technique required to solve the puzzle
     public let hardestTechnique: TechniqueID
 
-    /// HoDoKu cumulative effort rating
+    /// Cumulative effort score: the sum of each solve step's ``TechniqueInfo/scorePoints``,
+    /// on SudokuCore's own scale rather than HoDoKu's.
     /// Represents intrinsic puzzle difficulty independent of player performance
     public let score: Int
 

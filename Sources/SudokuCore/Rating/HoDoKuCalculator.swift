@@ -14,7 +14,7 @@ public enum HoDoKuCalculator {
         public let breakdown: [String: Int] // techniqueId -> total points
     }
 
-    /// Compute a HoDoKu-like rating using on-enum point values.
+    /// Compute a HoDoKu-like rating using each technique's ``TechniqueInfo/scorePoints``.
     public static func compute(for grid: [[Int]]) -> HoDoKuResult {
         let path = SolvePathEmitter.emit(from: grid)
         return compute(from: path)
@@ -27,9 +27,9 @@ public enum HoDoKuCalculator {
 
         for step in path.steps {
             let key = TechniqueMapping.hodokuId(for: step.technique)
-            // Standard HoDoKu scoring: fixed points per technique, regardless of
-            // how many eliminations the step produces.
-            let points = Int((step.technique.hodokuPoints ?? 0).rounded())
+            // HoDoKu's method with our own points: fixed points per technique,
+            // regardless of how many eliminations the step produces.
+            let points = Int((step.technique.scorePoints ?? 0).rounded())
             breakdown[key, default: 0] += points
             total += Double(points)
         }
