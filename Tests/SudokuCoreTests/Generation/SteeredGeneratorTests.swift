@@ -13,9 +13,10 @@ struct SteeredGeneratorTests {
 
     @Test("Steered puzzles rate at the level asked for", arguments: [PuzzleDifficulty.Level.easy, .medium, .hard])
     func reachesLevel(_ level: PuzzleDifficulty.Level) throws {
-        // Easy to Hard land almost every time; allow a few solutions for an unlucky one
+        // Beginner and Intermediate land almost every time; Advanced about a third of
+        // solutions, so allow enough solutions that a miss is a real failure.
         let steered = try #require(
-            Self.firstFound(tries: 5) { SudokuGenerator.createPuzzle(level: level) }
+            Self.firstFound(tries: 20) { SudokuGenerator.createPuzzle(level: level) }
         )
         let rerated = try SudokuDifficultyCalculator.calculateDifficulty(for: steered.puzzle.startingState)
         #expect(steered.matchesLevel)
@@ -67,7 +68,7 @@ struct SteeredGeneratorTests {
     @Test("Best effort reports a missed level")
     func bestEffortReportsMiss() throws {
         let steered = try #require(SudokuGenerator.createPuzzle(level: .professional, maxRatings: 2, bestEffort: true))
-        #expect(steered.matchesLevel == PuzzleDifficulty.Level.professional.scoreRange.contains(Int(steered.result.score)))
+        #expect(steered.matchesLevel == (steered.result.level == .professional))
         #expect(steered.result.needsGuessing == false)
     }
 
@@ -80,14 +81,21 @@ struct SteeredGeneratorTests {
         #expect(await task.value == nil)
     }
 
-    @Test("Score ranges cover every score once, matching the calculator's levels")
-    func scoreRanges() {
-        let levels = PuzzleDifficulty.Level.allCases
-        for score in [0, 1, 300, 301, 600, 601, 1000, 1001, 1600, 1601, 2000, 2001, 9000] {
-            #expect(levels.filter { $0.scoreRange.contains(score) }.count == 1)
+    @Test("Steered Beginner puzzles are singles in the tedium window", arguments: 0..<3)
+    func beginnerTedium(_: Int) throws {
+        let steered = try #require(Self.firstFound(tries: 3) { SudokuGenerator.createPuzzle(level: .easy) })
+        #expect(steered.result.difficulty == 0)
+        #expect(PuzzleDifficulty.Level.easy.tediumRange.contains(steered.result.tedium))
+        // 150 tedium is about 37 naked singles; 300 about 21 hidden ones
+        #expect((24...60).contains(Self.clues(steered.puzzle.startingState)))
+    }
+
+    @Test("Tedium windows: Beginner lighter than the rest")
+    func tediumWindows() {
+        #expect(PuzzleDifficulty.Level.easy.tediumRange == 150...300)
+        for level in PuzzleDifficulty.Level.allCases where level != .easy {
+            #expect(level.tediumRange == 250...450)
         }
-        #expect(PuzzleDifficulty.Level.expert.scoreRange == 1001...1600)
-        #expect(PuzzleDifficulty.Level.professional.scoreRange == 1601...2000)
     }
 
     // MARK: - Clue count
@@ -96,7 +104,9 @@ struct SteeredGeneratorTests {
         grid.joined().count { $0 != 0 }
     }
 
-    @Test("A clue range keeps the puzzle's clue count in it", arguments: [26...30, 31...40])
+    // Intermediate needs a step beyond singles, which random removal orders first reach at
+    // about 25 to 30 clues: puzzles with 31 or more are singles-only almost always.
+    @Test("A clue range keeps the puzzle's clue count in it", arguments: [23...26, 27...30])
     func cluesInRange(_ givens: ClosedRange<Int>) throws {
         let steered = try #require(
             Self.firstFound(tries: 10) { SudokuGenerator.createPuzzle(level: .medium, givens: givens) }
@@ -144,7 +154,7 @@ struct PuzzleCreatorLevelTests {
     /// so `.easy` came back Medium or harder.
     @Test("createPuzzleWithDifficulty returns the calculator's level", arguments: [PuzzleDifficulty.Level.easy, .medium, .hard])
     func returnsRequestedLevel(_ level: PuzzleDifficulty.Level) async throws {
-        let puzzle = try await PuzzleCreator.createPuzzleWithDifficulty(level, maxAttempts: 10)
+        let puzzle = try await PuzzleCreator.createPuzzleWithDifficulty(level, maxAttempts: 25)
         let rerated = try SudokuDifficultyCalculator.calculateDifficulty(for: puzzle.startingState)
         #expect(puzzle.difficulty.level == level)
         #expect(rerated.level == level)
@@ -155,6 +165,15 @@ struct PuzzleCreatorLevelTests {
 struct DifficultyMeasurementTests {
     private func result(_ techniques: [TechniqueInfo]) -> SudokuDifficultyCalculator.DifficultyResult {
         .init(level: .hard, score: 700, techniquesUsed: techniques, iterationCount: techniques.count, wasSolved: true)
+    }
+
+    @Test("Difficulty and tedium split the steps, leaving the guessing marker out")
+    func difficultyAndTedium() {
+        let rated = result([.nakedSingle, .xWing, .hiddenSingle, .nakedPair, .unknown])
+        #expect(rated.difficulty == 140 + 60)
+        #expect(rated.tedium == 4 + 14)
+        #expect(result([]).difficulty == 0)
+        #expect(result([]).tedium == 0)
     }
 
     @Test("Guessing is the .unknown marker")

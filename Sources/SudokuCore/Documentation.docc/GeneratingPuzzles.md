@@ -32,7 +32,7 @@ Prefer ``PuzzleCreator`` unless you need control over an individual pipeline sta
 
 ### Steering Towards a Level
 
-``SudokuGenerator/createPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)`` aims clue removal at a level instead of generating blind and filtering. It removes clues (whole orbits under a symmetry) to a minimal puzzle, binary-searches the removal order for the point where the rating reaches the level, and swaps clues to push a minimal puzzle that is still short of it. Puzzles that need guessing are never kept. Pass `givens` to bound the number of clues: only puzzles in the range are rated, so it costs nothing, and ``SudokuGenerator/steerPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)`` reports ``SteerMiss/givens`` when the range ruled the level out.
+``SudokuGenerator/createPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)`` aims clue removal at a level instead of generating blind and filtering. It removes clues (whole orbits under a symmetry) to a minimal puzzle, binary-searches the removal order for where the rating enters the level and its tedium window and where it leaves either, picks a point between, and swaps clues to push a minimal puzzle that is still one level short. Puzzles that need guessing are never kept. Pass `givens` to bound the number of clues: only puzzles in the range are rated, so it costs nothing, and ``SudokuGenerator/steerPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)`` reports ``SteerMiss/givens`` when the range ruled the level out.
 
 ```swift
 if let steered = SudokuGenerator.createPuzzle(level: .expert, symmetry: .rotational180) {
@@ -40,7 +40,7 @@ if let steered = SudokuGenerator.createPuzzle(level: .expert, symmetry: .rotatio
 }
 ```
 
-It returns `nil` when the level isn't reached within `maxRatings`; pass `bestEffort: true` for the closest puzzle instead, with `matchesLevel` false. ``PuzzleDifficulty/Level/scoreRange`` gives the scores the calculator places at each level.
+It returns `nil` when the level isn't reached within `maxRatings`; pass `bestEffort: true` for the closest puzzle instead, with `matchesLevel` false. ``PuzzleDifficulty/Level/tediumRange`` is the singles effort the generator aims for at each level (Beginner 150–300, the rest 250–450).
 
 For quality rules, ``SudokuDifficultyCalculator/DifficultyResult`` measures `needsGuessing`, `hardestTechniqueCount` (steps using the hardest technique) and `hardestTechniqueAfterLastHardestStep` (the hardest technique still needed once the hardest step is done).
 
@@ -61,18 +61,18 @@ let puzzle = Puzzle(
 )
 
 print("Created \(puzzle.difficulty.level) puzzle")
-print("Difficulty score: \(puzzle.difficulty.score)")
+print("Difficulty \(puzzle.difficulty.difficulty ?? 0), tedium \(puzzle.difficulty.tedium ?? 0)")
 ```
 
 ### Difficulty Levels
 
-Puzzles are classified after rating with ``SudokuDifficultyCalculator``:
+Puzzles are classified after rating with ``SudokuDifficultyCalculator``, by the hardest technique the solve needs:
 
-- `.easy` - Basic singles only
-- `.medium` - Pairs, triples, locked candidates
-- `.hard` - Fish patterns (X-Wing, Swordfish)
-- `.expert` - Advanced patterns (Wings, chains)
-- `.professional` - Extreme techniques
+- `.easy` (Beginner) - Singles only
+- `.medium` (Intermediate) - Locked candidates, pairs, triples
+- `.hard` (Advanced) - Quads, fish, wings, single-digit patterns, unique rectangles
+- `.expert` (Expert) - Finned swordfish and jellyfish, 4- to 7-Y-Wings
+- `.professional` (Master) - The solver had to guess
 
 ### Empty Cell Count
 
@@ -157,15 +157,23 @@ Use ``SudokuDifficultyCalculator`` to rate puzzles:
 ```swift
 let info = try SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
 
-print("Score: \(info.score)")
+print("\(info.level): difficulty \(info.difficulty), tedium \(info.tedium)")
 print("SE rating: \(info.seRating ?? 0)")
 print("Hardest technique: \(info.hardestTechnique ?? .hiddenSingle)")
 print("Estimated time: \(info.estimatedTimeSeconds ?? 0)s")
 ```
 
-### Score
+### Level, Difficulty and Tedium
 
-Cumulative difficulty based on all techniques needed, on SudokuCore's own scale. ``PuzzleDifficulty/Level/scoreRange`` gives each level's range; <doc:DifficultyRating> lists them, and covers the estimate of HoDoKu's own rating.
+The level is the hardest technique's:
+
+- **Beginner**: singles only
+- **Intermediate**: locked candidates, pairs, triples
+- **Advanced**: quads, fish, wings, single-digit patterns
+- **Expert**: finned swordfish and jellyfish
+- **Master**: needs guessing
+
+The score sums HoDoKu's points over every step, split into difficulty (steps beyond singles) and tedium (singles). <doc:DifficultyRating> has the full tables, and covers the estimate of HoDoKu's own rating.
 
 ### Sudoku Explainer Rating
 

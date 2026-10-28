@@ -100,7 +100,7 @@ A ``Puzzle`` represents a Sudoku puzzle with:
 
 - **Starting state**: Initial configuration with given cells
 - **Solution**: Complete solved grid
-- **Difficulty**: Level and score information
+- **Difficulty**: Level, difficulty and tedium
 
 Puzzles are immutable and can be shared, while boards are mutable game sessions.
 
@@ -108,9 +108,9 @@ Puzzles are immutable and can be shared, while boards are mutable game sessions.
 
 SudokuCore rates a puzzle by solving it the way a person would:
 
-### Score
+### Level, Difficulty and Tedium
 
-A cumulative score over every technique the solve needs, on SudokuCore's own scale, which sets the puzzle's level. ``PuzzleDifficulty/Level/scoreRange`` gives each level's range.
+The level is the hardest technique's: singles are Beginner; locked candidates, pairs and triples Intermediate; quads, fish, wings and single-digit patterns Advanced; finned swordfish and jellyfish Expert; a puzzle the solver has to guess at is Master. A long path never promotes a puzzle. The score sums HoDoKu's points over every step, split into difficulty (steps beyond singles) and tedium (singles).
 
 ### HoDoKu Rating
 

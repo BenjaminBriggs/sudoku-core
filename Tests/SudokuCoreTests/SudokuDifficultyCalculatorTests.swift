@@ -84,10 +84,8 @@ struct SudokuDifficultyCalculatorTests {
         #expect(result.wasSolved)
         #expect(result.level == .easy)
 
-        // Score should be in easy range (1-300)
-        #expect(
-            result.score >= 1.0 && result.score <= 300.0,
-            "Easy puzzle score should be 1-300, got \(result.score)")
+        #expect(result.difficulty == 0, "A Beginner puzzle has no steps beyond singles")
+        #expect(result.tedium == Int(result.score))
 
         // Should mostly use naked singles (the simplest technique)
         if let hardestTechnique = result.hardestTechnique {
@@ -112,10 +110,8 @@ struct SudokuDifficultyCalculatorTests {
         // Let's just verify it was solved and uses valid techniques
         #expect(result.techniquesUsed.isEmpty == false, "Should use at least one technique")
 
-        // Score should be in valid range (1-1000)
-        #expect(
-            result.score >= 1.0 && result.score <= 1000.0,
-            "Score should be 1-1000, got \(result.score)")
+        #expect(result.score >= 1.0)
+        #expect(result.level <= .medium, "Should be Beginner or Intermediate, got \(result.level)")
 
         // Verify the hardest technique is within reasonable bounds
         if let hardestTechnique = result.hardestTechnique {
@@ -179,7 +175,7 @@ struct SudokuDifficultyCalculatorTests {
 
     // MARK: - Comprehensive Score Range Tests
 
-    @Test("Easy puzzles produce scores in 1-300 range")
+    @Test("Easy puzzles are all tedium, no difficulty")
     func testEasyScoreRange() async throws {
         let result = try SudokuDifficultyCalculator.calculateDifficulty(
             for: easyPuzzle
@@ -187,9 +183,23 @@ struct SudokuDifficultyCalculatorTests {
 
         #expect(result.wasSolved)
         #expect(result.level == .easy)
-        #expect(
-            result.score >= 1.0 && result.score <= 300.0,
-            "Easy puzzle score \(result.score) should be in range 1-300")
+        #expect(result.difficulty == 0)
+        #expect(result.tedium > 0 && result.tedium == Int(result.score))
+        #expect(result.puzzleDifficulty.tedium == result.tedium)
+        #expect(result.puzzleDifficulty.difficulty == 0)
+        #expect(result.puzzleDifficulty.score == result.tedium)
+    }
+
+    @Test("A stalled solve is Master, whatever the steps before it")
+    func testGuessingIsMaster() throws {
+        // Stalls after a finned X-Wing; the solver fallback finishes it
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(for: RatedPuzzles.veryHardXYZWing.grid)
+        #expect(result.needsGuessing)
+        #expect(result.level == .professional)
+        #expect(result.hardestTechnique == .finnedXWing, "the marker isn't a technique")
+        #expect(Int(result.score) == result.difficulty + result.tedium, "the marker's points aren't counted")
+        #expect(result.puzzleDifficulty.level == .professional)
+        #expect(result.puzzleDifficulty.hardestTechnique == TechniqueInfo.finnedXWing.id)
     }
 
     @Test("Difficulty score increases with technique complexity")
@@ -224,9 +234,7 @@ struct SudokuDifficultyCalculatorTests {
             result.techniquesUsed.contains(TechniqueInfo.unknown) == false,
             "Puzzle should be solvable with hints alone (no fallback needed)")
         #expect(result.iterationCount > 0, "Should require multiple hint iterations")
-        #expect(
-            result.score <= 1000.0,
-            "Score should remain within calculator bounds, got \(result.score)")
+        #expect(result.level == .hard, "A naked quad makes it Advanced, got \(result.level)")
     }
 
     @Test("Score reflects iteration count complexity")
@@ -246,30 +254,15 @@ struct SudokuDifficultyCalculatorTests {
             "Iteration count should be at least as many as techniques used")
     }
 
-    @Test("Difficulty level correctly categorized based on score")
-    func testDifficultyLevelCategories() async throws {
-        let easyResult = try SudokuDifficultyCalculator.calculateDifficulty(
-            for: easyPuzzle
-        )
-
-        // Easy level should be assigned for scores <= 300
-        if easyResult.score <= 300.0 {
-            #expect(
-                easyResult.level == .easy,
-                "Score \(easyResult.score) in easy range should have easy level")
-        } else if easyResult.score <= 600.0 {
-            #expect(
-                easyResult.level == .medium,
-                "Score \(easyResult.score) in medium range should have medium level")
-        } else if easyResult.score <= 1000.0 {
-            #expect(
-                easyResult.level == .hard,
-                "Score \(easyResult.score) in hard range should have hard level")
-        } else {
-            #expect(
-                easyResult.level == .custom,
-                "Score \(easyResult.score) above 1000 should have custom level")
-        }
+    @Test("The level is the hardest step's", arguments: [
+        RatedPuzzles.easy, RatedPuzzles.medium, RatedPuzzles.hardSwordfish,
+        RatedPuzzles.veryHardXYZWing, RatedPuzzles.nakedQuadRegression,
+    ])
+    func testDifficultyLevelCategories(_ puzzle: RatedPuzzle) throws {
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(for: puzzle.grid)
+        let hardest = result.techniquesUsed.map(\.level).max() ?? .easy
+        #expect(result.level == hardest, "\(puzzle.name): hardest step \(hardest), got \(result.level)")
+        #expect(Int(result.score) == result.difficulty + result.tedium, "\(puzzle.name)")
     }
 
     @Test("Score calculation handles edge cases")

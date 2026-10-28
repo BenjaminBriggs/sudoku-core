@@ -98,16 +98,29 @@ public struct PuzzlePresentation: Codable, Hashable, Sendable {
 
 /// Represents the intrinsic difficulty of a Sudoku puzzle
 ///
-/// # Score
-/// The `score` field is SudokuCore's cumulative effort score: the sum of
-/// ``TechniqueInfo/scorePoints`` over each step of the solve (see ``ScoreCalculator``).
-/// ``Level/scoreRange`` gives each level's range.
+/// # Level
+/// The level is the hardest step's ``TechniqueInfo/level``, and nothing else:
+/// - **Beginner** (`.easy`): singles only
+/// - **Intermediate** (`.medium`): locked candidates, pairs, triples
+/// - **Advanced** (`.hard`): quads, fish, wings, single-digit patterns, unique rectangles, BUG+1
+/// - **Expert** (`.expert`): finned swordfish and jellyfish, 4- to 7-Y-Wings
+/// - **Master** (`.professional`): the solver had to guess
+/// - **Custom**: a puzzle the player made, not rated
+///
+/// # Score, difficulty and tedium
+/// Each step of the solve adds its technique's ``TechniqueInfo/scorePoints``, HoDoKu 2.6's
+/// step scores (see ``ScoreCalculator``):
+/// - **score**: points over every step, `difficulty + tedium`
+/// - **difficulty**: points over the steps beyond singles: one W-Wing is 150, a W-Wing and
+///   three pointings 300. Orders puzzles within a level.
+/// - **tedium**: points over the singles, 4 a naked single and 14 a hidden one: the number
+///   of blanks, weighted by how much scanning they take
 ///
 /// ## Additional Ratings
 /// - **seRating**: Sudoku Explainer rating (difficulty of hardest technique)
 /// - **hodokuRating** and **hodokuLevel**: ``HoDoKuCalculator``'s estimate of HoDoKu's own
-///   score and level. Puzzles rated before SudokuCore 2.0 hold their `score` in `hodokuRating`
-///   and have no `hodokuLevel`.
+///   score and level, with HoDoKu's score bands. Puzzles rated before SudokuCore 2.0 hold
+///   their `score` in `hodokuRating` and have no `hodokuLevel`.
 /// - **estimatedTimeSeconds**: Predicted completion time
 ///
 /// This base rating is separate from performance scoring, which evaluates how well
@@ -119,10 +132,15 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
     /// Most advanced technique required to solve the puzzle
     public let hardestTechnique: TechniqueID
 
-    /// Cumulative effort score: the sum of each solve step's ``TechniqueInfo/scorePoints``,
-    /// on SudokuCore's own scale rather than HoDoKu's.
-    /// Represents intrinsic puzzle difficulty independent of player performance
+    /// Points over every step of the solve: `difficulty + tedium`.
+    /// Represents intrinsic puzzle effort independent of player performance
     public let score: Int
+
+    /// Points over the steps beyond singles. `nil` on puzzles rated before it was kept.
+    public let difficulty: Int?
+
+    /// Points over the singles. `nil` on puzzles rated before it was kept.
+    public let tedium: Int?
 
     /// Optional standard ratings and time estimate
     public let seRating: Double?
@@ -134,6 +152,8 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
         level: Level,
         hardestTechnique: TechniqueID,
         score: Int,
+        difficulty: Int? = nil,
+        tedium: Int? = nil,
         seRating: Double? = nil,
         hodokuRating: Int? = nil,
         hodokuLevel: HoDoKuLevel? = nil,
@@ -142,6 +162,8 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
         self.level = level
         self.hardestTechnique = hardestTechnique
         self.score = score
+        self.difficulty = difficulty
+        self.tedium = tedium
         self.seRating = seRating
         self.hodokuRating = hodokuRating
         self.hodokuLevel = hodokuLevel
@@ -155,6 +177,14 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
         case expert
         case professional
         case custom
+    }
+}
+
+extension PuzzleDifficulty.Level: Comparable {
+    /// Beginner to Master, then Custom.
+    public static func < (lhs: Self, rhs: Self) -> Bool {
+        let order = Self.allCases
+        return order.firstIndex(of: lhs)! < order.firstIndex(of: rhs)!
     }
 }
 

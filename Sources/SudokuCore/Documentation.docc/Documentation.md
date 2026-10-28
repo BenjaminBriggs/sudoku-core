@@ -9,7 +9,7 @@ SudokuCore is the engine behind a Sudoku application: the game logic, puzzle gen
 - **Game State Management**: The ``Board`` class manages the entire game state with undo/redo support
 - **Puzzle Generation**: Create puzzles at various difficulty levels with guaranteed unique solutions
 - **Hint System**: Find solving techniques from basic to advanced patterns, each with a structured ``HintReasoning`` record for app-side presentation
-- **Difficulty Rating**: Rate puzzle difficulty with a cumulative score, a Sudoku Explainer rating and an estimate of HoDoKu's rating
+- **Difficulty Rating**: Level the puzzle by its hardest technique, score its difficulty and tedium, and estimate HoDoKu's own rating
 - **Validation**: Check puzzle validity, solution uniqueness, and player progress
 
 ## Topics

@@ -116,5 +116,17 @@ extension HintFinder {
         }
         return nil
     }
+
+    /// One hint from every technique in `techniques` that applies to `state`, in the array's
+    /// order (easiest first for the classic set). Validation is a check, not a technique, and
+    /// is left out.
+    public static func hints(
+        in state: BoardState,
+        using techniques: [any HintTechnique] = ClassicTechniques.all
+    ) -> [HintStep] {
+        techniques
+            .filter { $0.info != .validation }
+            .compactMap { $0.findHint(in: state) }
+    }
 }
 

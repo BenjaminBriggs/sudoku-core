@@ -12,7 +12,7 @@ import Foundation
 /// # Performance Score (100-100,000)
 ///
 /// The calculator produces a performance score from 100 to 100,000 based on:
-/// - **Base Difficulty**: Puzzle's HoDoKu rating (1-2000+)
+/// - **Base Difficulty**: Puzzle's score (1-2000+), its difficulty plus tedium
 /// - **Time Multiplier**: How quickly the puzzle was solved relative to target time
 /// - **Hint Penalty**: Reduction for each hint used
 /// - **Error Penalty**: Progressive reduction for mistakes
@@ -24,12 +24,14 @@ import Foundation
 /// - **30,000-70,000**: Good completion with minimal assistance
 /// - **70,000-100,000**: Excellent to perfect completion
 ///
-/// ## Target Times (for maximum time multiplier)
-/// - **Easy (1-300)**: 3-8 minutes
-/// - **Medium (301-600)**: 8-18 minutes
-/// - **Hard (601-1000)**: 18-35 minutes
-/// - **Expert (1001-1600)**: 35-55 minutes
-/// - **Professional (1601-2000+)**: 55-90 minutes
+/// ## Target Times (for maximum time multiplier), by score
+/// The score bands are HoDoKu's level bounds; the puzzle's level itself comes from its
+/// hardest technique, so these are effort bands, not levels.
+/// - **1-800**: 3-8 minutes
+/// - **801-1000**: 8-18 minutes
+/// - **1001-1600**: 18-35 minutes
+/// - **1601-1800**: 35-55 minutes
+/// - **1801-2000 (the clamp)**: 55-90 minutes
 ///
 /// ## Formula
 /// ```
@@ -53,7 +55,7 @@ public enum PerformanceScoreCalculator {
         /// The final performance score (100-100,000)
         public let score: Int
 
-        /// HoDoKu rating of the puzzle (1-2000+)
+        /// The puzzle's score (1-2000+), clamped to 2000
         public let baseDifficulty: Double
 
         /// Time multiplier applied (0.0-3.0)
@@ -117,7 +119,7 @@ public enum PerformanceScoreCalculator {
 
     /// Calculates performance score for a completed puzzle
     /// - Parameters:
-    ///   - baseDifficulty: Puzzle's HoDoKu rating (1-2000+)
+    ///   - baseDifficulty: Puzzle's score (1-2000+)
     ///   - elapsedTime: Time taken to complete in seconds
     ///   - hintsUsed: Number of hints used
     ///   - errorCount: Number of incorrect entries made
@@ -211,64 +213,65 @@ public enum PerformanceScoreCalculator {
         }
     }
 
-    /// Calculates target completion time in seconds based on difficulty, which the caller clamps
-    /// to 1...2000.
+    /// Calculates target completion time in seconds based on the score, which the caller clamps
+    /// to 1...2000. The bands are HoDoKu's level bounds: effort bands, not the puzzle's level.
     private static func calculateTargetTime(difficulty: Double) -> TimeInterval {
         switch difficulty {
-        case ...300:
-            // Easy: 3-8 minutes, scaled linearly
-            // At difficulty 1: 3 minutes (180s)
-            // At difficulty 300: 8 minutes (480s)
-            return 180.0 + ((difficulty - 1.0) / 299.0 * 300.0)
-
-        case ...600:
-            // Medium: 8-18 minutes, scaled linearly
-            // At difficulty 301: 8 minutes (480s)
-            // At difficulty 600: 18 minutes (1080s)
-            return 480.0 + ((difficulty - 301.0) / 299.0 * 600.0)
+        case ...800:
+            // Light: 3-8 minutes, scaled linearly
+            // At score 1: 3 minutes (180s)
+            // At score 800: 8 minutes (480s)
+            return 180.0 + ((difficulty - 1.0) / 799.0 * 300.0)
 
         case ...1000:
-            // Hard: 18-35 minutes, scaled linearly
-            // At difficulty 601: 18 minutes (1080s)
-            // At difficulty 1000: 35 minutes (2100s)
-            return 1080.0 + ((difficulty - 601.0) / 399.0 * 1020.0)
+            // Moderate: 8-18 minutes, scaled linearly
+            // At score 801: 8 minutes (480s)
+            // At score 1000: 18 minutes (1080s)
+            return 480.0 + ((difficulty - 801.0) / 199.0 * 600.0)
 
         case ...1600:
-            // Expert: 35-55 minutes, scaled linearly
-            // At difficulty 1001: 35 minutes (2100s)
-            // At difficulty 1600: 55 minutes (3300s)
-            return 2100.0 + ((difficulty - 1001.0) / 599.0 * 1200.0)
+            // Heavy: 18-35 minutes, scaled linearly
+            // At score 1001: 18 minutes (1080s)
+            // At score 1600: 35 minutes (2100s)
+            return 1080.0 + ((difficulty - 1001.0) / 599.0 * 1020.0)
+
+        case ...1800:
+            // Very heavy: 35-55 minutes, scaled linearly
+            // At score 1601: 35 minutes (2100s)
+            // At score 1800: 55 minutes (3300s)
+            return 2100.0 + ((difficulty - 1601.0) / 199.0 * 1200.0)
 
         default:
-            // Professional: 55-90 minutes, scaled linearly
-            // At difficulty 1601: 55 minutes (3300s)
-            // At difficulty 2000: 90 minutes (5400s)
-            return 3300.0 + ((difficulty - 1601.0) / 399.0 * 2100.0)
+            // Extreme: 55-90 minutes, scaled linearly
+            // At score 1801: 55 minutes (3300s)
+            // At score 2000 (the clamp): 90 minutes (5400s)
+            return 3300.0 + ((difficulty - 1801.0) / 199.0 * 2100.0)
         }
     }
 
-    /// Calculates hint penalty coefficient based on difficulty
-    /// Harder puzzles are more forgiving of hint usage
+    /// Calculates hint penalty coefficient based on the score
+    /// Heavier puzzles are more forgiving of hint usage. The bands are HoDoKu's level bounds:
+    /// effort bands, not the puzzle's level.
     private static func calculateHintPenaltyCoefficient(difficulty: Double) -> Double {
         switch difficulty {
-        case ...300:
-            // Easy: Steep penalty curve
+        case ...800:
+            // Light: Steep penalty curve
             return 0.30
 
-        case ...600:
-            // Medium: Moderate penalty curve
+        case ...1000:
+            // Moderate: Moderate penalty curve
             return 0.22
 
-        case ...1000:
-            // Hard: Gentler penalty curve
+        case ...1600:
+            // Heavy: Gentler penalty curve
             return 0.16
 
-        case ...1600:
-            // Expert: More forgiving
+        case ...1800:
+            // Very heavy: More forgiving
             return 0.12
 
         default:
-            // Professional: Most forgiving
+            // Extreme: Most forgiving
             return 0.08
         }
     }
@@ -283,11 +286,11 @@ public enum PerformanceScoreCalculator {
         let coefficient = calculateHintPenaltyCoefficient(difficulty: difficulty)
 
         // Exponential penalty formula: 1 - (1 - e^(-coefficient × count))
-        // Easy (0.30): 1 hint ~26%, 3 hints ~59%, 5 hints ~78%
-        // Medium (0.22): 1 hint ~20%, 3 hints ~48%, 5 hints ~67%
-        // Hard (0.16): 1 hint ~15%, 3 hints ~38%, 5 hints ~55%
-        // Expert (0.12): 1 hint ~11%, 3 hints ~30%, 5 hints ~45%
-        // Professional (0.08): 1 hint ~8%, 3 hints ~21%, 5 hints ~33%
+        // Up to 800 (0.30): 1 hint ~26%, 3 hints ~59%, 5 hints ~78%
+        // Up to 1000 (0.22): 1 hint ~20%, 3 hints ~48%, 5 hints ~67%
+        // Up to 1600 (0.16): 1 hint ~15%, 3 hints ~38%, 5 hints ~55%
+        // Up to 1800 (0.12): 1 hint ~11%, 3 hints ~30%, 5 hints ~45%
+        // Above (0.08): 1 hint ~8%, 3 hints ~21%, 5 hints ~33%
         let penalty = 1.0 - exp(-coefficient * Double(hintsUsed))
         return Swift.max(0.0, 1.0 - penalty)
     }
