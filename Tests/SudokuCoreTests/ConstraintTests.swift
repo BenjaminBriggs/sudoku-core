@@ -58,6 +58,27 @@ struct ConstraintTests {
         }
     }
 
+    @Test("Decoding a constraint with cells outside the grid throws, not traps")
+    func cellsOutOfGrid() throws {
+        let json = Data(
+            #"{"type":"test.forbidDigit","payload":{"position":{"row":9,"column":0},"digit":1}}"#.utf8)
+        let error = #expect(throws: ConstraintDecodingError.self) {
+            _ = try JSONDecoder().decode(AnyConstraint.self, from: json)
+        }
+        guard case .cellsOutOfGrid(let typeID)? = error else {
+            Issue.record("Expected cellsOutOfGrid, got \(String(describing: error))")
+            return
+        }
+        #expect(typeID == "test.forbidDigit")
+        // The same shape inside a puzzle surfaces as the same error.
+        let puzzleJSON = Data(
+            #"{"id":"x","solution":[],"startingState":[],"difficulty":{"level":"easy","hardestTechnique":"hiddenSingle","score":0},"constraints":[\#(String(decoding: json, as: UTF8.self))]}"#
+                .utf8)
+        #expect(throws: ConstraintDecodingError.self) {
+            _ = try JSONDecoder().decode(Puzzle.self, from: puzzleJSON)
+        }
+    }
+
     @Test("typeID and identity read through the wrapper")
     func wrapperExposesIdentity() {
         let constraint = AnyConstraint(ForbidDigit(position: .init(row: 1, column: 2), digit: 7))

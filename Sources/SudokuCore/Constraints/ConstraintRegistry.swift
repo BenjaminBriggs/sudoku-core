@@ -27,7 +27,13 @@ public enum ConstraintRegistry {
             types[C.typeID] = identity
         }
         decoders.withLock { table in
-            table[C.typeID] = { decoder in AnyConstraint(try C(from: decoder)) }
+            table[C.typeID] = { decoder in
+                let constraint = try C(from: decoder)
+                guard AnyConstraint.declaresCellsInGrid(constraint) else {
+                    throw ConstraintDecodingError.cellsOutOfGrid(C.typeID)
+                }
+                return AnyConstraint(constraint)
+            }
         }
     }
 

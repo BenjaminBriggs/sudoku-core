@@ -51,7 +51,7 @@ The contract, enforced by the engine:
 - **Pruning is removals-only, scoped to your declared `cells`.** Mutations to other cells and any *added* candidates are ignored.
 - **Pruning runs repeatedly to a fixpoint.** Each pass rebuilds `state` from the current candidates, so eliminations made by other constraints become visible to you on later passes. Don't cache state across calls.
 - **Report definite breaches only.** A violation should mean the rule is broken or unsatisfiable, not "might go wrong". If your rule becomes unsatisfiable, report a violation rather than pruning cells to an empty candidate set.
-- `cells` must be inside the 9×9 grid — ``AnyConstraint`` traps out-of-range indices at wrap time.
+- `cells` must be inside the 9×9 grid — decoding a constraint that declares cells outside it throws ``ConstraintDecodingError/cellsOutOfGrid(_:)``, and ``AnyConstraint`` traps at wrap time for a constraint built in code.
 
 ## Identity
 

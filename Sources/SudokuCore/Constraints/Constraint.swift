@@ -65,12 +65,16 @@ public enum ConstraintDecodingError: Error, CustomStringConvertible {
     /// The payload's `type` has no registered `Constraint` implementation.
     /// Register the variant module (e.g. `KillerSudoku.register()`) before decoding.
     case unknownType(String)
+    /// The payload decoded, but it declares cells outside the 9×9 grid.
+    case cellsOutOfGrid(String)
 
     public var description: String {
         switch self {
         case .unknownType(let id):
             return
                 "No Constraint registered for type \"\(id)\". Call the variant module's register() before decoding."
+        case .cellsOutOfGrid(let id):
+            return "Constraint \"\(id)\" declares cells outside the 9×9 grid."
         }
     }
 }

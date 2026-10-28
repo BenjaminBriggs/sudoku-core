@@ -25,7 +25,7 @@ public struct AnyConstraint: Sendable, Hashable {
 
     public init<C: Constraint>(_ constraint: C) {
         precondition(
-            constraint.cells.allSatisfy { (0..<9).contains($0.row) && (0..<9).contains($0.column) },
+            Self.declaresCellsInGrid(constraint),
             "Constraint \"\(C.typeID)\" declares cells outside the 9×9 grid"
         )
         self.base = constraint
@@ -33,6 +33,12 @@ public struct AnyConstraint: Sendable, Hashable {
         self.encodeBody = { encoder in try constraint.encode(to: encoder) }
         self.isEqualTo = { other in (other as? C) == constraint }
         self.hashInto = { hasher in hasher.combine(constraint) }
+    }
+
+    /// Whether every declared cell lies inside the 9×9 grid. Decoding checks this
+    /// and throws; building a constraint in code traps instead.
+    static func declaresCellsInGrid(_ constraint: some Constraint) -> Bool {
+        constraint.cells.allSatisfy { (0..<9).contains($0.row) && (0..<9).contains($0.column) }
     }
 
     public static func == (lhs: AnyConstraint, rhs: AnyConstraint) -> Bool {
