@@ -46,8 +46,10 @@ struct KillerEndToEndTests {
         #expect(decoded.presentation?.rulesText == puzzle.presentation?.rulesText)
     }
 
-    @Test("Killer puzzle solves with combined classic + killer techniques")
+    @Test("Killer puzzle solves end to end under cage pruning")
     func endToEndSolve() {
+        // Cage pruning runs before any technique, so the path here is classic
+        // singles; the killer techniques are in the set but never needed.
         let puzzle = makeKillerPuzzle()
         var state = BoardState.fromGrid(puzzle.startingState, constraints: puzzle.constraints)
         let techniques = ClassicTechniques.all + KillerSudoku.techniques
@@ -63,10 +65,11 @@ struct KillerEndToEndTests {
         #expect(state.grid == puzzle.solution)
     }
 
-    @Test("Killer techniques fire where classic techniques cannot")
+    @Test("CageCombinations fires on candidates the engine has not pruned")
     func killerTechniquesNeeded() throws {
-        // Empty grid except a single 2-cell cage: classic techniques see 9 candidates
-        // everywhere and find nothing; CageCombinations must act on pencil marks.
+        // Empty grid except a single 2-cell cage, with the constraint attached
+        // after fromGrid so its pruning has not run: classic techniques see 9
+        // candidates everywhere and find nothing; CageCombinations acts on them.
         let cage = KillerCage(
             cells: [.init(row: 4, column: 4), .init(row: 4, column: 5)],
             sum: 3

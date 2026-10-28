@@ -124,6 +124,8 @@ let hint = HintFinder.firstHint(
 )
 ```
 
+**Pruning runs before every technique.** ``BoardState/fromGrid(_:constraints:assumingUniqueSolution:)``, ``Board/state`` and ``BoardState/applying(_:)`` apply every constraint's `prune` before a technique sees the state, and the classic techniques work on those pruned candidates. A cage-forced cell is therefore a naked single by the time the finder runs, and its reasoning cites the classic neighbours, not the cage. A variant technique only earns its place for deductions pruning cannot express. The killer module's `CageLastCell` and `CageCombinations` show the shape of a technique, but on a state the engine built its own pruning has already made their moves. If you want your techniques — and the explanations they carry — to own a deduction, leave it out of `prune`.
+
 The classic uniqueness techniques (Unique Rectangles and BUG+1) stay sound alongside constraints because ``BoardState/assumesUniqueSolution`` means the givens have one solution under classic rules alone, which is what `Board` checks. Don't set it because your constraints make the puzzle unique: a deadly pattern that breaks a cage sum isn't a second solution, so the uniqueness argument no longer holds.
 
 Namespace your ``TechniqueID``s with a module prefix (`killer.cageLastCell`, `myApp.thermoSweep`) — bare camel-case ids are reserved for the classic techniques, and collisions silently shadow built-ins in id-based lookups. Leave the SE/HoDoKu rating fields of ``TechniqueInfo`` nil: the package does not rate variant puzzles.
