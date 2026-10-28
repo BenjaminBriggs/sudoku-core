@@ -40,7 +40,7 @@ if let steered = SudokuGenerator.createPuzzle(level: .expert, symmetry: .rotatio
 }
 ```
 
-It returns `nil` when the level isn't reached within `maxRatings`; pass `bestEffort: true` for the closest puzzle instead, with `matchesLevel` false. ``PuzzleDifficulty/Level/scoreRange`` gives the HoDoKu scores the calculator places at each level.
+It returns `nil` when the level isn't reached within `maxRatings`; pass `bestEffort: true` for the closest puzzle instead, with `matchesLevel` false. ``PuzzleDifficulty/Level/scoreRange`` gives the scores the calculator places at each level.
 
 For quality rules, ``SudokuDifficultyCalculator/DifficultyResult`` measures `needsGuessing`, `hardestTechniqueCount` (steps using the hardest technique) and `hardestTechniqueAfterLastHardestStep` (the hardest technique still needed once the hardest step is done).
 
@@ -157,21 +157,15 @@ Use ``SudokuDifficultyCalculator`` to rate puzzles:
 ```swift
 let info = try SudokuDifficultyCalculator.calculateDifficulty(for: startingState)
 
-print("HoDoKu score: \(info.hodokuRating ?? 0)")
+print("Score: \(info.score)")
 print("SE rating: \(info.seRating ?? 0)")
 print("Hardest technique: \(info.hardestTechnique ?? .hiddenSingle)")
 print("Estimated time: \(info.estimatedTimeSeconds ?? 0)s")
 ```
 
-### HoDoKu Rating System
+### Score
 
-Cumulative difficulty based on all techniques needed:
-
-- **Beginner (1-300)**: Naked/hidden singles
-- **Intermediate (301-600)**: Locked candidates, pairs, triples
-- **Advanced (601-1000)**: Fish patterns, basic wings
-- **Expert (1001-1600)**: Complex chains, advanced patterns
-- **Master (1601+)**: Extreme techniques
+Cumulative difficulty based on all techniques needed, on SudokuCore's own scale. ``PuzzleDifficulty/Level/scoreRange`` gives each level's range; <doc:DifficultyRating> lists them, and covers the estimate of HoDoKu's own rating.
 
 ### Sudoku Explainer Rating
 

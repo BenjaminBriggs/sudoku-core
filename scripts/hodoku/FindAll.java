@@ -8,6 +8,7 @@
 // Run with Java 21 or later:
 //   java -cp HoDoKu.jar FindAll.java states  < states.tsv  > steps.tsv
 //   java -cp HoDoKu.jar FindAll.java puzzles < puzzles.tsv > solutions.tsv
+//   java -cp HoDoKu.jar FindAll.java rate    < puzzles.tsv > ratings.tsv
 //
 // states: each input line is key TAB grid (81 digits, 0 for empty) TAB 81 comma-separated
 // candidate lists. For each, prints every step HoDoKu finds, one per line:
@@ -19,6 +20,10 @@
 //
 // puzzles: each input line is key TAB grid. Prints key TAB number of solutions (stopping at
 // 2) TAB the solution when there is exactly one.
+//
+// rate: each input line is key TAB grid. Solves it with HoDoKu's default settings and prints
+// key TAB 1 if solved, else 0 TAB score TAB level (EASY to EXTREME) TAB the step types used,
+// space-separated.
 
 import java.io.*;
 import java.util.*;
@@ -32,10 +37,31 @@ public class FindAll {
         // HoDoKu prints its own messages to stdout; keep stdout for results.
         PrintWriter out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
         System.setOut(System.err);
+
+        String line;
+        if (args.length > 0 && args[0].equals("rate")) {
+            // HoDoKu's own settings, so the rating is the one HoDoKu gives.
+            SudokuSolver solver = SudokuSolverFactory.getDefaultSolverInstance();
+            while ((line = in.readLine()) != null) {
+                String[] p = line.split("\t");
+                Sudoku2 s = new Sudoku2();
+                s.setSudoku(p[1].replace('0', '.'));
+                solver.setSudoku(s);
+                boolean solved = solver.solve();
+                StringBuilder types = new StringBuilder();
+                for (SolutionStep step : solver.getSteps()) {
+                    if (types.length() > 0) types.append(' ');
+                    types.append(step.getType().getArgName());
+                }
+                out.println(p[0] + "\t" + (solved ? 1 : 0) + "\t" + solver.getScore() + "\t"
+                        + solver.getSudoku().getLevel().getType().name() + "\t" + types);
+            }
+            out.flush();
+            System.exit(0);
+        }
         // A Unique Rectangle needs both of its digits in all four corners.
         Options.getInstance().setAllowUniquenessMissingCandidates(false);
 
-        String line;
         if (args.length > 0 && args[0].equals("puzzles")) {
             SudokuGenerator generator = SudokuGeneratorFactory.getDefaultGeneratorInstance();
             while ((line = in.readLine()) != null) {

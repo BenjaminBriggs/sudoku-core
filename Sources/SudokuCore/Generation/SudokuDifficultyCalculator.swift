@@ -9,22 +9,16 @@ import Foundation
 
 /// Calculates Sudoku difficulty by simulating human solving with available hint techniques
 ///
-/// # HoDoKu Rating System
+/// # Score
 ///
-/// The calculator uses the HoDoKu cumulative effort rating system, which sums points
-/// for each technique used during the solve process. This is a well-established standard
-/// used by the Sudoku community.
-///
-/// ## Difficulty Ranges (HoDoKu Points)
-/// - **Beginner (1-300)**: Primarily naked/hidden singles, basic techniques
-/// - **Intermediate (301-600)**: Requires pairs, triples, pointing/claiming
-/// - **Advanced (601-1000)**: Advanced techniques like X-Wing, Swordfish, Wings
-/// - **Expert (1001-1600)**: Complex chains and advanced patterns
-/// - **Master (1601-2000+)**: Extreme techniques and complex solving paths
+/// The level comes from ``ScoreCalculator``'s cumulative effort score, which sums
+/// ``TechniqueInfo/scorePoints`` for each step of the solve. ``PuzzleDifficulty/Level/scoreRange``
+/// gives each level's range.
 ///
 /// ## Additional Ratings
 /// The calculator also computes:
 /// - **SE Rating**: Sudoku Explainer rating (hardest technique used)
+/// - **HoDoKu Rating**: ``HoDoKuCalculator``'s estimate of HoDoKu's own score and level
 /// - **Time Estimate**: Estimated completion time based on difficulty
 ///
 /// ## Solving Process
@@ -33,7 +27,7 @@ import Foundation
 /// 2. Attempting techniques in order from easiest to hardest
 /// 3. Applying the first applicable hint found
 /// 4. Repeating until solved or no more hints available
-/// 5. Recording all techniques used and computing HoDoKu/SE ratings
+/// 5. Recording all techniques used and computing the score and ratings
 public enum SudokuDifficultyCalculator {
     enum DifficultyError: Error {
         case unsolved
@@ -42,6 +36,13 @@ public enum SudokuDifficultyCalculator {
     /// Determines difficulty by solving the puzzle with progressively harder techniques
     /// - Returns: Difficulty information including level, score, and techniques used
     public static func calculateDifficulty(for initialGrid: [[Int]]) throws -> DifficultyResult {
+        try calculateDifficulty(for: initialGrid, estimatingHoDoKu: true)
+    }
+
+    /// ``calculateDifficulty(for:)``, leaving out the HoDoKu estimate when `estimatingHoDoKu` is
+    /// false. The estimate solves the puzzle a second time, so the generator leaves it out of the
+    /// many ratings it makes along the way.
+    static func calculateDifficulty(for initialGrid: [[Int]], estimatingHoDoKu: Bool) throws -> DifficultyResult {
 
         // Build a solve path once and derive metrics from it
         let path = SolvePathEmitter.emit(from: initialGrid)
@@ -73,31 +74,34 @@ public enum SudokuDifficultyCalculator {
         wasSolved = state.isSolved
 
         // Calculate difficulty metrics
-        // Compute SE / HoDoKu ratings and time estimate from the same path
+        // Compute the score, SE rating and time estimate from the same path; the HoDoKu
+        // estimate solves in HoDoKu's order.
         let se = SECalculator.compute(from: path)
-        let hodoku = HoDoKuCalculator.compute(from: path)
-        let timeEstimate = TimeEstimator.estimate(fromHoDoKu: hodoku.rating)
+        let score = ScoreCalculator.compute(from: path)
+        let hodoku = estimatingHoDoKu ? HoDoKuCalculator.compute(for: initialGrid) : nil
+        let timeEstimate = TimeEstimator.estimate(fromHoDoKu: score.score)
 
         return try calculateDifficultyMetrics(
             wasSolved: wasSolved,
             techniquesUsed: techniquesUsed,
             iterationCount: iterationCount,
+            score: score.score,
             seRating: se.rating,
-            hodokuRating: hodoku.rating,
+            hodoku: hodoku,
             estimatedTimeSeconds: timeEstimate.personalizedSeconds ?? timeEstimate.baselineSeconds
         )
     }
 
     // Helpers moved to SolveUtilities.swift (BoardState.fromGrid, BoardState.isSolved, BoardState.applying, HintFinder.firstHint)
 
-    /// Calculates difficulty metrics based on HoDoKu rating
-    /// Uses the HoDoKu cumulative effort score to classify difficulty level
+    /// Calculates difficulty metrics, classifying the level by the cumulative effort score
     private static func calculateDifficultyMetrics(
         wasSolved: Bool,
         techniquesUsed: [TechniqueInfo],
         iterationCount: Int,
+        score: Int,
         seRating: Double?,
-        hodokuRating: Int,
+        hodoku: HoDoKuCalculator.Rating?,
         estimatedTimeSeconds: Int?
     ) throws -> DifficultyResult {
         // If not solved, throw error
@@ -116,21 +120,18 @@ public enum SudokuDifficultyCalculator {
             )
         }
 
-        // Use HoDoKu rating as the primary score
-        let score = Double(hodokuRating)
-
-        // Determine difficulty level based on HoDoKu rating thresholds, which cover every rating
-        // from 0 up.
-        let level = PuzzleDifficulty.Level.allCases.first { $0.scoreRange.contains(Int(score)) }!
+        // The score's ranges cover every score from 0 up.
+        let level = PuzzleDifficulty.Level.allCases.first { $0.scoreRange.contains(score) }!
 
         return DifficultyResult(
             level: level,
-            score: score,
+            score: Double(score),
             techniquesUsed: techniquesUsed,
             iterationCount: iterationCount,
             wasSolved: wasSolved,
             seRating: seRating,
-            hodokuRating: hodokuRating,
+            hodokuRating: hodoku?.score,
+            hodokuLevel: hodoku?.level,
             estimatedTimeSeconds: estimatedTimeSeconds
         )
     }
@@ -155,7 +156,12 @@ public enum SudokuDifficultyCalculator {
 
         /// Optional standard ratings and time
         public let seRating: Double?
+        /// ``HoDoKuCalculator``'s estimate of HoDoKu's score, nil when the hint finder can't
+        /// solve the puzzle.
         public let hodokuRating: Int?
+        /// ``HoDoKuCalculator``'s estimate of HoDoKu's level, nil when the hint finder can't
+        /// solve the puzzle.
+        public let hodokuLevel: HoDoKuLevel?
         public let estimatedTimeSeconds: Int?
 
         /// The most advanced technique used (ignores `.unknown` fallback marker)
@@ -206,6 +212,7 @@ public enum SudokuDifficultyCalculator {
             wasSolved: Bool,
             seRating: Double? = nil,
             hodokuRating: Int? = nil,
+            hodokuLevel: HoDoKuLevel? = nil,
             estimatedTimeSeconds: Int? = nil
         ) {
             self.level = level
@@ -215,6 +222,7 @@ public enum SudokuDifficultyCalculator {
             self.wasSolved = wasSolved
             self.seRating = seRating
             self.hodokuRating = hodokuRating
+            self.hodokuLevel = hodokuLevel
             self.estimatedTimeSeconds = estimatedTimeSeconds
         }
 
@@ -235,6 +243,7 @@ public enum SudokuDifficultyCalculator {
                 score: Int(self.score),
                 seRating: self.seRating,
                 hodokuRating: self.hodokuRating,
+                hodokuLevel: self.hodokuLevel,
                 estimatedTimeSeconds: self.estimatedTimeSeconds
             )
         }

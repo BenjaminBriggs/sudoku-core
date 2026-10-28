@@ -87,6 +87,7 @@ struct RatingSnapshot: Codable, Equatable, Sendable, CustomTestStringConvertible
     let score: Double
     let seRating: Double?
     let hodokuRating: Int?
+    let hodokuLevel: String?
     let hardestTechnique: String?
     let needsGuessing: Bool
 
@@ -98,6 +99,7 @@ struct RatingSnapshot: Codable, Equatable, Sendable, CustomTestStringConvertible
         score = result.score
         seRating = result.seRating
         hodokuRating = result.hodokuRating
+        hodokuLevel = result.hodokuLevel?.rawValue
         hardestTechnique = result.hardestTechnique?.rawValue
         needsGuessing = result.needsGuessing
     }

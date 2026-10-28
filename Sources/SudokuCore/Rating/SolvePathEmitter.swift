@@ -43,6 +43,16 @@ public enum SolvePathEmitter {
     ///   - maxIterations: safety cap to avoid infinite loops
     /// - Returns: `SolvePath` with ordered steps and final state
     public static func emit(from initialGrid: [[Int]], maxIterations: Int = 300) -> SolvePath {
+        emit(from: initialGrid, maxIterations: maxIterations) { HintFinder.firstHint(in: $0) }
+    }
+
+    /// ``emit(from:maxIterations:)``, taking each step from `nextHint` instead of the hint
+    /// finder's own order.
+    static func emit(
+        from initialGrid: [[Int]],
+        maxIterations: Int = 300,
+        nextHint: (BoardState) -> HintStep?
+    ) -> SolvePath {
         let isUnique = Validator.solutionCount(of: initialGrid).isUnique
         var state = BoardState.fromGrid(initialGrid, assumingUniqueSolution: isUnique)
         var steps: [SolveStep] = []
@@ -52,7 +62,7 @@ public enum SolvePathEmitter {
             iterations += 1
             if iterations > maxIterations { break }
 
-            guard let hint = HintFinder.firstHint(in: state) else { break }
+            guard let hint = nextHint(state) else { break }
             let step = SolveStep(
                 technique: hint.technique,
                 actions: hint.actions

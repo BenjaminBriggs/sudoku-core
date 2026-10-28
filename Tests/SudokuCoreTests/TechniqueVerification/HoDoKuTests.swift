@@ -182,6 +182,20 @@ enum HoDoKu {
         return out
     }
 
+    /// HoDoKu's own rating of each keyed grid, with its default settings: nil where HoDoKu can't
+    /// solve it.
+    static func ratings(for grids: [(key: String, grid: [[Int]])]) throws -> [String: (score: Int, level: HoDoKuLevel)?] {
+        var out: [String: (score: Int, level: HoDoKuLevel)?] = [:]
+        let lines = grids.map { "\($0.key)\t\($0.grid.flatMap { $0 }.map(String.init).joined())" }
+        for line in try run("rate", lines) {
+            let fields = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
+            guard fields.count >= 4, let score = Int(fields[2]) else { continue }
+            let level = HoDoKuLevel(rawValue: fields[3].lowercased())
+            out[fields[0]] = fields[1] == "1" ? level.map { (score, $0) } : .some(nil)
+        }
+        return out
+    }
+
     // MARK: Differences of definition
 
     /// HoDoKu's steps at `state` in the hint finder's terms. Where the two define a technique

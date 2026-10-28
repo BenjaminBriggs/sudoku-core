@@ -10,7 +10,7 @@ SudokuCore rates a puzzle by solving it the way a person would and scoring the t
 
 ### Score (Cumulative)
 
-A puzzle's ``PuzzleDifficulty/score`` adds up a fixed number of points for every step of the solve. The method is HoDoKu's, but the points and the level ranges are SudokuCore's own, so a score can't be compared with a rating from HoDoKu itself. Some API still carries HoDoKu's name: ``HoDoKuCalculator`` computes the score, and `hodokuRating` reports it.
+A puzzle's ``PuzzleDifficulty/score`` adds up a fixed number of points for every step of the solve, and decides its level. The method is HoDoKu's, but the points and the level ranges are SudokuCore's own, so a score can't be compared with a rating from HoDoKu itself; for that, see the HoDoKu rating below. ``ScoreCalculator`` computes the score.
 
 ```swift
 let (solution, starting) = await SudokuGenerator.generatePuzzle(targetsEmptyCells: 45...55)
@@ -45,6 +45,31 @@ Each step adds its technique's ``TechniqueInfo/scorePoints``, regardless of how 
 - **XY-Wing**: 110 points
 
 Every classic ``TechniqueInfo`` constant carries its points. The scale was tuned together with the level ranges, and differs from HoDoKu's: HoDoKu 2.6 gives a naked single 4 points and an X-Wing 140.
+
+### HoDoKu Rating (Estimated)
+
+``PuzzleDifficulty/hodokuRating`` and ``PuzzleDifficulty/hodokuLevel`` estimate the score and level HoDoKu itself gives the puzzle, on HoDoKu's scale. They're for comparing with HoDoKu; the puzzle's level comes from its own score.
+
+``HoDoKuCalculator`` solves the puzzle trying techniques in HoDoKu's order, and adds HoDoKu 2.6's points for each step (``RatingTables/HoDoKu/steps``). As in HoDoKu, the level is the higher of two: the score's band, and the level of the hardest technique used. One finned Swordfish makes a puzzle ``HoDoKuLevel/unfair`` whatever its score.
+
+| ``HoDoKuLevel`` | Score up to |
+|-------|-------|
+| ``HoDoKuLevel/easy`` | 800 |
+| ``HoDoKuLevel/medium`` | 1000 |
+| ``HoDoKuLevel/hard`` | 1600 |
+| ``HoDoKuLevel/unfair`` | 1800 |
+| ``HoDoKuLevel/extreme`` | no limit |
+
+```swift
+let info = try SudokuDifficultyCalculator.calculateDifficulty(for: starting)
+if let rating = info.hodokuRating, let level = info.hodokuLevel {
+    print("HoDoKu: \(rating) (\(level))")
+}
+```
+
+It's an estimate. HoDoKu has techniques the hint finder doesn't, such as chains, Sue de Coq, Hidden Rectangles and Remote Pairs, and where it uses them its path, and so its rating, differ. Across the 3,745 shipped puzzles the hint finder solves, the estimate gave HoDoKu's level for 96% and its exact score for 58%; the misses are all hard or harder. The HoDoKu cross-check holds it to that (see `scripts/hodoku/README.md`). When the hint finder can't solve a puzzle there's no estimate, and both properties are nil: HoDoKu would go on with techniques the hint finder doesn't have.
+
+Puzzles rated before SudokuCore 2.0 hold their own score in `hodokuRating` and have no `hodokuLevel`.
 
 ### Sudoku Explainer Rating (Peak Difficulty)
 
@@ -100,11 +125,12 @@ print("Calculated difficulty: \(info.score)")
 ``SudokuDifficultyCalculator`` is a convenience over lower-level types you can use directly:
 
 1. ``SolvePathEmitter`` simulates a human solve, applying the easiest applicable hint at each step and recording a technique-annotated path.
-2. ``HoDoKuCalculator`` sums each step's ``TechniqueInfo/scorePoints`` over that path (cumulative effort).
+2. ``ScoreCalculator`` sums each step's ``TechniqueInfo/scorePoints`` over that path (cumulative effort).
 3. ``SECalculator`` reports the hardest technique on the path (peak difficulty).
-4. ``TimeEstimator`` converts a score into a baseline time estimate.
+4. ``HoDoKuCalculator`` solves again in HoDoKu's order to estimate HoDoKu's rating.
+5. ``TimeEstimator`` converts a score into a baseline time estimate.
 
-Use them directly when you want the solve path itself or both ratings without re-solving:
+Use them directly when you want the solve path itself or the ratings without re-solving:
 
 ```swift
 let path = SolvePathEmitter.emit(from: startingState)
@@ -113,10 +139,10 @@ for step in path.steps {
     print("\(step.technique): \(step.placements) placements, \(step.eliminations) eliminations")
 }
 
-let hodoku = HoDoKuCalculator.compute(from: path)
+let score = ScoreCalculator.compute(from: path)
 let se = SECalculator.compute(from: path)
-print("Score \(hodoku.rating) (\(hodoku.classLabel)), SE \(se.rating)")
-print(hodoku.breakdown)  // techniqueId -> total points
+print("Score \(score.score) (\(score.level)), SE \(se.rating)")
+print(score.breakdown)  // technique id -> total points
 ```
 
 ## Hardest Technique
@@ -171,7 +197,7 @@ func generatePuzzleWithConstraints() async -> Puzzle? {
         let puzzle = Puzzle(solution: solution, startingState: starting, difficulty: info.puzzleDifficulty)
 
         // Want a puzzle scoring 700-800
-        if let hodoku = info.hodokuRating, (700...800).contains(hodoku) {
+        if (700...800).contains(Int(info.score)) {
             return puzzle
         }
     }

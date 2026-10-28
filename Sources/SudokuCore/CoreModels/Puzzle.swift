@@ -98,22 +98,16 @@ public struct PuzzlePresentation: Codable, Hashable, Sendable {
 
 /// Represents the intrinsic difficulty of a Sudoku puzzle
 ///
-/// # HoDoKu Rating System
-/// The `score` field represents the puzzle's HoDoKu cumulative effort rating,
-/// calculated by summing points for each solving technique used. This is a well-established
-/// standard used by the Sudoku community.
-///
-/// ## Difficulty Levels (HoDoKu Points)
-/// - **Beginner (1-300)**: Primarily basic techniques (naked/hidden singles)
-/// - **Intermediate (301-600)**: Intermediate techniques (pairs, triples, locked candidates)
-/// - **Advanced (601-1000)**: Advanced techniques (X-Wing, Swordfish, Wings)
-/// - **Expert (1001-1600)**: Complex chains and advanced patterns
-/// - **Master (1601-2000+)**: Extreme techniques and complex solving paths
-/// - **Custom (>2000)**: Special or modified puzzles
+/// # Score
+/// The `score` field is SudokuCore's cumulative effort score: the sum of
+/// ``TechniqueInfo/scorePoints`` over each step of the solve (see ``ScoreCalculator``).
+/// ``Level/scoreRange`` gives each level's range.
 ///
 /// ## Additional Ratings
 /// - **seRating**: Sudoku Explainer rating (difficulty of hardest technique)
-/// - **hodokuRating**: Same as score, stored separately for clarity
+/// - **hodokuRating** and **hodokuLevel**: ``HoDoKuCalculator``'s estimate of HoDoKu's own
+///   score and level. Puzzles rated before SudokuCore 2.0 hold their `score` in `hodokuRating`
+///   and have no `hodokuLevel`.
 /// - **estimatedTimeSeconds**: Predicted completion time
 ///
 /// This base rating is separate from performance scoring, which evaluates how well
@@ -133,6 +127,7 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
     /// Optional standard ratings and time estimate
     public let seRating: Double?
     public let hodokuRating: Int?
+    public let hodokuLevel: HoDoKuLevel?
     public let estimatedTimeSeconds: Int?
 
     public init(
@@ -141,6 +136,7 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
         score: Int,
         seRating: Double? = nil,
         hodokuRating: Int? = nil,
+        hodokuLevel: HoDoKuLevel? = nil,
         estimatedTimeSeconds: Int? = nil
     ) {
         self.level = level
@@ -148,6 +144,7 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
         self.score = score
         self.seRating = seRating
         self.hodokuRating = hodokuRating
+        self.hodokuLevel = hodokuLevel
         self.estimatedTimeSeconds = estimatedTimeSeconds
     }
 
