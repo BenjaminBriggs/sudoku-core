@@ -142,10 +142,10 @@ struct BoardConstraintTests {
         }
     }
 
-    @Test("Restoration filters pencil marks forbidden by constraints")
-    func restoreFiltersConstraintForbiddenMarks() {
-        // Constraint forbids 2 at (0,1); persisted marks there claim {2, 3}.
-        // Classic rules allow {2, 3, 7} at (0,1), so 3 must survive the filter.
+    @Test("Restoration keeps pencil marks verbatim, constraints or not")
+    func restoreKeepsMarksVerbatim() {
+        // Constraint forbids 2 at (0,1); persisted marks there claim {2, 3}. Marks
+        // are the player's: play never filters them, so restore must not either.
         let position = Puzzle.Index(row: 0, column: 1)
         let constraint = AnyConstraint(ForbidDigit(position: position, digit: 2))
         let board = Board(puzzle: examplePuzzle(with: constraint))
@@ -167,8 +167,8 @@ struct BoardConstraintTests {
         )
 
         let restored = board.cell(at: position).simplePencilMarks
-        #expect(restored.contains(2) == false)
-        #expect(restored.contains(3))
+        #expect(restored == [2, 3])
+        #expect(board.cell(at: position).validOptions.contains(2) == false)
     }
 
     @Test("Stale violations clear when constraints are removed")
