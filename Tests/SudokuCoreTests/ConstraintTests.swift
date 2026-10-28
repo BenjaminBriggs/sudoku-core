@@ -9,6 +9,7 @@ struct ForbidDigit: Constraint {
     let position: Puzzle.Index
     let digit: Int
 
+    var identity: String { "forbid\(digit)-\(position.row * 9 + position.column)" }
     var cells: [Puzzle.Index] { [position] }
 
     func violations(in state: BoardState) -> [ConstraintViolation] {
@@ -57,6 +58,13 @@ struct ConstraintTests {
         }
     }
 
+    @Test("typeID and identity read through the wrapper")
+    func wrapperExposesIdentity() {
+        let constraint = AnyConstraint(ForbidDigit(position: .init(row: 1, column: 2), digit: 7))
+        #expect(constraint.typeID == "test.forbidDigit")
+        #expect(constraint.identity == "forbid7-11")
+    }
+
     @Test("Lenient decoding preserves unknown constraint types verbatim")
     func lenientDecodePreservesUnknown() throws {
         let json = Data(
@@ -69,6 +77,12 @@ struct ConstraintTests {
 
         let unknown = try #require(constraint.base as? UnknownConstraint)
         #expect(unknown.originalTypeID == "future.thermometer")
+        #expect(constraint.typeID == "future.thermometer")
+        // Identity is the authored key plus a payload digest that is stable across runs.
+        #expect(constraint.identity.hasPrefix("future.thermometer-"))
+        #expect(constraint.identity.count == "future.thermometer-".count + 16)
+        let again = try decoder.decode(AnyConstraint.self, from: json)
+        #expect(again.identity == constraint.identity)
         // Inert: no cells, no violations, no pruning surface.
         #expect(unknown.cells.isEmpty)
         #expect(unknown.violations(in: BoardState.fromGrid(Puzzle.example().startingState)).isEmpty)

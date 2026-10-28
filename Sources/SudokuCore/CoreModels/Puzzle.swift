@@ -7,6 +7,11 @@
 import Foundation
 
 public struct Puzzle: Codable, Hashable, Identifiable, Sendable {
+    /// Identity of the puzzle's content. Unless an id is given, it is derived by
+    /// ``derivedID(startingState:constraints:)``: the 81-digit starting state, and
+    /// for a puzzle with constraints a `~` followed by each constraint's
+    /// ``Constraint/identity``, sorted and joined by `_`. Solution and presentation
+    /// never take part. Decoding keeps whatever id the JSON carries.
     public let id: String
     public let solution: [[Int]]
     public let startingState: [[Int]]
@@ -16,19 +21,34 @@ public struct Puzzle: Codable, Hashable, Identifiable, Sendable {
     /// Opaque presentation payload (overlay SVG, rules text) the app renders.
     public let presentation: PuzzlePresentation?
 
+    /// - Parameter id: An authored id, for bespoke puzzles whose rules live only in
+    ///   `presentation` and so cannot be told apart by their givens and constraints.
+    ///   Pass `nil` to derive the id from the content.
     public init(
+        id: String? = nil,
         solution: [[Int]],
         startingState: [[Int]],
         difficulty: PuzzleDifficulty,
         constraints: [AnyConstraint] = [],
         presentation: PuzzlePresentation? = nil
     ) {
-        self.id = startingState.flatString(empty: "0")
+        self.id = id ?? Self.derivedID(startingState: startingState, constraints: constraints)
         self.solution = solution
         self.startingState = startingState
         self.difficulty = difficulty
         self.constraints = constraints
         self.presentation = presentation
+    }
+
+    /// The id a puzzle gets when none is authored: the starting state's 81 digits,
+    /// plus `~` and the sorted constraint identities joined by `_` when there are
+    /// constraints. Classic puzzles keep the id they have always had.
+    public static func derivedID(startingState: [[Int]], constraints: [AnyConstraint]) -> String {
+        var id = startingState.flatString(empty: "0")
+        if constraints.isEmpty == false {
+            id += "~" + constraints.map(\.identity).sorted().joined(separator: "_")
+        }
+        return id
     }
 
     public init(from decoder: Decoder) throws {
@@ -42,6 +62,7 @@ public struct Puzzle: Codable, Hashable, Identifiable, Sendable {
         self.presentation =
             try container.decodeIfPresent(PuzzlePresentation.self, forKey: .presentation)
     }
+
 }
 
 /// Presentation payload for bespoke puzzles. Opaque to core; the app renders it.

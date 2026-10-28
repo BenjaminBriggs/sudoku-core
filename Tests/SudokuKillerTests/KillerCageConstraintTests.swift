@@ -18,6 +18,17 @@ struct KillerCageConstraintTests {
         sum: 6  // forces digits {1,2,3}
     )
 
+    @Test("Cage identity is the sum and the sorted cells")
+    func identity() {
+        #expect(cage.identity == "k6-0.1.2")
+        let shuffled = KillerCage(
+            cells: [.init(row: 1, column: 4), .init(row: 0, column: 0), .init(row: 0, column: 1)],
+            sum: 15
+        )
+        #expect(shuffled.identity == "k15-0.1.13")
+        #expect(AnyConstraint(shuffled).identity == shuffled.identity)
+    }
+
     @Test("No violations on an empty grid")
     func emptyGrid() {
         let state = BoardState.fromGrid(grid([]))

@@ -21,6 +21,12 @@ struct Thermometer: Constraint {
 
     let cells: [Puzzle.Index]                 // bulb first
 
+    // Also stable forever: Puzzle.id is built from it. Cell order is the rule
+    // here, so it is kept; sort cells when order doesn't matter.
+    var identity: String {
+        "thermo-" + cells.map { String($0.row * 9 + $0.column) }.joined(separator: ".")
+    }
+
     func violations(in state: BoardState) -> [ConstraintViolation] {
         var previous = 0
         for cell in cells {
@@ -46,6 +52,18 @@ The contract, enforced by the engine:
 - **Pruning runs repeatedly to a fixpoint.** Each pass rebuilds `state` from the current candidates, so eliminations made by other constraints become visible to you on later passes. Don't cache state across calls.
 - **Report definite breaches only.** A violation should mean the rule is broken or unsatisfiable, not "might go wrong". If your rule becomes unsatisfiable, report a violation rather than pruning cells to an empty candidate set.
 - `cells` must be inside the 9×9 grid — ``AnyConstraint`` traps out-of-range indices at wrap time.
+
+## Identity
+
+``Puzzle/id`` is the puzzle's content identity, and the app keys progress, navigation and share links on it. For a classic puzzle it is the 81-digit starting state, unchanged from before. A puzzle with constraints appends `~` and each constraint's ``Constraint/identity``, sorted and joined by `_`, so two killer puzzles with the same (often empty) givens and different cages get different ids:
+
+```
+000000000…000~k15-0.1.9_k7-2.3_k9-4.13
+```
+
+`identity` is a wire contract like `typeID`: never change it once puzzles have shipped, keep it URL-safe, make it independent of authoring order, and start it with a type-specific marker so it cannot collide with another type's. It does not have to be parseable back into a constraint.
+
+A bespoke puzzle whose rules live only in ``PuzzlePresentation`` has no constraints to tell it apart, so give it an authored id: ``Puzzle/init(id:solution:startingState:difficulty:constraints:presentation:)`` keeps the id you pass, and decoding keeps the `id` key in the JSON.
 
 ## Registration — before any decoding
 

@@ -13,6 +13,7 @@ struct PropagateForbid: Constraint {
     let position: Puzzle.Index
     let digit: Int
 
+    var identity: String { "propagate-\(watchedDigit)-\(digit)" }
     var cells: [Puzzle.Index] { [watched, position] }
 
     func violations(in state: BoardState) -> [ConstraintViolation] { [] }
@@ -30,6 +31,7 @@ struct RogueConstraint: Constraint {
     static let typeID = "test.rogue"
     let position: Puzzle.Index
 
+    var identity: String { "rogue" }
     var cells: [Puzzle.Index] { [position] }
 
     func violations(in state: BoardState) -> [ConstraintViolation] { [] }

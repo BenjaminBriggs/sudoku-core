@@ -26,7 +26,7 @@ SudokuCore is a Swift 6 package (iOS 18+/macOS 15+) providing Sudoku game mechan
 
 ### Module Layout (Sources/SudokuCore/)
 
-- **CoreModels/** — Foundation types: `Puzzle` (immutable definition with solution, startingState, difficulty, optional constraints + presentation payload), `Puzzle.Index` (row/col position), `PuzzleDifficulty`, `SudokuUnit` (row/column/house), `UndoStep`, `Solution` (typealias for `[[Int]]`)
+- **CoreModels/** — Foundation types: `Puzzle` (immutable definition with solution, startingState, difficulty, optional constraints + presentation payload; `id` is the givens plus each constraint's `identity`), `Puzzle.Index` (row/col position), `PuzzleDifficulty`, `SudokuUnit` (row/column/house), `UndoStep`, `Solution` (typealias for `[[Int]]`)
 - **Board/** — `Board` is the main `@Observable @MainActor` class managing gameplay state. Contains 81 `Board.Cell` objects in a flat row-major array. Applies constraint pruning to candidates and surfaces `constraintViolations`. Functionality split across extensions: `Board+Marking`, `Board+UndoRedo`, `Board+Validation`, `Board+Checking`, `Board+Helpers`, `Board+StateRestoration`
 - **Constraints/** — Variant extension point: `Constraint` protocol (violations + candidate pruning), `AnyConstraint` (type-erased Codable wrapper, `{"type":…,"payload":…}`), `ConstraintRegistry` (typeID → type, register at startup). Variants are additive rules on the classic 9×9
 - **Generation/** — Puzzle creation pipeline: `SolutionGenerator` (backtracking with bitset optimization) → `SudokuGenerator` (cell removal with uniqueness validation) → `SudokuDifficultyCalculator` → `PuzzleCreator` (orchestrator). Also includes `SudokuValidator` and `SudokuSolver`. Classic-only; the package does not generate variant puzzles

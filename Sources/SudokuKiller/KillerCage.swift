@@ -46,6 +46,11 @@ public struct KillerCage: Constraint {
 extension KillerCage {
     public static let typeID = "killerCage"
 
+    /// `k<sum>-<cells>`, cells as sorted row-major indices: `k15-0.1.9`.
+    public var identity: String {
+        "k\(sum)-" + cells.map { $0.row * 9 + $0.column }.sorted().map(String.init).joined(separator: ".")
+    }
+
     public func violations(in state: BoardState) -> [ConstraintViolation] {
         var placed: [Int] = []
         var emptyCount = 0

@@ -13,7 +13,12 @@ public struct AnyConstraint: Sendable, Hashable {
     /// (e.g. `constraint.base as? KillerCage`).
     public let base: any Constraint
 
-    private let typeID: String
+    /// The wrapped constraint's type key. For a leniently decoded unknown
+    /// constraint this is the key it was authored with, not the placeholder.
+    public let typeID: String
+
+    /// The wrapped constraint's ``Constraint/identity``.
+    public var identity: String { base.identity }
     private let encodeBody: @Sendable (Encoder) throws -> Void
     private let isEqualTo: @Sendable (any Constraint) -> Bool
     private let hashInto: @Sendable (inout Hasher) -> Void

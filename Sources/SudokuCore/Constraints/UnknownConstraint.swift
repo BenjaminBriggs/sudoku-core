@@ -24,6 +24,11 @@ public struct UnknownConstraint: Constraint {
 
     public var cells: [Puzzle.Index] { [] }
 
+    /// The authored type key plus a digest of the payload, so puzzles rebuilt
+    /// around preserved constraints keep distinct ids without core knowing the
+    /// authoring client's identity rule.
+    public var identity: String { "\(originalTypeID)-\(payload.digest)" }
+
     public func violations(in state: BoardState) -> [ConstraintViolation] { [] }
 
     public func prune(candidates: inout PencilMarks, in state: BoardState) {}
@@ -54,6 +59,40 @@ enum JSONValue: Hashable, Sendable {
     case string(String)
     case array([JSONValue])
     case object([String: JSONValue])
+}
+
+extension JSONValue {
+    /// Deterministic text form: object keys sorted, no whitespace.
+    var canonical: String {
+        switch self {
+        case .null: return "null"
+        case .bool(let value): return value ? "true" : "false"
+        case .int(let value): return String(value)
+        case .double(let value): return String(value)
+        case .string(let value):
+            let escaped = value
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            return "\"" + escaped + "\""
+        case .array(let values):
+            return "[" + values.map(\.canonical).joined(separator: ",") + "]"
+        case .object(let members):
+            let fields = members.keys.sorted().map { "\"\($0)\":" + members[$0]!.canonical }
+            return "{" + fields.joined(separator: ",") + "}"
+        }
+    }
+
+    /// FNV-1a 64-bit digest of ``canonical``, as 16 hex digits. Stable across
+    /// processes and releases, unlike `Hasher`.
+    var digest: String {
+        var hash: UInt64 = 0xcbf2_9ce4_8422_2325
+        for byte in canonical.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* 0x0000_0100_0000_01b3
+        }
+        let hex = String(hash, radix: 16)
+        return String(repeating: "0", count: 16 - hex.count) + hex
+    }
 }
 
 extension JSONValue: Codable {

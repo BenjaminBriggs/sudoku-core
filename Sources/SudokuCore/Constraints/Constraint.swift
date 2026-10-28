@@ -14,6 +14,15 @@ public protocol Constraint: Sendable, Codable, Hashable {
     /// Stable discriminator used as the Codable type key. Never change once shipped.
     static var typeID: String { get }
 
+    /// Canonical identity of this constraint's rule content. ``Puzzle/id`` appends
+    /// it for puzzles that carry constraints, so two puzzles with the same givens and
+    /// different rules stay distinct. Same contract as `typeID`: never change once
+    /// shipped. Keep it URL-safe (ids travel in share links), independent of
+    /// authoring order (sort cells unless their order is the rule), and distinct
+    /// from other types' identities by starting with a type-specific marker, as the
+    /// killer cage's `k15-0.1.9` does. It need not be parseable back into a constraint.
+    var identity: String { get }
+
     /// Cells this constraint involves — for app rendering and debugging.
     var cells: [Puzzle.Index] { get }
 
