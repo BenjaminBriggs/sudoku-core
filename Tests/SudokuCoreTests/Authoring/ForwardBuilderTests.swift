@@ -154,11 +154,12 @@ struct ForwardBuilderTests {
                 $0.value == puzzle[removed.row][removed.column] && $0.technique != nil
             }) else { continue }
             let recorded = try #require(await builder.recording(option, seed: 3, budget: .moves(50_000)))
-            #expect(recorded.recorded == [option.technique!])
+            #expect(recorded.recorded.map(\.technique) == [option.technique!])
             let witness = try #require(recorded.witness)
             #expect(PlanFiller.accepts(witness, for: recorded.fillRequest))
             let path = SolvePathEmitter.emit(from: witness, using: ClassicTechniques.upTo(.hard))
-            #expect(path.steps.contains { $0.technique == option.technique })
+            #expect(RecordedStep.positions(of: recorded.recorded, in: path.steps, by: .deduction) != nil)
+            #expect(recorded.recorded[0].digits.isEmpty == false)
             return
         }
         Issue.record("No clue needed a technique beyond singles")
