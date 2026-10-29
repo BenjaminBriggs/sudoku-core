@@ -70,9 +70,9 @@ Puzzles are classified after rating with ``SudokuDifficultyCalculator``, by the 
 
 - `.easy` (Beginner) - Singles only
 - `.medium` (Intermediate) - Locked candidates, pairs, triples
-- `.hard` (Advanced) - Quads, fish, wings, single-digit patterns, unique rectangles
-- `.expert` (Expert) - Finned swordfish and jellyfish, 4- to 7-Y-Wings
-- `.professional` (Master) - The solver had to guess
+- `.hard` (Advanced) - Quads, fish, W-Wing, single-digit patterns, unique rectangles
+- `.expert` (Expert) - XY-Wing, XYZ-Wing, BUG+1, finned swordfish, 4-Y-Wing
+- `.professional` (Master) - Finned jellyfish, 5- to 7-Y-Wings, or the solver had to guess
 
 ### Empty Cell Count
 
@@ -169,9 +169,9 @@ The level is the hardest technique's:
 
 - **Beginner**: singles only
 - **Intermediate**: locked candidates, pairs, triples
-- **Advanced**: quads, fish, wings, single-digit patterns
-- **Expert**: finned swordfish and jellyfish
-- **Master**: needs guessing
+- **Advanced**: quads, fish, W-Wing, single-digit patterns, unique rectangles
+- **Expert**: XY- and XYZ-Wings, BUG+1, finned swordfish, 4-Y-Wings
+- **Master**: finned jellyfish, 5- to 7-Y-Wings, or needs guessing
 
 The score sums HoDoKu's points over every step, split into difficulty (steps beyond singles) and tedium (singles). <doc:DifficultyRating> has the full tables, and covers the estimate of HoDoKu's own rating.
 

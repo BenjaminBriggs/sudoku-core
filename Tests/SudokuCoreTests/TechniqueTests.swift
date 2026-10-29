@@ -48,12 +48,24 @@ struct TechniqueTests {
         #expect(TechniqueInfo.allClassic.count == 35)
     }
 
-    @Test("Classic points and levels are HoDoKu's step scores and levels")
+    /// Where the levels leave HoDoKu's: its hard and unfair are split three ways at the top, so
+    /// Master has techniques of its own and not only guessing.
+    static let ownLevels: [TechniqueID: PuzzleDifficulty.Level] = [
+        TechniqueInfo.xyWing.id: .expert,
+        TechniqueInfo.xyzWing.id: .expert,
+        TechniqueInfo.bug.id: .expert,
+        TechniqueInfo.finnedJellyfish.id: .professional,
+        TechniqueInfo.fiveYWing.id: .professional,
+        TechniqueInfo.sixYWing.id: .professional,
+        TechniqueInfo.sevenYWing.id: .professional,
+    ]
+
+    @Test("Classic points are HoDoKu's step scores, and levels HoDoKu's but at the top")
     func classicPointsAreHoDoKus() {
         for info in TechniqueInfo.allClassic where info != .validation && info != .unknown {
             let step = RatingTables.HoDoKu.steps[info.id]
             #expect(info.scorePoints == step.map { Double($0.points) }, "\(info.id)")
-            let level: PuzzleDifficulty.Level? = switch step?.level {
+            let hodoku: PuzzleDifficulty.Level? = switch step?.level {
             case .easy: .easy
             case .medium: .medium
             case .hard: .hard
@@ -61,7 +73,10 @@ struct TechniqueTests {
             case .extreme: .professional
             case nil: nil
             }
-            #expect(info.level == level, "\(info.id)")
+            if let own = Self.ownLevels[info.id] {
+                #expect(own != hodoku, "\(info.id) is at HoDoKu's level")
+            }
+            #expect(info.level == Self.ownLevels[info.id] ?? hodoku, "\(info.id)")
             #expect(info.isSingle == (info == .nakedSingle || info == .hiddenSingle), "\(info.id)")
         }
         #expect(TechniqueInfo.validation.scorePoints == 0)

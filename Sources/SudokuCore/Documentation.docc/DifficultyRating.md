@@ -21,15 +21,15 @@ print("\(info.level): difficulty \(info.difficulty), tedium \(info.tedium), scor
 
 #### Difficulty Levels
 
-Each technique carries its ``TechniqueInfo/level``, HoDoKu's level for the step; the puzzle takes the highest:
+Each technique carries its ``TechniqueInfo/level``; the puzzle takes the highest. The levels are HoDoKu's for each step except at the top, where HoDoKu's hard and unfair are split three ways so that Master has techniques of its own: XY-Wing, XYZ-Wing and BUG+1 are hard in HoDoKu and Expert here, and finned jellyfish and the 5- to 7-Y-Wings unfair there and Master here.
 
 | Level | Hardest technique |
 |-------|-------------------|
 | ``PuzzleDifficulty/Level/easy`` (Beginner) | Naked and hidden singles |
 | ``PuzzleDifficulty/Level/medium`` (Intermediate) | Locked candidates, pairs, triples |
-| ``PuzzleDifficulty/Level/hard`` (Advanced) | Quads, fish, finned X-Wing, wings, skyscraper, two-string kite, crane, empty rectangle, unique rectangles, BUG+1 |
-| ``PuzzleDifficulty/Level/expert`` (Expert) | Finned swordfish, finned jellyfish, 4- to 7-Y-Wings |
-| ``PuzzleDifficulty/Level/professional`` (Master) | The solver had to guess |
+| ``PuzzleDifficulty/Level/hard`` (Advanced) | Quads, fish, finned X-Wing, W-Wing, skyscraper, two-string kite, crane, empty rectangle, unique rectangles |
+| ``PuzzleDifficulty/Level/expert`` (Expert) | XY-Wing, XYZ-Wing, BUG+1, finned swordfish, 4-Y-Wing |
+| ``PuzzleDifficulty/Level/professional`` (Master) | Finned jellyfish, 5- to 7-Y-Wings, or the solver had to guess |
 | ``PuzzleDifficulty/Level/custom`` | A puzzle the player made, not rated |
 
 This is where SudokuCore departs from HoDoKu, which also promotes a puzzle whose cumulative score passes a band. Here a long path of singles is a tedious Beginner puzzle, and one W-Wing after twenty singles is an Advanced one: no Beginner puzzle has a W-Wing, and the score ranks the player's effort, not the puzzle's level. Within a level, `difficulty` orders puzzles (one W-Wing is 150, a W-Wing and three pointings 300) and `tedium` says how long the singles will take. ``PuzzleDifficulty/Level`` is `Comparable` in this order.

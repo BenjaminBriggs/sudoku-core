@@ -28,7 +28,7 @@
     "hodokuLevel" : "hard",
     "hodokuRating" : 460,
     "id" : "176003500400150600000002400520600000391005000800001009059000030000030000003596020",
-    "level" : "hard",
+    "level" : "expert",
     "needsGuessing" : false,
     "score" : 460,
     "seRating" : 5.6
@@ -78,7 +78,7 @@
     "hodokuLevel" : "unfair",
     "hodokuRating" : 958,
     "id" : "000098070750060400083147090000000204010030007568000000001009000000600021805000003",
-    "level" : "expert",
+    "level" : "professional",
     "needsGuessing" : false,
     "score" : 958,
     "seRating" : 5.6
@@ -88,7 +88,7 @@
     "hodokuLevel" : "hard",
     "hodokuRating" : 470,
     "id" : "000010050000000270010205000023009000940103706600020900502004007007600004490700030",
-    "level" : "hard",
+    "level" : "expert",
     "needsGuessing" : false,
     "score" : 470,
     "seRating" : 5.6
@@ -98,7 +98,7 @@
     "hodokuLevel" : "hard",
     "hodokuRating" : 378,
     "id" : "002009500906100037000053190001030400000005080860900000000000003024000070600470900",
-    "level" : "hard",
+    "level" : "expert",
     "needsGuessing" : false,
     "score" : 378,
     "seRating" : 5.6
@@ -208,7 +208,7 @@
     "hodokuLevel" : "unfair",
     "hodokuRating" : 1540,
     "id" : "009504000504600193812003540007006030001000007060300002006800009050900200000000800",
-    "level" : "expert",
+    "level" : "professional",
     "needsGuessing" : false,
     "score" : 1574,
     "seRating" : 5.6
@@ -218,7 +218,7 @@
     "hodokuLevel" : "hard",
     "hodokuRating" : 1148,
     "id" : "010039700005000000090800010000000800000507160870400009100026403030001000029340000",
-    "level" : "hard",
+    "level" : "expert",
     "needsGuessing" : false,
     "score" : 1188,
     "seRating" : 5.6
@@ -238,7 +238,7 @@
     "hodokuLevel" : "extreme",
     "hodokuRating" : 2558,
     "id" : "000100020010042030900830001000000700067300000009680005000078000086001047100400900",
-    "level" : "expert",
+    "level" : "professional",
     "needsGuessing" : false,
     "score" : 2562,
     "seRating" : 5.8
@@ -266,7 +266,7 @@
     "hodokuLevel" : "unfair",
     "hodokuRating" : 1562,
     "id" : "034800007000400950000076034300009000020030000067004580005900002000000400870000605",
-    "level" : "expert",
+    "level" : "professional",
     "needsGuessing" : false,
     "score" : 1562,
     "seRating" : 5.6
@@ -310,7 +310,7 @@
     "hodokuLevel" : "hard",
     "hodokuRating" : 884,
     "id" : "000048000400000605009700120000000002650893070010050900700004050000900016200506007",
-    "level" : "hard",
+    "level" : "expert",
     "needsGuessing" : false,
     "score" : 874,
     "seRating" : 5.6
@@ -338,7 +338,7 @@
     "hodokuLevel" : "hard",
     "hodokuRating" : 1144,
     "id" : "000018070830000006009500000004030060500400200020000007005000040700205001306070000",
-    "level" : "hard",
+    "level" : "expert",
     "needsGuessing" : false,
     "score" : 1144,
     "seRating" : 5.2
@@ -348,7 +348,7 @@
     "hodokuLevel" : "hard",
     "hodokuRating" : 938,
     "id" : "020603000300049080004000160007500400150004008090800051709006000800000094040050000",
-    "level" : "hard",
+    "level" : "expert",
     "needsGuessing" : false,
     "score" : 938,
     "seRating" : 4.5
@@ -378,7 +378,7 @@
     "hodokuLevel" : "extreme",
     "hodokuRating" : 2078,
     "id" : "005006070000070020167008090400000010090100400000005702000000180079810005318600000",
-    "level" : "expert",
+    "level" : "professional",
     "needsGuessing" : false,
     "score" : 1878,
     "seRating" : 5.6
@@ -530,7 +530,7 @@
     "hodokuLevel" : "unfair",
     "hodokuRating" : 1712,
     "id" : "000000500200060490100005007860090030030000000049302000920100005000800042400027080",
-    "level" : "hard",
+    "level" : "expert",
     "needsGuessing" : false,
     "score" : 1712,
     "seRating" : 4.5

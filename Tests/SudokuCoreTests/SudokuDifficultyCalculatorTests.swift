@@ -202,6 +202,17 @@ struct SudokuDifficultyCalculatorTests {
         #expect(result.puzzleDifficulty.hardestTechnique == TechniqueInfo.finnedXWing.id)
     }
 
+    @Test("The hardest techniques make a puzzle Master without guessing")
+    func testFiveYWingIsMaster() throws {
+        // A corpus puzzle the hint finder solves through a 5-Y-Wing
+        let id = "000098070750060400083147090000000204010030007568000000001009000000600021805000003"
+        let puzzle = try #require(CorpusPuzzle.fixtureCorpus.first { $0.id == id })
+        let result = try SudokuDifficultyCalculator.calculateDifficulty(for: puzzle.startingState)
+        #expect(result.needsGuessing == false)
+        #expect(result.hardestTechnique == .fiveYWing)
+        #expect(result.level == .professional)
+    }
+
     @Test("Difficulty score increases with technique complexity")
     func testScoreIncreasesWithComplexity() async throws {
         // Easy puzzle should have lower score than medium/hard
