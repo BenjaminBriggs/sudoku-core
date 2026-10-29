@@ -30,6 +30,8 @@ if let step = options.first(where: { $0.technique == .lockedCandidatesPointing }
 
 Builders are values: keep the earlier ones for undo.
 
+To explain an option, ``ForwardBuilder/Option/techniqueHint`` gives its technique step as a ``HintStep`` with the reasoning the hint finder recorded, and ``ForwardBuilder/Option/state(before:)`` the grid and candidates the step works on. Every ``SolvePathEmitter/SolveStep`` keeps its reasoning the same way, through ``SolvePathEmitter/SolveStep/hint``.
+
 ## Filling a plan
 
 ``PlanFiller`` finds the witness. Random digits almost never give a small plan one solution: below about 26 squares, nearly no random solution of the clues does. So the filler searches the clue digits instead. It changes one at a time, to a digit the square's row, column and box don't hold, and keeps the change while the number of solutions (``Validator/countSolutions(of:limit:)``, capped at 64) doesn't rise, until there is one. Walks race each other under a ``PlanFiller/Budget``; ``PlanFiller/Budget/moves(_:)`` runs one walk with a fixed seed, which always gives the same result.

@@ -48,12 +48,32 @@ public struct ForwardBuilder: Sendable {
         public let exposure: Int
         /// The clue's digit is the witness's, so placing it quietly keeps the witness.
         public let matchesWitness: Bool
-        let state: BoardState
+        /// What logic knows once the clue is in and `steps` have run.
+        public let state: BoardState
+        /// The clue placed, before any of `steps`.
+        public let start: BoardState
         /// The logic grid the option was worked out from: an option only applies to the
         /// builder that offered it.
         let basis: [[Int]]
 
         public var id: Int { (position.row * 9 + position.column) * 10 + value }
+
+        /// Where `technique` first appears in `steps`.
+        public var techniqueStepIndex: Int? {
+            guard let technique else { return nil }
+            return steps.firstIndex { $0.technique == technique }
+        }
+
+        /// The step that uses `technique`, as a hint to explain or show on the board.
+        public var techniqueHint: HintStep? {
+            techniqueStepIndex.map { steps[$0].hint }
+        }
+
+        /// What the solver knows just before `steps[index]`: the clue placed and the steps
+        /// before it taken. The grid and candidates a step's explanation refers to.
+        public func state(before index: Int) -> BoardState {
+            steps.prefix(max(0, min(index, steps.count))).reduce(start) { $0.applying($1.hint) }
+        }
     }
 
     public let plan: Set<Puzzle.Index>
@@ -118,12 +138,14 @@ public struct ForwardBuilder: Sendable {
     // MARK: - Options
 
     /// Every digit `position` can take while the clues keep a solution, with what logic does
-    /// next. Empty for a square outside the plan or already filled.
+    /// next. Empty for a square outside the plan or already filled; stops early, with what it
+    /// has, when the task is cancelled.
     public func options(at position: Puzzle.Index) -> [Option] {
         options(at: position, open: Set(openSquares), witnessSolution: witnessSolution)
     }
 
-    /// ``options(at:)`` for every open square, worked out in parallel.
+    /// ``options(at:)`` for every open square, worked out in parallel. Stops early, with what
+    /// it has, when the task is cancelled.
     public func options() async -> [Option] {
         let open = Set(openSquares)
         let solution = witnessSolution
@@ -142,10 +164,12 @@ public struct ForwardBuilder: Sendable {
         let filledBefore = Self.filled(state)
         var found: [Option] = []
         for value in state.pencilMarks[position.row][position.column].sorted() {
+            if Task.isCancelled { break }
             var trial = state.grid
             trial[position.row][position.column] = value
             guard Validator.hasSolution(trial, nodeLimit: Self.feasibilityNodes) != false else { continue }
-            let path = Self.logic(from: Self.placing(value, at: position, in: state), ceiling: configuration.ceiling)
+            let start = Self.placing(value, at: position, in: state)
+            let path = Self.logic(from: start, ceiling: configuration.ceiling)
             let after = path.finalState
             guard Self.isDeadEnd(after) == false else { continue }
             let technique = path.steps.map(\.technique).filter { $0.isSingle == false }
@@ -164,6 +188,7 @@ public struct ForwardBuilder: Sendable {
                 }.count,
                 matchesWitness: solution?[position.row][position.column] == value,
                 state: after,
+                start: start,
                 basis: state.grid
             ))
         }
