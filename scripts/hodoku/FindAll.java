@@ -6,9 +6,13 @@
 // under the GPL, version 3 or later. HoDoKu itself is not part of this repository.
 //
 // Run with Java 21 or later:
-//   java -cp HoDoKu.jar FindAll.java states  < states.tsv  > steps.tsv
-//   java -cp HoDoKu.jar FindAll.java puzzles < puzzles.tsv > solutions.tsv
-//   java -cp HoDoKu.jar FindAll.java rate    < puzzles.tsv > ratings.tsv
+//   java $SORT -cp HoDoKu.jar FindAll.java states  < states.tsv  > steps.tsv
+//   java $SORT -cp HoDoKu.jar FindAll.java puzzles < puzzles.tsv > solutions.tsv
+//   java $SORT -cp HoDoKu.jar FindAll.java rate    < puzzles.tsv > ratings.tsv
+// where SORT=-Djava.util.Arrays.useLegacyMergeSort=true. HoDoKu sorts its steps with a
+// comparison that isn't consistent on some states, and Java's default sort throws
+// "Comparison method violates its general contract!" there. The legacy sort doesn't check;
+// it can't be switched on from main, since the JVM has sorted by then.
 //
 // states: each input line is key TAB grid (81 digits, 0 for empty) TAB 81 comma-separated
 // candidate lists. For each, prints every step HoDoKu finds, one per line:
