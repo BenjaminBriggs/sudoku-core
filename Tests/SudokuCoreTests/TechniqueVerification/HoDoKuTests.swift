@@ -274,14 +274,23 @@ enum HoDoKu {
         return (targets, moves)
     }
 
-    /// Where HoDoKu, by its own definition, doesn't look for a hint the hint finder makes:
+    /// Where HoDoKu doesn't look for a hint the hint finder makes:
     /// - its Unique Rectangle type 4 takes b out of the two corners only when a is missing from
     ///   every cell that sees both, where the usual definition needs a confined in just one
     ///   unit they share;
-    /// - its Unique Rectangle type 3 leaves every cell holding a or b out of the subset.
+    /// - its Unique Rectangle type 3 leaves every cell holding a or b out of the subset;
+    /// - its W-Wing matches each end of the strong link to the wing with the lower index if it
+    ///   sees it, and to the other only if not, so it misses the W-Wing when both ends see that
+    ///   wing. Turned 180°, the same state gives HoDoKu the W-Wing.
     static func isHoDoKuGap(_ hint: HintStep, in state: BoardState) -> Bool {
         let reasoning = hint.reasoning
         switch hint.technique {
+        case .wWing:
+            guard let wings = reasoning.components.first(where: { $0.role == .wing })?.cells.map(\.position),
+                  let ends = reasoning.components.first(where: { $0.role == .constraint })?.cells.map(\.position),
+                  let first = wings.min(by: { $0.row * 9 + $0.column < $1.row * 9 + $1.column })
+            else { return false }
+            return ends.allSatisfy { sees($0, first) }
         case .uniqueRectangleType4:
             guard let extras = reasoning.components.first(where: { $0.role == .fin })?.cells.map(\.position),
                   extras.count == 2, let locked = reasoning.focusDigits.first
