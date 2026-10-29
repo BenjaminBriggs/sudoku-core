@@ -181,10 +181,16 @@ public enum SudokuDifficultyCalculator {
         public let hodokuLevel: HoDoKuLevel?
         public let estimatedTimeSeconds: Int?
 
-        /// The most advanced technique used (ignores `.unknown` fallback marker)
+        /// The most advanced technique used (ignores `.unknown` fallback marker): the highest
+        /// level, then the latest in solve order, so it is the technique that sets the level.
+        /// Solve order alone doesn't do: Finned Jellyfish is Master but comes before XY-Wing.
         public var hardestTechnique: TechniqueInfo? {
             let filtered = techniquesUsed.filter { $0 != .unknown }
-            return filtered.max(by: { $0.difficulty < $1.difficulty })
+            return filtered.max(by: Self.isEasier)
+        }
+
+        private static func isEasier(_ a: TechniqueInfo, _ b: TechniqueInfo) -> Bool {
+            (a.level, a.difficulty) < (b.level, b.difficulty)
         }
 
         /// The solve path stalls and the solver has to guess (`.unknown` closes the techniques).
@@ -210,7 +216,7 @@ public enum SudokuDifficultyCalculator {
             else { return nil }
             return techniquesUsed[(last + 1)...]
                 .filter { $0 != .unknown }
-                .max(by: { $0.difficulty < $1.difficulty })
+                .max(by: Self.isEasier)
         }
 
         /// Frequency of each technique used
