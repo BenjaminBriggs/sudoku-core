@@ -256,4 +256,9 @@ public enum ClassicTechniques {
     public static func technique(for id: TechniqueID) -> (any HintTechnique)? {
         all.first { $0.info.id == id }
     }
+
+    /// The techniques at `level` or easier, in solve order: what a solver at that level knows.
+    public static func upTo(_ level: PuzzleDifficulty.Level) -> [any HintTechnique] {
+        all.filter { $0.info.level <= level }
+    }
 }

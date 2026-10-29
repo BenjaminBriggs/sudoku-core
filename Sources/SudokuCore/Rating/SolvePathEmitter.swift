@@ -46,6 +46,29 @@ public enum SolvePathEmitter {
         emit(from: initialGrid, maxIterations: maxIterations) { HintFinder.firstHint(in: $0) }
     }
 
+    /// ``emit(from:maxIterations:)`` with only `techniques`, easiest first: the path a solver
+    /// who knows just those techniques takes, stalling where they run out.
+    public static func emit(
+        from initialGrid: [[Int]],
+        using techniques: [any HintTechnique],
+        maxIterations: Int = 300
+    ) -> SolvePath {
+        emit(from: initialGrid, maxIterations: maxIterations) { HintFinder.firstHint(in: $0, using: techniques) }
+    }
+
+    /// Carries a solve on from `state` with `techniques`, easiest first. The state keeps its own
+    /// uniqueness setting, so a state that doesn't assume a unique solution never gets the
+    /// uniqueness techniques.
+    public static func emit(
+        continuingFrom state: BoardState,
+        using techniques: [any HintTechnique],
+        maxIterations: Int = 300
+    ) -> SolvePath {
+        solve(from: state, steps: [], iterations: 0, maxIterations: maxIterations) {
+            HintFinder.firstHint(in: $0, using: techniques)
+        }
+    }
+
     /// ``emit(from:maxIterations:)``, taking each step from `nextHint` instead of the hint
     /// finder's own order.
     static func emit(
