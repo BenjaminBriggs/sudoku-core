@@ -197,4 +197,15 @@ struct DifficultyMeasurementTests {
         #expect(result([.xWing, .nakedSingle, .unknown]).hardestTechniqueAfterLastHardestStep == .nakedSingle)
     }
 
+    @Test("The hardest technique is the one that sets the level, though later ones come after it in solve order")
+    func hardestSetsLevel() {
+        // Finned Jellyfish is Master; XY-Wing and BUG+1 are Expert but later in solve order
+        let rated = result([.finnedJellyfish, .xyWing, .finnedJellyfish, .bug, .nakedSingle])
+        #expect(rated.hardestTechnique == .finnedJellyfish)
+        #expect(rated.hardestTechniqueCount == 2)
+        #expect(rated.hardestTechniqueAfterLastHardestStep == .bug)
+        // Within a level, solve order decides
+        #expect(result([.xyzWing, .xyWing]).hardestTechnique == .xyzWing)
+    }
+
 }
