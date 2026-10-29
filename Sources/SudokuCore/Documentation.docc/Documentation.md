@@ -52,6 +52,12 @@ SudokuCore is the engine behind a Sudoku application: the game logic, puzzle gen
 - ``SolutionGenerator``
 - ``Symmetry``
 
+### Authoring Puzzles
+
+- <doc:AuthoringPuzzles>
+- ``ForwardBuilder``
+- ``PlanFiller``
+
 ### Hints and Solving
 
 - <doc:HintSystem>
