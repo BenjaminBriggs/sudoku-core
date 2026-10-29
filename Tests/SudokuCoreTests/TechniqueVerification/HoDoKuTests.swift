@@ -98,7 +98,8 @@ enum HoDoKu {
 
     // MARK: Running HoDoKu
 
-    enum Failure: Error { case exited(Int32) }
+    /// The driver exited with `status`; `errors` is the end of what it printed to stderr.
+    enum Failure: Error { case exited(status: Int32, errors: String) }
 
     /// Runs the driver in `mode` on `lines`, split over a few JVMs at once.
     static func run(_ mode: String, _ lines: [String]) throws -> [String] {
@@ -117,20 +118,30 @@ enum HoDoKu {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         let input = folder.appendingPathComponent("in.tsv"), output = folder.appendingPathComponent("out.tsv")
+        let errors = folder.appendingPathComponent("err.txt")
         try (lines.joined(separator: "\n") + "\n").write(to: input, atomically: true, encoding: .utf8)
         FileManager.default.createFile(atPath: output.path, contents: nil)
+        FileManager.default.createFile(atPath: errors.path, contents: nil)
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         // HoDoKu keeps its settings in java.io.tmpdir; give each run a folder of its own.
+        // HoDoKu's step ordering breaks the comparator contract on some states, which TimSort
+        // throws on; the legacy merge sort doesn't check, and the order doesn't matter here.
         process.arguments = ["java", "-Xmx2g", "-Djava.awt.headless=true", "-Djava.io.tmpdir=\(folder.path)",
-                             "-Duser.home=\(folder.path)", "-cp", jar!, driver.path, mode]
+                             "-Duser.home=\(folder.path)", "-Djava.util.Arrays.useLegacyMergeSort=true",
+                             "-cp", jar!, driver.path, mode]
         process.standardInput = try FileHandle(forReadingFrom: input)
         process.standardOutput = try FileHandle(forWritingTo: output)
-        process.standardError = FileHandle.nullDevice
+        // HoDoKu's own messages go here too, so keep only the end, where a stack trace would be.
+        process.standardError = try FileHandle(forWritingTo: errors)
         try process.run()
         process.waitUntilExit()
-        guard process.terminationStatus == 0 else { throw Failure.exited(process.terminationStatus) }
+        guard process.terminationStatus == 0 else {
+            let printed = (try? String(contentsOf: errors, encoding: .utf8)) ?? ""
+            throw Failure.exited(status: process.terminationStatus,
+                                 errors: printed.split(separator: "\n").suffix(30).joined(separator: "\n"))
+        }
         return try String(contentsOf: output, encoding: .utf8).split(separator: "\n").map(String.init)
     }
 
