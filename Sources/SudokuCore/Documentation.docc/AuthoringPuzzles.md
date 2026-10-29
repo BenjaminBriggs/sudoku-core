@@ -32,11 +32,23 @@ Builders are values: keep the earlier ones for undo.
 
 To explain an option, ``ForwardBuilder/Option/techniqueHint`` gives its technique step as a ``HintStep`` with the reasoning the hint finder recorded, and ``ForwardBuilder/Option/state(before:)`` the grid and candidates the step works on. Every ``SolvePathEmitter/SolveStep`` keeps its reasoning the same way, through ``SolvePathEmitter/SolveStep/hint``.
 
+### Recorded steps
+
+A ``RecordedStep`` is the deduction itself: its technique, the digits it's about and the squares of its pattern and changes. With ``RecordedStep/Matching/deduction`` (the default), the finished puzzle's solve keeps the step only with the same technique on the same digits over overlapping squares, so another X-Wing elsewhere can't stand in for the setter's. ``RecordedStep/Matching/technique`` accepts any step of the technique.
+
+### Saving and editing a build
+
+``ForwardBuilder/snapshot`` is a ``ForwardBuilder/Snapshot`` to store; ``ForwardBuilder/init(restoring:)`` rebuilds from it and keeps the witness only if it still fits. ``ForwardBuilder/replacingPlan(_:)`` changes the plan: squares taken out keep the witness when it still fits, and squares added need a new one, so they get clues. ``ForwardBuilder/withNewWitness(seed:budget:)`` finds another ending, and ``ForwardBuilder/droppedSquares`` lists planned squares the witness leaves empty.
+
 ## Filling a plan
 
 ``PlanFiller`` finds the witness. Random digits almost never give a small plan one solution: below about 26 squares, nearly no random solution of the clues does. So the filler searches the clue digits instead. It changes one at a time, to a digit the square's row, column and box don't hold, and keeps the change while the number of solutions (``Validator/countSolutions(of:limit:)``, capped at 64) doesn't rise, until there is one. Walks race each other under a ``PlanFiller/Budget``; ``PlanFiller/Budget/moves(_:)`` runs one walk with a fixed seed, which always gives the same result.
 
 Some plans can never be unique: two rows of a band, or two columns of a stack, with no planned square can swap in any solution. ``PlanFiller/swappableLines(in:)`` finds them instantly, so an app can say so while the setter marks squares.
+
+When a plan has no fill, ``PlanFiller/squaresToAdd(_:symmetry:seed:budget:limit:)`` suggests orbits to add: for a closed plan, ones in the lines that can swap; otherwise ones covering the squares where ``PlanFiller/nearestFill(_:seed:budget:)``, the grid the search came closest with, still has a choice. Plans under ``PlanFiller/minimumSquares`` never fill.
+
+When a step needs a new witness, the search starts from the previous one, a digit away, and first tries leaving out planned squares, since a witness that still holds every clue may only have lost a recorded step to a shortcut.
 
 With ``PlanFiller/Request/relaxing`` set, a fill may leave out whole symmetric orbits of planned squares that hold no placed clue. Taking clues out never gives the solver a shortcut, so it brings back a recorded step the full plan skips.
 
@@ -51,6 +63,8 @@ With ``PlanFiller/Request/relaxing`` set, a fill may leave out whole symmetric o
 - ``ForwardBuilder``
 - ``ForwardBuilder/Option``
 - ``ForwardBuilder/Configuration``
+- ``ForwardBuilder/Snapshot``
+- ``RecordedStep``
 
 ### Filling Plans
 
@@ -58,6 +72,7 @@ With ``PlanFiller/Request/relaxing`` set, a fill may leave out whole symmetric o
 - ``PlanFiller/Request``
 - ``PlanFiller/Budget``
 - ``PlanFiller/SwappableLines``
+- ``PlanFiller/NearMiss``
 
 ### Counting and Sampling Solutions
 

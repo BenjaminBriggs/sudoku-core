@@ -137,7 +137,25 @@ public enum PlanFiller {
         deadline: ContinuousClock.Instant? = nil,
         near: [[Int]]? = nil
     ) -> [[Int]]? {
-        guard isConsistent(request) else { return nil }
+        walk(request, using: &generator, maxMoves: maxMoves, deadline: deadline, near: near).fill
+    }
+
+    /// What one walk found: a fill, or the grid that came closest, with its solution count.
+    struct Walk: Sendable {
+        var fill: [[Int]]?
+        var nearest: [[Int]]?
+        var nearestCount = Int.max
+    }
+
+    static func walk(
+        _ request: Request,
+        using generator: inout some RandomNumberGenerator,
+        maxMoves: Int,
+        deadline: ContinuousClock.Instant?,
+        near: [[Int]]?
+    ) -> Walk {
+        var result = Walk()
+        guard isConsistent(request) else { return result }
         var random = SearchRandom(seed: generator.next())
         let fixed = request.clues.flatMap { $0 }
         let open = request.plan.map { $0.row * 9 + $0.column }.filter { fixed[$0] == 0 }.sorted()
@@ -165,29 +183,40 @@ public enum PlanFiller {
             return cells
         }
 
-        guard var cells = fromNear() ?? fresh() else { return nil }
+        guard var cells = fromNear() ?? fresh() else { return result }
         var score = Validator.countSolutions(of: grid(cells), limit: countLimit)
+        func noteNearest() {
+            if score >= 1, score < result.nearestCount {
+                result.nearest = grid(cells)
+                result.nearestCount = score
+            }
+        }
+        noteNearest()
         var stale = 0
         for move in 0..<maxMoves {
             if move % 64 == 0 {
-                if Task.isCancelled { return nil }
-                if let deadline, ContinuousClock.now >= deadline { return nil }
+                if Task.isCancelled { return result }
+                if let deadline, ContinuousClock.now >= deadline { return result }
             }
             if score == 1 {
                 let candidate = grid(cells)
-                if solvesKeepingRecord(candidate, request) { return candidate }
+                if solvesKeepingRecord(candidate, request) {
+                    result.fill = candidate
+                    return result
+                }
                 if let relaxing = request.relaxing,
                    let relaxed = relax(candidate, request, symmetry: relaxing, using: &random) {
-                    return relaxed
+                    result.fill = relaxed
+                    return result
                 }
                 // With every planned square placed, a restart is the same grid again.
-                guard open.isEmpty == false, let restart = fresh() else { return nil }
+                guard open.isEmpty == false, let restart = fresh() else { return result }
                 cells = restart
                 score = Validator.countSolutions(of: grid(cells), limit: countLimit)
                 stale = 0
                 continue
             }
-            guard let cell = open.randomElement(using: &random) else { return nil }
+            guard let cell = open.randomElement(using: &random) else { return result }
 
             // Another digit for one unplaced square, one its row, column and box don't hold.
             var used = 0
@@ -201,6 +230,7 @@ public enum PlanFiller {
                     stale = nextScore < score ? 0 : stale + 1
                     cells = next
                     score = nextScore
+                    noteNearest()
                 } else {
                     stale += 1
                 }
@@ -208,14 +238,15 @@ public enum PlanFiller {
                 stale += 1
             }
             if stale > staleLimit {
-                guard let restart = fresh() else { return nil }
+                guard let restart = fresh() else { return result }
                 cells = restart
                 score = Validator.countSolutions(of: grid(cells), limit: countLimit)
                 stale = 0
             }
         }
-        return nil
+        return result
     }
+
 
     /// Races the budget's walks, each seeded from `seed` and starting from `near` when given,
     /// and returns the first fill found, or `nil` when every walk runs out.

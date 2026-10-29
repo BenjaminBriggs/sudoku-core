@@ -173,3 +173,51 @@ extension PlanFillerTests {
         #expect(PlanFiller.fill(request, using: &generator, maxMoves: 1, near: puzzle) == puzzle)
     }
 }
+
+// MARK: - Suggesting squares
+
+extension PlanFillerTests {
+    @Test func aClosedPlanGetsSquaresInItsEmptyLines() async {
+        let closed = Set(plan.filter { $0.row != 0 && $0.row != 1 })
+        #expect(PlanFiller.swappableLines(in: closed).isEmpty == false)
+        let suggestions = await PlanFiller.squaresToAdd(
+            PlanFiller.Request(plan: closed), symmetry: .rotational180, seed: 1, budget: .moves(100)
+        )
+        #expect(suggestions.isEmpty == false)
+        for orbit in suggestions {
+            #expect(orbit.contains { $0.row == 0 || $0.row == 1 })
+            #expect(orbit.allSatisfy { closed.contains($0) == false })
+            #expect(Set(orbit) == Set(Symmetry.rotational180.orbit(of: orbit[0])))
+        }
+    }
+
+    @Test func aFillablePlanNeedsNoSquares() async {
+        let suggestions = await PlanFiller.squaresToAdd(
+            PlanFiller.Request(plan: plan, clues: puzzle), symmetry: .rotational180, seed: 1, budget: .moves(100)
+        )
+        #expect(suggestions.isEmpty)
+    }
+
+    @Test func aSmallPlanGetsSquaresWhereItsNearestMissHasAChoice() async throws {
+        // The puzzle's plan less four orbits: too few squares for one solution.
+        let orbits = Symmetry.rotational180.orbits.filter { orbit in orbit.allSatisfy(plan.contains) }
+        let small = plan.subtracting(orbits.prefix(4).flatMap { $0 })
+        let request = PlanFiller.Request(plan: small)
+        let near = try #require(await PlanFiller.nearestFill(request, seed: 2, budget: .moves(300)))
+        try #require(near.solutionCount > 1)
+        #expect(near.differing.isEmpty == false)
+        let suggestions = await PlanFiller.squaresToAdd(request, symmetry: .rotational180, seed: 2, budget: .moves(300))
+        #expect(suggestions.isEmpty == false)
+        for orbit in suggestions {
+            #expect(orbit.allSatisfy { small.contains($0) == false })
+            #expect(orbit.contains(where: near.differing.contains))
+        }
+    }
+
+    @Test func theNearestFillOfAFillablePlanIsAFill() async throws {
+        let near = try #require(await PlanFiller.nearestFill(PlanFiller.Request(plan: plan, clues: puzzle), seed: 1, budget: .moves(10)))
+        #expect(near.solutionCount == 1)
+        #expect(near.grid == puzzle)
+        #expect(near.differing.isEmpty)
+    }
+}

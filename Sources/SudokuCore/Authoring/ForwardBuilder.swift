@@ -15,7 +15,7 @@
 import Foundation
 
 public struct ForwardBuilder: Sendable {
-    public struct Configuration: Sendable, Equatable {
+    public struct Configuration: Sendable, Equatable, Codable {
         /// The hardest level of technique the puzzle may need.
         public var ceiling: PuzzleDifficulty.Level
         /// When set, the finished puzzle may leave out whole orbits of this symmetry that hold
@@ -261,6 +261,83 @@ public struct ForwardBuilder: Sendable {
         var next = self
         next.witness = witness
         return next
+    }
+
+    // MARK: - Saving and editing
+
+    /// A build in progress, to save and restore.
+    public struct Snapshot: Codable, Sendable, Equatable {
+        /// Raised when the stored form changes; a newer snapshot doesn't restore.
+        public static let currentVersion = 1
+
+        public var version: Int
+        /// The planned squares, in row-major order.
+        public var plan: [Puzzle.Index]
+        public var clues: [[Int]]
+        public var recorded: [RecordedStep]
+        public var witness: [[Int]]?
+        public var configuration: Configuration
+    }
+
+    public var snapshot: Snapshot {
+        Snapshot(
+            version: Snapshot.currentVersion,
+            plan: plan.sorted { ($0.row, $0.column) < ($1.row, $1.column) },
+            clues: clues,
+            recorded: recorded,
+            witness: witness,
+            configuration: configuration
+        )
+    }
+
+    /// The build `snapshot` saved, with its witness only if the witness still fits. `nil` for a
+    /// newer version, a clue outside the plan, or clashing clues.
+    public init?(restoring snapshot: Snapshot) {
+        guard snapshot.version <= Snapshot.currentVersion else { return nil }
+        self.init(
+            plan: Set(snapshot.plan),
+            clues: snapshot.clues,
+            recorded: snapshot.recorded,
+            configuration: snapshot.configuration
+        )
+        if let witness = snapshot.witness, PlanFiller.accepts(witness, for: fillRequest) {
+            self.witness = witness
+        }
+    }
+
+    /// The build with `newPlan` instead: `nil` when a placed clue would be left outside it.
+    /// The witness stays, less any squares taken out of the plan, when it still fits and the
+    /// plan didn't grow. Squares added need a new witness, so they get clues.
+    public func replacingPlan(_ newPlan: Set<Puzzle.Index>) -> ForwardBuilder? {
+        guard var next = ForwardBuilder(plan: newPlan, clues: clues, recorded: recorded, configuration: configuration) else {
+            return nil
+        }
+        if let witness, newPlan.isSubset(of: plan) {
+            var trimmed = witness
+            for square in plan.subtracting(newPlan) { trimmed[square.row][square.column] = 0 }
+            if PlanFiller.accepts(trimmed, for: next.fillRequest) { next.witness = trimmed }
+        }
+        return next
+    }
+
+    /// The build with another finished puzzle for the same clues and steps: "another ending".
+    /// `nil` when the search only finds the current witness, or nothing, within `budget`.
+    public func withNewWitness(seed: UInt64, budget: PlanFiller.Budget) async -> ForwardBuilder? {
+        for attempt in 0..<4 {
+            guard let found = await PlanFiller.fill(fillRequest, seed: seed &+ UInt64(attempt), budget: budget),
+                  found != witness,
+                  PlanFiller.accepts(found, for: fillRequest) else { continue }
+            var next = self
+            next.witness = found
+            return next
+        }
+        return nil
+    }
+
+    /// Planned squares the witness leaves empty, so a recorded step isn't skipped.
+    public var droppedSquares: Set<Puzzle.Index> {
+        guard let witness else { return [] }
+        return plan.filter { witness[$0.row][$0.column] == 0 }
     }
 
     // MARK: - Internals
