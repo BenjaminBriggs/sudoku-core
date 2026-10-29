@@ -58,7 +58,10 @@ public struct TechniqueInfo: Codable, Hashable, Sendable, Identifiable {
     /// The level a step of this technique gives a puzzle. A puzzle's level is its hardest
     /// step's, whatever the rest of the path: a short solve through a W-Wing is never Beginner,
     /// and a long path of singles never rises above it. Classic techniques take HoDoKu's level
-    /// for the step; `.easy` for techniques that don't say.
+    /// for the step, except at the top, where Master gets techniques of its own: XY-Wing,
+    /// XYZ-Wing and BUG+1 (HoDoKu's hard) are Expert with Finned Swordfish and 4-Y-Wing, and
+    /// Finned Jellyfish and the 5- to 7-Y-Wings (HoDoKu's unfair) are Master, as is guessing.
+    /// `.easy` for techniques that don't say.
     public let level: PuzzleDifficulty.Level
     /// A naked or hidden single: a placement, the step every blank costs. Singles make up a
     /// puzzle's ``PuzzleDifficulty/tedium``; every other technique makes up its
@@ -107,7 +110,7 @@ public struct TechniqueInfo: Codable, Hashable, Sendable, Identifiable {
 
 extension TechniqueInfo {
     /// Classic constant builder keeping seId == hodokuId, as the legacy enum did. The points
-    /// and level are HoDoKu's step scores and levels for the technique.
+    /// are HoDoKu's step scores; the level is HoDoKu's for the step except where ``level`` says.
     private static func classic(
         _ id: TechniqueID, _ difficulty: Int, _ seId: String,
         _ seStepValue: Double, _ scorePoints: Double, _ level: PuzzleDifficulty.Level,
@@ -143,9 +146,9 @@ extension TechniqueInfo {
     public static let wWing = classic("wWing", 95, "W-Wing", 4.4, 150, .hard)
     public static let jellyfish = classic("jellyfish", 100, "Jellyfish", 4.8, 160, .hard)
     public static let finnedJellyfish = classic(
-        "finnedJellyfish", 105, "Finned Jellyfish", 5.1, 250, .expert)
-    public static let xyWing = classic("xyWing", 110, "XY-Wing", 4.5, 160, .hard)
-    public static let xyzWing = classic("xyzWing", 120, "XYZ-Wing", 5.2, 180, .hard)
+        "finnedJellyfish", 105, "Finned Jellyfish", 5.1, 250, .professional)
+    public static let xyWing = classic("xyWing", 110, "XY-Wing", 4.5, 160, .expert)
+    public static let xyzWing = classic("xyzWing", 120, "XYZ-Wing", 5.2, 180, .expert)
     public static let crane = classic("crane", 91, "Crane", 4.0, 120, .hard)
     public static let uniqueRectangleType1 = classic(
         "uniqueRectangleType1", 96, "Unique Rectangle Type 1", 4.5, 100, .hard)
@@ -157,12 +160,13 @@ extension TechniqueInfo {
         "uniqueRectangleType4", 98, "Unique Rectangle Type 4", 4.5, 100, .hard)
     public static let uniqueRectangleType5 = classic(
         "uniqueRectangleType5", 99, "Unique Rectangle Type 5", 4.6, 100, .hard)
-    public static let bug = classic("bug", 115, "BUG+1", 5.6, 100, .hard)
+    public static let bug = classic("bug", 115, "BUG+1", 5.6, 100, .expert)
     public static let fourYWing = classic("fourYWing", 125, "4-Y-Wing", 5.4, 260, .expert)
-    public static let fiveYWing = classic("fiveYWing", 130, "5-Y-Wing", 5.6, 260, .expert)
-    public static let sixYWing = classic("sixYWing", 135, "6-Y-Wing", 5.8, 260, .expert)
-    public static let sevenYWing = classic("sevenYWing", 140, "7-Y-Wing", 6.0, 260, .expert)
-    /// Not a technique: the solver fell back to guessing, HoDoKu's give-up. Master.
+    public static let fiveYWing = classic("fiveYWing", 130, "5-Y-Wing", 5.6, 260, .professional)
+    public static let sixYWing = classic("sixYWing", 135, "6-Y-Wing", 5.8, 260, .professional)
+    public static let sevenYWing = classic("sevenYWing", 140, "7-Y-Wing", 6.0, 260, .professional)
+    /// Not a technique: the solver fell back to guessing, HoDoKu's give-up. Master, like the
+    /// hardest techniques.
     public static let unknown = classic("unknown", 9999, "Unknown", 8.0, 300, .professional)
 
     /// All classic technique infos, one per legacy enum case (35 total), in the exact

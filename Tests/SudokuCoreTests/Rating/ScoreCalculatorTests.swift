@@ -79,11 +79,15 @@ struct ScoreCalculatorTests {
         (.xWing, .hard),
         (.wWing, .hard),
         (.uniqueRectangleType1, .hard),
-        (.bug, .hard),
         (.crane, .hard),
+        (.xyWing, .expert),
+        (.xyzWing, .expert),
+        (.bug, .expert),
         (.finnedSwordfish, .expert),
-        (.finnedJellyfish, .expert),
-        (.sevenYWing, .expert),
+        (.fourYWing, .expert),
+        (.finnedJellyfish, .professional),
+        (.fiveYWing, .professional),
+        (.sevenYWing, .professional),
         (.unknown, .professional),
     ])
     func levelFollowsHardestStep(_ technique: TechniqueInfo, _ level: PuzzleDifficulty.Level) {
