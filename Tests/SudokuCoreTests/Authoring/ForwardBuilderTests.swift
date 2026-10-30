@@ -158,7 +158,7 @@ struct ForwardBuilderTests {
             let witness = try #require(recorded.witness)
             #expect(PlanFiller.accepts(witness, for: recorded.fillRequest))
             let path = SolvePathEmitter.emit(from: witness, using: ClassicTechniques.upTo(.hard))
-            #expect(RecordedStep.positions(of: recorded.recorded, in: path.steps, by: .deduction) != nil)
+            #expect(RecordedStep.positions(of: recorded.recorded, in: path.steps, by: recorded.configuration.matching) != nil)
             #expect(recorded.recorded[0].digits.isEmpty == false)
             return
         }

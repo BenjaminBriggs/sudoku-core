@@ -35,7 +35,7 @@ public enum PlanFiller {
             clues: [[Int]] = Solution.empty(),
             ceiling: PuzzleDifficulty.Level = .hard,
             recorded: [RecordedStep] = [],
-            matching: RecordedStep.Matching = .deduction,
+            matching: RecordedStep.Matching = .technique,
             relaxing: Symmetry? = nil
         ) {
             self.plan = plan

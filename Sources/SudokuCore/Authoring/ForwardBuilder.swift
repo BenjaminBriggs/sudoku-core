@@ -28,7 +28,7 @@ public struct ForwardBuilder: Sendable {
         public init(
             ceiling: PuzzleDifficulty.Level = .hard,
             relaxing: Symmetry? = .rotational180,
-            matching: RecordedStep.Matching = .deduction
+            matching: RecordedStep.Matching = .technique
         ) {
             self.ceiling = ceiling
             self.relaxing = relaxing

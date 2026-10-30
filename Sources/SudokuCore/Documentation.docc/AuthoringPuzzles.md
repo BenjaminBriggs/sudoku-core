@@ -34,7 +34,9 @@ To explain an option, ``ForwardBuilder/Option/techniqueHint`` gives its techniqu
 
 ### Recorded steps
 
-A ``RecordedStep`` is the deduction itself: its technique, the digits it's about and the squares of its pattern and changes. With ``RecordedStep/Matching/deduction`` (the default), the finished puzzle's solve keeps the step only with the same technique on the same digits over overlapping squares, so another X-Wing elsewhere can't stand in for the setter's. ``RecordedStep/Matching/technique`` accepts any step of the technique.
+A ``RecordedStep`` is the deduction itself: its technique, the digits it's about and the squares of its pattern and changes. With ``RecordedStep/Matching/technique`` (the default), the finished puzzle's solve keeps the step with any step of the same technique. ``RecordedStep/Matching/deduction`` is stricter: the same technique on the same digits over overlapping squares, so another X-Wing elsewhere can't stand in for the setter's.
+
+The stricter rule costs builds steps. On 18 seeded plans of 24–28 squares (`ForwardBuilderSoakTests`, release), a greedy setter kept 2.2 steps per build with deduction matching against 4.0 with technique matching, and 4% of attempts against 8%.
 
 ### Saving and editing a build
 
