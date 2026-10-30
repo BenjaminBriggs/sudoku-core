@@ -154,11 +154,12 @@ struct ForwardBuilderTests {
                 $0.value == puzzle[removed.row][removed.column] && $0.technique != nil
             }) else { continue }
             let recorded = try #require(await builder.recording(option, seed: 3, budget: .moves(50_000)))
-            #expect(recorded.recorded == [option.technique!])
+            #expect(recorded.recorded.map(\.technique) == [option.technique!])
             let witness = try #require(recorded.witness)
             #expect(PlanFiller.accepts(witness, for: recorded.fillRequest))
             let path = SolvePathEmitter.emit(from: witness, using: ClassicTechniques.upTo(.hard))
-            #expect(path.steps.contains { $0.technique == option.technique })
+            #expect(RecordedStep.positions(of: recorded.recorded, in: path.steps, by: recorded.configuration.matching) != nil)
+            #expect(recorded.recorded[0].digits.isEmpty == false)
             return
         }
         Issue.record("No clue needed a technique beyond singles")
@@ -182,5 +183,58 @@ extension ForwardBuilderTests {
         let square = try #require(before.openSquares.first { after.openSquares.contains($0) })
         let stale = try #require(before.options(at: square).first)
         #expect(await after.recording(stale, seed: 1, budget: .moves(100)) == nil)
+    }
+}
+
+// MARK: - Option accessors
+
+extension ForwardBuilderTests {
+    /// The first option, from removing one clue at a time, whose putting back needs a technique
+    /// beyond singles.
+    func techniqueOption() -> (ForwardBuilder, ForwardBuilder.Option)? {
+        for removed in orderedPlan {
+            let builder = make(plan: plan, clues: clues(plan.subtracting([removed])))
+            if let option = builder.options(at: removed).first(where: {
+                $0.value == puzzle[removed.row][removed.column] && $0.technique != nil
+            }) {
+                return (builder, option)
+            }
+        }
+        return nil
+    }
+
+    @Test func aTechniqueOptionExplainsItsStep() throws {
+        let (_, option) = try #require(techniqueOption())
+        let index = try #require(option.techniqueStepIndex)
+        #expect(option.steps[index].technique == option.technique)
+        let hint = try #require(option.techniqueHint)
+        #expect(hint.technique == option.technique)
+        #expect(hint.reasoning.components.isEmpty == false)
+        #expect(hint.reasoning.inconsistencies(in: option.state(before: index)).isEmpty)
+    }
+
+    @Test func replayingTheStepsReachesTheOptionsState() throws {
+        let (_, option) = try #require(techniqueOption())
+        #expect(option.state(before: 0).grid == option.start.grid)
+        let end = option.state(before: option.steps.count)
+        #expect(end.grid == option.state.grid)
+        #expect(end.pencilMarks == option.state.pencilMarks)
+        #expect(option.start.grid[option.position.row][option.position.column] == option.value)
+    }
+
+    @Test func aSinglesOptionHasNoTechniqueStep() throws {
+        let builder = make(plan: plan, clues: clues(orderedPlan.prefix(12)))
+        let option = try #require(builder.openSquares.lazy.flatMap { builder.options(at: $0) }.first { $0.technique == nil })
+        #expect(option.techniqueStepIndex == nil)
+        #expect(option.techniqueHint == nil)
+    }
+
+    @Test func cancelledOptionsStopAtOnce() async {
+        let builder = make(plan: plan, clues: clues(orderedPlan.prefix(8)))
+        let options = await Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return await builder.options()
+        }.value
+        #expect(options.isEmpty)
     }
 }

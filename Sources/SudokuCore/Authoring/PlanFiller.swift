@@ -22,7 +22,9 @@ public enum PlanFiller {
         /// The hardest level of technique the solve may need.
         public var ceiling: PuzzleDifficulty.Level
         /// Technique steps the solve has to take, in this order, among its other steps.
-        public var recorded: [TechniqueInfo]
+        public var recorded: [RecordedStep]
+        /// How closely a solve step has to match a recorded one.
+        public var matching: RecordedStep.Matching
         /// When set, whole orbits of this symmetry made only of unplaced plan squares may be
         /// left empty, to bring back a recorded step that the full plan skips. `nil` fills
         /// every planned square.
@@ -32,13 +34,15 @@ public enum PlanFiller {
             plan: Set<Puzzle.Index>,
             clues: [[Int]] = Solution.empty(),
             ceiling: PuzzleDifficulty.Level = .hard,
-            recorded: [TechniqueInfo] = [],
+            recorded: [RecordedStep] = [],
+            matching: RecordedStep.Matching = .technique,
             relaxing: Symmetry? = nil
         ) {
             self.plan = plan
             self.clues = clues
             self.ceiling = ceiling
             self.recorded = recorded
+            self.matching = matching
             self.relaxing = relaxing
         }
     }
@@ -122,13 +126,36 @@ public enum PlanFiller {
 
     /// One walk of the search, deterministic for `generator`'s output: `nil` when `maxMoves`
     /// pass, `deadline` does, or the task is cancelled first.
+    ///
+    /// With `near`, a fill found before (say, the witness before the latest clue), the walk
+    /// starts from its digits instead of a random solution: one new clue usually needs only a
+    /// small repair, while random digits almost never give a small plan one solution.
     public static func fill(
         _ request: Request,
         using generator: inout some RandomNumberGenerator,
         maxMoves: Int = 50_000,
-        deadline: ContinuousClock.Instant? = nil
+        deadline: ContinuousClock.Instant? = nil,
+        near: [[Int]]? = nil
     ) -> [[Int]]? {
-        guard isConsistent(request) else { return nil }
+        walk(request, using: &generator, maxMoves: maxMoves, deadline: deadline, near: near).fill
+    }
+
+    /// What one walk found: a fill, or the grid that came closest, with its solution count.
+    struct Walk: Sendable {
+        var fill: [[Int]]?
+        var nearest: [[Int]]?
+        var nearestCount = Int.max
+    }
+
+    static func walk(
+        _ request: Request,
+        using generator: inout some RandomNumberGenerator,
+        maxMoves: Int,
+        deadline: ContinuousClock.Instant?,
+        near: [[Int]]?
+    ) -> Walk {
+        var result = Walk()
+        guard isConsistent(request) else { return result }
         var random = SearchRandom(seed: generator.next())
         let fixed = request.clues.flatMap { $0 }
         let open = request.plan.map { $0.row * 9 + $0.column }.filter { fixed[$0] == 0 }.sorted()
@@ -140,29 +167,56 @@ public enum PlanFiller {
             return cells
         }
 
-        guard var cells = fresh() else { return nil }
+        /// `near`'s digits on the open squares where they don't clash with the clues, the rest
+        /// from a solution of those.
+        func fromNear() -> [Int]? {
+            guard let near else { return nil }
+            var cells = fixed
+            for cell in open {
+                let value = near[cell / 9][cell % 9]
+                guard value != 0, peers[cell].allSatisfy({ fixed[$0] != value }) else { continue }
+                cells[cell] = value
+            }
+            let kept = grid(cells)
+            guard let solution = Validator.randomSolution(of: kept, using: &random, nodeLimit: 20_000) else { return nil }
+            for cell in open where cells[cell] == 0 { cells[cell] = solution[cell / 9][cell % 9] }
+            return cells
+        }
+
+        guard var cells = fromNear() ?? fresh() else { return result }
         var score = Validator.countSolutions(of: grid(cells), limit: countLimit)
+        func noteNearest() {
+            if score >= 1, score < result.nearestCount {
+                result.nearest = grid(cells)
+                result.nearestCount = score
+            }
+        }
+        noteNearest()
         var stale = 0
         for move in 0..<maxMoves {
             if move % 64 == 0 {
-                if Task.isCancelled { return nil }
-                if let deadline, ContinuousClock.now >= deadline { return nil }
+                if Task.isCancelled { return result }
+                if let deadline, ContinuousClock.now >= deadline { return result }
             }
             if score == 1 {
                 let candidate = grid(cells)
-                if solvesKeepingRecord(candidate, request) { return candidate }
+                if solvesKeepingRecord(candidate, request) {
+                    result.fill = candidate
+                    return result
+                }
                 if let relaxing = request.relaxing,
                    let relaxed = relax(candidate, request, symmetry: relaxing, using: &random) {
-                    return relaxed
+                    result.fill = relaxed
+                    return result
                 }
                 // With every planned square placed, a restart is the same grid again.
-                guard open.isEmpty == false, let restart = fresh() else { return nil }
+                guard open.isEmpty == false, let restart = fresh() else { return result }
                 cells = restart
                 score = Validator.countSolutions(of: grid(cells), limit: countLimit)
                 stale = 0
                 continue
             }
-            guard let cell = open.randomElement(using: &random) else { return nil }
+            guard let cell = open.randomElement(using: &random) else { return result }
 
             // Another digit for one unplaced square, one its row, column and box don't hold.
             var used = 0
@@ -176,6 +230,7 @@ public enum PlanFiller {
                     stale = nextScore < score ? 0 : stale + 1
                     cells = next
                     score = nextScore
+                    noteNearest()
                 } else {
                     stale += 1
                 }
@@ -183,24 +238,25 @@ public enum PlanFiller {
                 stale += 1
             }
             if stale > staleLimit {
-                guard let restart = fresh() else { return nil }
+                guard let restart = fresh() else { return result }
                 cells = restart
                 score = Validator.countSolutions(of: grid(cells), limit: countLimit)
                 stale = 0
             }
         }
-        return nil
+        return result
     }
 
-    /// Races the budget's walks, each seeded from `seed`, and returns the first fill found, or
-    /// `nil` when every walk runs out.
-    public static func fill(_ request: Request, seed: UInt64, budget: Budget) async -> [[Int]]? {
+
+    /// Races the budget's walks, each seeded from `seed` and starting from `near` when given,
+    /// and returns the first fill found, or `nil` when every walk runs out.
+    public static func fill(_ request: Request, seed: UInt64, budget: Budget, near: [[Int]]? = nil) async -> [[Int]]? {
         let deadline = budget.timeout.map { ContinuousClock.now + $0 }
         return await withTaskGroup(of: [[Int]]?.self) { group in
             for walk in 0..<budget.walks {
                 group.addTask {
                     var generator = SearchRandom(seed: seed &+ UInt64(walk) &* 0x9E37_79B9_7F4A_7C15)
-                    return fill(request, using: &generator, maxMoves: budget.movesPerWalk, deadline: deadline)
+                    return fill(request, using: &generator, maxMoves: budget.movesPerWalk, deadline: deadline, near: near)
                 }
             }
             for await result in group {
@@ -231,16 +287,12 @@ public enum PlanFiller {
     /// The techniques up to the ceiling solve `grid`, taking the recorded steps in order.
     static func solvesKeepingRecord(_ grid: [[Int]], _ request: Request) -> Bool {
         let path = SolvePathEmitter.emit(from: grid, using: ClassicTechniques.upTo(request.ceiling))
-        return path.solved && takes(request.recorded, path.steps.map(\.technique))
+        return path.solved && takes(request, path.steps)
     }
 
-    /// `recorded` appears in `path` in order, with other steps between.
-    static func takes(_ recorded: [TechniqueInfo], _ path: [TechniqueInfo]) -> Bool {
-        var next = 0
-        for technique in path where next < recorded.count && technique.id == recorded[next].id {
-            next += 1
-        }
-        return next == recorded.count
+    /// `steps` take the recorded steps in order, with other steps between.
+    static func takes(_ request: Request, _ steps: [SolvePathEmitter.SolveStep]) -> Bool {
+        RecordedStep.positions(of: request.recorded, in: steps, by: request.matching) != nil
     }
 
     /// Leaves whole orbits of unplaced plan squares empty, in random order, while the grid
@@ -265,7 +317,7 @@ public enum PlanFiller {
             let path = SolvePathEmitter.emit(from: thinner, using: ClassicTechniques.upTo(request.ceiling))
             guard path.solved else { continue }
             current = thinner
-            if takes(request.recorded, path.steps.map(\.technique)) { return current }
+            if takes(request, path.steps) { return current }
         }
         return nil
     }

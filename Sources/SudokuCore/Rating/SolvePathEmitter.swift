@@ -13,16 +13,36 @@ public enum SolvePathEmitter {
         public let actions: [HintAction]
         public let eliminations: Int
         public let placements: Int
+        /// How the step was found, as the hint finder recorded it: what explanations and
+        /// board highlights are built from.
+        public let reasoning: HintReasoning
 
-        public init(technique: TechniqueInfo, actions: [HintAction]) {
+        public init(technique: TechniqueInfo, actions: [HintAction], reasoning: HintReasoning = HintReasoning()) {
             self.technique = technique
             self.actions = actions
+            self.reasoning = reasoning
             self.eliminations = actions.reduce(0) { acc, a in
                 if case .ruleOut = a.action { return acc + 1 } else { return acc }
             }
             self.placements = actions.reduce(0) { acc, a in
                 if case .solveAs = a.action { return acc + 1 } else { return acc }
             }
+        }
+
+        /// The step a hint takes, keeping its reasoning.
+        public init(_ hint: HintStep) {
+            self.init(technique: hint.technique, actions: hint.actions, reasoning: hint.reasoning)
+        }
+
+        /// The step as a hint, for explaining or showing it.
+        public var hint: HintStep {
+            HintStep(actions: actions, technique: technique, reasoning: reasoning)
+        }
+
+        /// The same deduction: technique and actions. Reasoning is left out because some
+        /// techniques list its cells in no fixed order.
+        public static func == (lhs: SolveStep, rhs: SolveStep) -> Bool {
+            lhs.technique == rhs.technique && lhs.actions == rhs.actions
         }
     }
 
@@ -107,7 +127,7 @@ public enum SolvePathEmitter {
                     if Task.isCancelled { break }
                     let branch = solve(
                         from: state.applying(hint),
-                        steps: steps + [SolveStep(technique: hint.technique, actions: hint.actions)],
+                        steps: steps + [SolveStep(hint)],
                         iterations: iterations,
                         maxIterations: maxIterations
                     ) { HintFinder.firstHint(in: $0) }
@@ -115,7 +135,7 @@ public enum SolvePathEmitter {
                     found.append(branch)
                 }
             }
-            steps.append(SolveStep(technique: chosen.technique, actions: chosen.actions))
+            steps.append(SolveStep(chosen))
             state = state.applying(chosen)
         }
 
@@ -149,7 +169,7 @@ public enum SolvePathEmitter {
             if iterations > maxIterations { break }
 
             guard let hint = nextHint(state) else { break }
-            steps.append(SolveStep(technique: hint.technique, actions: hint.actions))
+            steps.append(SolveStep(hint))
             state = state.applying(hint)
         }
 

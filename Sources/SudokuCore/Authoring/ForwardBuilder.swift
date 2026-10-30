@@ -15,17 +15,24 @@
 import Foundation
 
 public struct ForwardBuilder: Sendable {
-    public struct Configuration: Sendable, Equatable {
+    public struct Configuration: Sendable, Equatable, Codable {
         /// The hardest level of technique the puzzle may need.
         public var ceiling: PuzzleDifficulty.Level
         /// When set, the finished puzzle may leave out whole orbits of this symmetry that hold
         /// no placed clue, to keep a recorded step the full plan would skip. `nil` keeps every
         /// planned square.
         public var relaxing: Symmetry?
+        /// How closely the finished puzzle's solve has to match each recorded step.
+        public var matching: RecordedStep.Matching
 
-        public init(ceiling: PuzzleDifficulty.Level = .hard, relaxing: Symmetry? = .rotational180) {
+        public init(
+            ceiling: PuzzleDifficulty.Level = .hard,
+            relaxing: Symmetry? = .rotational180,
+            matching: RecordedStep.Matching = .technique
+        ) {
             self.ceiling = ceiling
             self.relaxing = relaxing
+            self.matching = matching
         }
     }
 
@@ -48,12 +55,32 @@ public struct ForwardBuilder: Sendable {
         public let exposure: Int
         /// The clue's digit is the witness's, so placing it quietly keeps the witness.
         public let matchesWitness: Bool
-        let state: BoardState
+        /// What logic knows once the clue is in and `steps` have run.
+        public let state: BoardState
+        /// The clue placed, before any of `steps`.
+        public let start: BoardState
         /// The logic grid the option was worked out from: an option only applies to the
         /// builder that offered it.
         let basis: [[Int]]
 
         public var id: Int { (position.row * 9 + position.column) * 10 + value }
+
+        /// Where `technique` first appears in `steps`.
+        public var techniqueStepIndex: Int? {
+            guard let technique else { return nil }
+            return steps.firstIndex { $0.technique == technique }
+        }
+
+        /// The step that uses `technique`, as a hint to explain or show on the board.
+        public var techniqueHint: HintStep? {
+            techniqueStepIndex.map { steps[$0].hint }
+        }
+
+        /// What the solver knows just before `steps[index]`: the clue placed and the steps
+        /// before it taken. The grid and candidates a step's explanation refers to.
+        public func state(before index: Int) -> BoardState {
+            steps.prefix(max(0, min(index, steps.count))).reduce(start) { $0.applying($1.hint) }
+        }
     }
 
     public let plan: Set<Puzzle.Index>
@@ -61,7 +88,7 @@ public struct ForwardBuilder: Sendable {
     /// The setter's clues so far.
     public private(set) var clues: [[Int]]
     /// The technique steps the setter recorded, in order.
-    public private(set) var recorded: [TechniqueInfo]
+    public private(set) var recorded: [RecordedStep]
     /// A finished puzzle that keeps every clue and recorded step, once one is found.
     public private(set) var witness: [[Int]]?
     /// What logic up to the ceiling knows from the clues.
@@ -71,7 +98,7 @@ public struct ForwardBuilder: Sendable {
     public init?(
         plan: Set<Puzzle.Index>,
         clues: [[Int]] = Solution.empty(),
-        recorded: [TechniqueInfo] = [],
+        recorded: [RecordedStep] = [],
         configuration: Configuration = Configuration()
     ) {
         guard PlanFiller.isConsistent(PlanFiller.Request(plan: plan, clues: clues)) else { return nil }
@@ -105,6 +132,7 @@ public struct ForwardBuilder: Sendable {
             clues: clues,
             ceiling: configuration.ceiling,
             recorded: recorded,
+            matching: configuration.matching,
             relaxing: configuration.relaxing
         )
     }
@@ -118,12 +146,14 @@ public struct ForwardBuilder: Sendable {
     // MARK: - Options
 
     /// Every digit `position` can take while the clues keep a solution, with what logic does
-    /// next. Empty for a square outside the plan or already filled.
+    /// next. Empty for a square outside the plan or already filled; stops early, with what it
+    /// has, when the task is cancelled.
     public func options(at position: Puzzle.Index) -> [Option] {
         options(at: position, open: Set(openSquares), witnessSolution: witnessSolution)
     }
 
-    /// ``options(at:)`` for every open square, worked out in parallel.
+    /// ``options(at:)`` for every open square, worked out in parallel. Stops early, with what
+    /// it has, when the task is cancelled.
     public func options() async -> [Option] {
         let open = Set(openSquares)
         let solution = witnessSolution
@@ -142,10 +172,12 @@ public struct ForwardBuilder: Sendable {
         let filledBefore = Self.filled(state)
         var found: [Option] = []
         for value in state.pencilMarks[position.row][position.column].sorted() {
+            if Task.isCancelled { break }
             var trial = state.grid
             trial[position.row][position.column] = value
             guard Validator.hasSolution(trial, nodeLimit: Self.feasibilityNodes) != false else { continue }
-            let path = Self.logic(from: Self.placing(value, at: position, in: state), ceiling: configuration.ceiling)
+            let start = Self.placing(value, at: position, in: state)
+            let path = Self.logic(from: start, ceiling: configuration.ceiling)
             let after = path.finalState
             guard Self.isDeadEnd(after) == false else { continue }
             let technique = path.steps.map(\.technique).filter { $0.isSingle == false }
@@ -164,6 +196,7 @@ public struct ForwardBuilder: Sendable {
                 }.count,
                 matchesWitness: solution?[position.row][position.column] == value,
                 state: after,
+                start: start,
                 basis: state.grid
             ))
         }
@@ -178,9 +211,9 @@ public struct ForwardBuilder: Sendable {
     public func recording(_ option: Option, seed: UInt64, budget: PlanFiller.Budget) async -> ForwardBuilder? {
         guard option.basis == state.grid else { return nil }
         var next = applying(option)
-        if let technique = option.technique { next.recorded.append(technique) }
+        if let index = option.techniqueStepIndex { next.recorded.append(RecordedStep(option.steps[index])) }
         guard next.knownCluesKeepRecord else { return nil }
-        return await next.withWitness(seed: seed, budget: budget)
+        return await next.withWitness(seed: seed, budget: budget, near: witness)
     }
 
     /// The builder after `value` goes in `position`, recording nothing. The witness stays when
@@ -195,16 +228,27 @@ public struct ForwardBuilder: Sendable {
         guard let option = options(at: position).first(where: { $0.value == value }) else { return nil }
         let next = applying(option)
         guard next.knownCluesKeepRecord else { return nil }
-        return await next.withWitness(seed: seed, budget: budget)
+        return await next.withWitness(seed: seed, budget: budget, near: witness)
     }
 
     /// The builder with a witness: the current one when it still fits, otherwise the first
-    /// fill of the plan the search finds within `budget`. `nil` when it finds none.
-    public func withWitness(seed: UInt64, budget: PlanFiller.Budget) async -> ForwardBuilder? {
+    /// fill of the plan the search finds within `budget`, starting near `near` (an earlier
+    /// witness) when given. `nil` when it finds none.
+    public func withWitness(seed: UInt64, budget: PlanFiller.Budget, near: [[Int]]? = nil) async -> ForwardBuilder? {
         var next = self
         if let witness, PlanFiller.accepts(witness, for: fillRequest) { return next }
+        // A witness that still holds every clue may only have lost a recorded step to a
+        // shortcut: leaving out planned squares can bring it back without a search.
+        if let witness, let relaxing = configuration.relaxing {
+            var random = SearchRandom(seed: seed)
+            if let relaxed = PlanFiller.relax(witness, fillRequest, symmetry: relaxing, using: &random),
+               PlanFiller.accepts(relaxed, for: fillRequest) {
+                next.witness = relaxed
+                return next
+            }
+        }
         guard PlanFiller.swappableLines(in: plan).isEmpty,
-              let found = await PlanFiller.fill(fillRequest, seed: seed, budget: budget),
+              let found = await PlanFiller.fill(fillRequest, seed: seed, budget: budget, near: near ?? witness),
               PlanFiller.accepts(found, for: fillRequest) else { return nil }
         next.witness = found
         return next
@@ -217,6 +261,83 @@ public struct ForwardBuilder: Sendable {
         var next = self
         next.witness = witness
         return next
+    }
+
+    // MARK: - Saving and editing
+
+    /// A build in progress, to save and restore.
+    public struct Snapshot: Codable, Sendable, Equatable {
+        /// Raised when the stored form changes; a newer snapshot doesn't restore.
+        public static let currentVersion = 1
+
+        public var version: Int
+        /// The planned squares, in row-major order.
+        public var plan: [Puzzle.Index]
+        public var clues: [[Int]]
+        public var recorded: [RecordedStep]
+        public var witness: [[Int]]?
+        public var configuration: Configuration
+    }
+
+    public var snapshot: Snapshot {
+        Snapshot(
+            version: Snapshot.currentVersion,
+            plan: plan.sorted { ($0.row, $0.column) < ($1.row, $1.column) },
+            clues: clues,
+            recorded: recorded,
+            witness: witness,
+            configuration: configuration
+        )
+    }
+
+    /// The build `snapshot` saved, with its witness only if the witness still fits. `nil` for a
+    /// newer version, a clue outside the plan, or clashing clues.
+    public init?(restoring snapshot: Snapshot) {
+        guard snapshot.version <= Snapshot.currentVersion else { return nil }
+        self.init(
+            plan: Set(snapshot.plan),
+            clues: snapshot.clues,
+            recorded: snapshot.recorded,
+            configuration: snapshot.configuration
+        )
+        if let witness = snapshot.witness, PlanFiller.accepts(witness, for: fillRequest) {
+            self.witness = witness
+        }
+    }
+
+    /// The build with `newPlan` instead: `nil` when a placed clue would be left outside it.
+    /// The witness stays, less any squares taken out of the plan, when it still fits and the
+    /// plan didn't grow. Squares added need a new witness, so they get clues.
+    public func replacingPlan(_ newPlan: Set<Puzzle.Index>) -> ForwardBuilder? {
+        guard var next = ForwardBuilder(plan: newPlan, clues: clues, recorded: recorded, configuration: configuration) else {
+            return nil
+        }
+        if let witness, newPlan.isSubset(of: plan) {
+            var trimmed = witness
+            for square in plan.subtracting(newPlan) { trimmed[square.row][square.column] = 0 }
+            if PlanFiller.accepts(trimmed, for: next.fillRequest) { next.witness = trimmed }
+        }
+        return next
+    }
+
+    /// The build with another finished puzzle for the same clues and steps: "another ending".
+    /// `nil` when the search only finds the current witness, or nothing, within `budget`.
+    public func withNewWitness(seed: UInt64, budget: PlanFiller.Budget) async -> ForwardBuilder? {
+        for attempt in 0..<4 {
+            guard let found = await PlanFiller.fill(fillRequest, seed: seed &+ UInt64(attempt), budget: budget),
+                  found != witness,
+                  PlanFiller.accepts(found, for: fillRequest) else { continue }
+            var next = self
+            next.witness = found
+            return next
+        }
+        return nil
+    }
+
+    /// Planned squares the witness leaves empty, so a recorded step isn't skipped.
+    public var droppedSquares: Set<Puzzle.Index> {
+        guard let witness else { return [] }
+        return plan.filter { witness[$0.row][$0.column] == 0 }
     }
 
     // MARK: - Internals
@@ -238,7 +359,7 @@ public struct ForwardBuilder: Sendable {
     private var knownCluesKeepRecord: Bool {
         guard recorded.isEmpty == false else { return true }
         let path = SolvePathEmitter.emit(from: knownClues, using: ClassicTechniques.upTo(configuration.ceiling))
-        return PlanFiller.takes(recorded, path.steps.map(\.technique))
+        return PlanFiller.takes(fillRequest, path.steps)
     }
 
     static func logic(from state: BoardState, ceiling: PuzzleDifficulty.Level) -> SolvePathEmitter.SolvePath {
