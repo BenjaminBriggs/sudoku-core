@@ -174,7 +174,7 @@ struct SearchRandom: RandomNumberGenerator, Sendable {
 
 /// A backtracking search over row, column and box bitsets that stops after `limit` solutions,
 /// always branching on the empty cell with the fewest candidates.
-private struct BitsetSearch {
+struct BitsetSearch {
     private var grid: [[Int]]
     private var rows = [Int](repeating: 0, count: 9)
     private var columns = [Int](repeating: 0, count: 9)
@@ -182,7 +182,10 @@ private struct BitsetSearch {
     private var found: [Solution] = []
     private var count = 0
     private var keepsSolutions = true
-    private var nodes = 0
+    /// Per square and digit, the solutions that hold it, indexed `square * 9 + digit - 1`.
+    /// Empty unless tallying.
+    private var tallied: [Int] = []
+    private(set) var nodes = 0
     private var nodeLimit = Int.max
     /// Tries a branch's digits in random order when set.
     private var random: SearchRandom?
@@ -226,6 +229,19 @@ private struct BitsetSearch {
         return count
     }
 
+    /// How many of the first `limit` solutions hold each digit in each square, indexed
+    /// `square * 9 + digit - 1`, and how many solutions that was. Stops after `nodeLimit`
+    /// branches.
+    mutating func tally(limit: Int, nodeLimit: Int) -> (counts: [Int], solutions: Int) {
+        tallied = [Int](repeating: 0, count: 81 * 9)
+        count = 0
+        keepsSolutions = false
+        nodes = 0
+        self.nodeLimit = nodeLimit
+        search(limit: limit)
+        return (tallied, count)
+    }
+
     /// The first solution found within `nodeLimit` branches, trying digits in `random` order.
     mutating func firstSolution(nodeLimit: Int, random: SearchRandom?) -> Solution? {
         found = []
@@ -265,6 +281,13 @@ private struct BitsetSearch {
         guard bestCell >= 0 else {
             count += 1
             if keepsSolutions { found.append(grid) }
+            if tallied.isEmpty == false {
+                for row in 0..<9 {
+                    for column in 0..<9 {
+                        tallied[(row * 9 + column) * 9 + grid[row][column] - 1] += 1
+                    }
+                }
+            }
             return
         }
 
