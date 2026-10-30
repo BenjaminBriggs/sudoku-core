@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Source: `Sources/SudokuCore/` — modules: `Board/`, `CoreModels/`, `Generation/`, `Hints/`, `Rating/`, `Models/`, `Documentation.docc/`, plus `Localizable.xcstrings`.
+- Source: `Sources/SudokuCore/` — modules: `Authoring/`, `Board/`, `CoreModels/`, `Generation/`, `Hints/`, `Rating/`, `Models/`, `Documentation.docc/`, plus `Localizable.xcstrings`.
 - Tests: `Tests/SudokuCoreTests/` — `*Tests.swift` files and `Fixtures/` for JSON and other assets.
 - Benchmarks: `Benchmarks/SudokuCoreBenchmarks/` (executable target).
 - Package manifest: `Package.swift` (Swift 6, iOS 18+/macOS 15+).

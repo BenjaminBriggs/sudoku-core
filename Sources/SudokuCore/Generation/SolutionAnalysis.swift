@@ -2,9 +2,9 @@
 //  SolutionAnalysis.swift
 //  SudokuCore
 //
-//  Setter-facing checks on a grid of clues: how many solutions it has (capped at two),
-//  whether any clue is redundant, and which clue would best narrow a grid with several
-//  solutions back towards one.
+//  Setter-facing checks on a grid of clues: how many solutions it has, whether any clue is
+//  redundant, which clue would best narrow a grid with several solutions back towards one,
+//  and a random solution of the clues.
 //
 import Foundation
 
@@ -56,6 +56,37 @@ extension Validator {
         case 1: return .unique(solutions[0])
         default: return .multiple(solutions[0], solutions[1])
         }
+    }
+
+    /// The grid's solutions, counted up to `limit`: 0 when the clues clash or no grid
+    /// completes them.
+    ///
+    /// Counts beyond two say how far a grid is from unique, so a search that changes clues
+    /// can follow the count down.
+    public static func countSolutions(of grid: [[Int]], limit: Int) -> Int {
+        guard limit > 0, var search = BitsetSearch(grid: grid) else { return 0 }
+        return search.count(limit: limit)
+    }
+
+    /// Whether any grid completes the clues, or `nil` when the search gave up after
+    /// `nodeLimit` branches. Proving a sparse grid has no solution can take far longer than
+    /// finding one.
+    public static func hasSolution(_ grid: [[Int]], nodeLimit: Int) -> Bool? {
+        guard var search = BitsetSearch(grid: grid) else { return false }
+        let solution = search.firstSolution(nodeLimit: nodeLimit, random: nil)
+        if solution != nil { return true }
+        return search.ranOut ? nil : false
+    }
+
+    /// One of the grid's solutions, found by trying digits in random order: `nil` when there's
+    /// none, or the search gave up after `nodeLimit` branches.
+    public static func randomSolution(
+        of grid: [[Int]],
+        using generator: inout some RandomNumberGenerator,
+        nodeLimit: Int = 100_000
+    ) -> Solution? {
+        guard var search = BitsetSearch(grid: grid) else { return nil }
+        return search.firstSolution(nodeLimit: nodeLimit, random: SearchRandom(seed: generator.next()))
     }
 
     /// Positions where two grids hold different digits, in row-major order.
@@ -122,6 +153,25 @@ extension Validator {
     }
 }
 
+/// A small, fast generator for searches that take their randomness from a caller's generator
+/// once, as a seed, so the same seed always gives the same search.
+struct SearchRandom: RandomNumberGenerator, Sendable {
+    private var state: UInt64
+
+    init(seed: UInt64) {
+        state = seed
+    }
+
+    /// SplitMix64.
+    mutating func next() -> UInt64 {
+        state &+= 0x9E37_79B9_7F4A_7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
+        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
+        return z ^ (z >> 31)
+    }
+}
+
 /// A backtracking search over row, column and box bitsets that stops after `limit` solutions,
 /// always branching on the empty cell with the fewest candidates.
 private struct BitsetSearch {
@@ -130,6 +180,14 @@ private struct BitsetSearch {
     private var columns = [Int](repeating: 0, count: 9)
     private var boxes = [Int](repeating: 0, count: 9)
     private var found: [Solution] = []
+    private var count = 0
+    private var keepsSolutions = true
+    private var nodes = 0
+    private var nodeLimit = Int.max
+    /// Tries a branch's digits in random order when set.
+    private var random: SearchRandom?
+    /// The search stopped at `nodeLimit` before it finished.
+    private(set) var ranOut = false
 
     /// `nil` when the grid isn't 9×9, holds a digit outside 0…9, or its clues clash.
     init?(grid: [[Int]]) {
@@ -154,11 +212,38 @@ private struct BitsetSearch {
 
     mutating func solutions(limit: Int) -> [Solution] {
         found = []
+        count = 0
+        keepsSolutions = true
         search(limit: limit)
         return found
     }
 
+    /// Solutions up to `limit`, counted without keeping them.
+    mutating func count(limit: Int) -> Int {
+        count = 0
+        keepsSolutions = false
+        search(limit: limit)
+        return count
+    }
+
+    /// The first solution found within `nodeLimit` branches, trying digits in `random` order.
+    mutating func firstSolution(nodeLimit: Int, random: SearchRandom?) -> Solution? {
+        found = []
+        count = 0
+        keepsSolutions = true
+        nodes = 0
+        self.nodeLimit = nodeLimit
+        self.random = random
+        search(limit: 1)
+        return found.first
+    }
+
     private mutating func search(limit: Int) {
+        nodes += 1
+        if nodes > nodeLimit {
+            ranOut = true
+            return
+        }
         // Candidates for every cell, 0 for a filled one. An empty cell with none is a dead end.
         var candidates = [Int](repeating: 0, count: 81)
         var bestCell = -1
@@ -178,7 +263,8 @@ private struct BitsetSearch {
         }
 
         guard bestCell >= 0 else {
-            found.append(grid)
+            count += 1
+            if keepsSolutions { found.append(grid) }
             return
         }
 
@@ -216,10 +302,28 @@ private struct BitsetSearch {
         let row = branchCell / 9
         let column = branchCell % 9
         let box = (row / 3) * 3 + column / 3
-        var remaining = branchDigits
-        while remaining != 0 {
-            let bit = remaining & -remaining
-            remaining &= remaining - 1
+        // Lowest digit first, unless the search is random; only then is an order worth building.
+        var order = branchDigits
+        var shuffled: [Int] = []
+        if random != nil, branchDigits.nonzeroBitCount > 1 {
+            while order != 0 {
+                shuffled.append(order & -order)
+                order &= order - 1
+            }
+            shuffled.shuffle(using: &random!)
+        }
+        var next = 0
+        while true {
+            let bit: Int
+            if shuffled.isEmpty {
+                guard order != 0 else { return }
+                bit = order & -order
+                order &= order - 1
+            } else {
+                guard next < shuffled.count else { return }
+                bit = shuffled[next]
+                next += 1
+            }
             grid[row][column] = bit.trailingZeroBitCount + 1
             rows[row] |= bit
             columns[column] |= bit
@@ -229,7 +333,7 @@ private struct BitsetSearch {
             columns[column] &= ~bit
             boxes[box] &= ~bit
             grid[row][column] = 0
-            if found.count >= limit { return }
+            if count >= limit || ranOut { return }
         }
     }
 
