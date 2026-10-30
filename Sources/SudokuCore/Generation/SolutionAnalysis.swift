@@ -189,7 +189,7 @@ struct BitsetSearch {
     private var nodeLimit = Int.max
     /// Tries a branch's digits in random order when set.
     private var random: SearchRandom?
-    /// The search stopped at `nodeLimit` before it finished.
+    /// The search stopped at `nodeLimit` before it finished, or a tally's task was cancelled.
     private(set) var ranOut = false
 
     /// `nil` when the grid isn't 9×9, holds a digit outside 0…9, or its clues clash.
@@ -213,9 +213,19 @@ struct BitsetSearch {
         }
     }
 
-    mutating func solutions(limit: Int) -> [Solution] {
+    /// Clears what an earlier search left, so a search can be used again in any mode.
+    private mutating func reset(nodeLimit: Int = .max, random: SearchRandom? = nil) {
         found = []
+        tallied = []
         count = 0
+        nodes = 0
+        ranOut = false
+        self.nodeLimit = nodeLimit
+        self.random = random
+    }
+
+    mutating func solutions(limit: Int) -> [Solution] {
+        reset()
         keepsSolutions = true
         search(limit: limit)
         return found
@@ -223,7 +233,7 @@ struct BitsetSearch {
 
     /// Solutions up to `limit`, counted without keeping them.
     mutating func count(limit: Int) -> Int {
-        count = 0
+        reset()
         keepsSolutions = false
         search(limit: limit)
         return count
@@ -233,30 +243,25 @@ struct BitsetSearch {
     /// `square * 9 + digit - 1`, and how many solutions that was. Stops after `nodeLimit`
     /// branches.
     mutating func tally(limit: Int, nodeLimit: Int) -> (counts: [Int], solutions: Int) {
+        reset(nodeLimit: nodeLimit)
         tallied = [Int](repeating: 0, count: 81 * 9)
-        count = 0
         keepsSolutions = false
-        nodes = 0
-        self.nodeLimit = nodeLimit
         search(limit: limit)
         return (tallied, count)
     }
 
     /// The first solution found within `nodeLimit` branches, trying digits in `random` order.
     mutating func firstSolution(nodeLimit: Int, random: SearchRandom?) -> Solution? {
-        found = []
-        count = 0
+        reset(nodeLimit: nodeLimit, random: random)
         keepsSolutions = true
-        nodes = 0
-        self.nodeLimit = nodeLimit
-        self.random = random
         search(limit: 1)
         return found.first
     }
 
     private mutating func search(limit: Int) {
         nodes += 1
-        if nodes > nodeLimit {
+        // A tally is the one search long enough to be worth stopping when its task is cancelled.
+        if nodes > nodeLimit || (tallied.isEmpty == false && nodes & 0xFFF == 0 && Task.isCancelled) {
             ranOut = true
             return
         }
@@ -281,13 +286,6 @@ struct BitsetSearch {
         guard bestCell >= 0 else {
             count += 1
             if keepsSolutions { found.append(grid) }
-            if tallied.isEmpty == false {
-                for row in 0..<9 {
-                    for column in 0..<9 {
-                        tallied[(row * 9 + column) * 9 + grid[row][column] - 1] += 1
-                    }
-                }
-            }
             return
         }
 
@@ -351,7 +349,12 @@ struct BitsetSearch {
             rows[row] |= bit
             columns[column] |= bit
             boxes[box] |= bit
+            let countBefore = count
             search(limit: limit)
+            // Every solution found under this branch holds its digit here.
+            if tallied.isEmpty == false {
+                tallied[branchCell * 9 + bit.trailingZeroBitCount] += count - countBefore
+            }
             rows[row] &= ~bit
             columns[column] &= ~bit
             boxes[box] &= ~bit

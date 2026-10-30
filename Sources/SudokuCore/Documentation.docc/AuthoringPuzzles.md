@@ -58,7 +58,7 @@ With ``PlanFiller/Request/relaxing`` set, a fill may leave out whole symmetric o
 
 A digit that doesn't clash in its row, column or box can still be in no solution, and late in a build many are. ``Validator/trueCandidates(of:solutionLimit:nodeLimit:)`` says which digits of each empty square are in a solution, and how many solutions hold each one when there are few enough to count. ``TrueCandidates/finishingClues`` lists the digits in exactly one solution: each is a clue that leaves the puzzle unique, though not necessarily solvable by logic.
 
-The answer says little early on, when nearly every legal digit is in some solution. It's cheap enough to run after every edit: a node limit bounds the call, and digits it can't reach are ``TrueCandidates/Standing/undecided``, never ruled out.
+The answer says little early on, when nearly every legal digit is in some solution. Run it off the main actor: a node limit bounds the call, and digits it can't reach are ``TrueCandidates/Standing/undecided``, never ruled out. ``TrueCandidates/solutionCount`` is ``TrueCandidates/Count/exactly(_:)`` only when every solution was counted.
 
 ## Solving with fewer techniques
 

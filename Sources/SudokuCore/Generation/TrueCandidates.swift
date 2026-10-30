@@ -13,11 +13,20 @@ import Foundation
 /// end of a build many are, and a digit in exactly one solution is a clue that finishes the
 /// puzzle.
 public struct TrueCandidates: Sendable, Equatable {
+    /// How many solutions a grid has, as far as the search could tell.
+    public enum Count: Sendable, Equatable {
+        /// Every solution was counted.
+        case exactly(Int)
+        /// The search stopped before counting them all: at `solutionLimit` when there were too
+        /// many, or lower when it gave up.
+        case atLeast(Int)
+    }
+
     /// What's known about one digit in one square.
     public enum Standing: Sendable, Equatable {
         /// In exactly this many solutions.
         case inSolutions(Int)
-        /// In at least one solution, and there were too many to count.
+        /// In at least one solution, when the solutions weren't all counted.
         case inSomeSolutions
         /// In no solution. Every digit of a filled square reads this way.
         case inNoSolution
@@ -25,18 +34,22 @@ public struct TrueCandidates: Sendable, Equatable {
         case undecided
     }
 
-    /// How many solutions the grid has, or `nil` when there were too many to count.
-    public let solutionCount: Int?
-    /// Indexed `square * 9 + digit - 1`.
+    public let solutionCount: Count
+    /// Indexed by `index(of:at:)`.
     private let standings: [Standing]
 
-    fileprivate init(solutionCount: Int?, standings: [Standing]) {
+    fileprivate init(solutionCount: Count, standings: [Standing]) {
         self.solutionCount = solutionCount
         self.standings = standings
     }
 
+    fileprivate static func index(of digit: Int, at position: Puzzle.Index) -> Int {
+        (position.row * 9 + position.column) * 9 + digit - 1
+    }
+
     public func standing(of digit: Int, at position: Puzzle.Index) -> Standing {
-        standings[(position.row * 9 + position.column) * 9 + digit - 1]
+        precondition((1...9).contains(digit), "Digits run from 1 to 9")
+        return standings[Self.index(of: digit, at: position)]
     }
 
     /// The digits a square may still hold, which includes any the search gave up on.
@@ -47,7 +60,7 @@ public struct TrueCandidates: Sendable, Equatable {
     /// Clues that each leave exactly one solution, in row-major order. Empty unless the grid's
     /// solutions were all counted and there are at least two.
     public var finishingClues: [SuggestedClue] {
-        guard let solutionCount, solutionCount > 1 else { return [] }
+        guard case .exactly(let total) = solutionCount, total > 1 else { return [] }
         return Puzzle.Index.allIndices.flatMap { position in
             (1...9)
                 .filter { standing(of: $0, at: position) == .inSolutions(1) }
@@ -60,11 +73,11 @@ extension Validator {
     /// Works out which digits of the grid's empty squares are in a solution.
     ///
     /// Counts the solutions first, tallying each digit, which answers everything when there are
-    /// fewer than `solutionLimit`. Otherwise the tally has already found most digits, and each
-    /// digit left gets a search of its own. Every solution those find rules in more digits.
+    /// fewer than `solutionLimit`. Otherwise the digits the count reached are in a solution, and
+    /// each digit left gets a search of its own. Every solution those find settles more digits.
     ///
-    /// Clues that clash give no solutions. Cancelling the task leaves the digits not yet
-    /// searched `.undecided`.
+    /// Clues that clash give no solutions. Cancelling the task stops the count and leaves the
+    /// digits not yet searched `.undecided`.
     ///
     /// - Parameters:
     ///   - solutionLimit: Solutions to count before settling for which digits are in any.
@@ -77,65 +90,56 @@ extension Validator {
     ) -> TrueCandidates {
         var standings = [TrueCandidates.Standing](repeating: .inNoSolution, count: 81 * 9)
         guard var search = BitsetSearch(grid: grid) else {
-            return TrueCandidates(solutionCount: 0, standings: standings)
+            return TrueCandidates(solutionCount: .exactly(0), standings: standings)
         }
         let tally = search.tally(limit: solutionLimit, nodeLimit: nodeLimit / 2)
-        let open = Puzzle.Index.allIndices.filter { grid[$0.row][$0.column] == 0 }
 
         if search.ranOut == false, tally.solutions < solutionLimit {
-            for position in open {
-                let square = (position.row * 9 + position.column) * 9
-                for digit in 0..<9 where tally.counts[square + digit] > 0 {
-                    standings[square + digit] = .inSolutions(tally.counts[square + digit])
-                }
+            for index in standings.indices where tally.counts[index] > 0 {
+                standings[index] = .inSolutions(tally.counts[index])
             }
-            return TrueCandidates(solutionCount: tally.solutions, standings: standings)
+            return TrueCandidates(solutionCount: .exactly(tally.solutions), standings: standings)
         }
 
-        // Bitsets of digits, by square, in a solution and given up on. An answer can come from
-        // a later digit's solution, so standings wait until every search has run.
-        var inSolution = [Int](repeating: 0, count: 81)
-        var gaveUp = [Int](repeating: 0, count: 81)
-        for position in open {
-            let square = position.row * 9 + position.column
-            for digit in 0..<9 where tally.counts[square * 9 + digit] > 0 {
-                inSolution[square] |= 1 << digit
-            }
-        }
+        let open = Puzzle.Index.allIndices.filter { grid[$0.row][$0.column] == 0 }
         let options = validOptions(for: grid)
+        // Sorted so a spent budget gives up on the same digits every time.
+        let legal = open.flatMap { position in
+            options[position.row][position.column].sorted().map { (position: position, digit: $0) }
+        }
+        for (position, digit) in legal {
+            let index = TrueCandidates.index(of: digit, at: position)
+            standings[index] = tally.counts[index] > 0 ? .inSomeSolutions : .undecided
+        }
+
         var budget = nodeLimit - search.nodes
-        for position in open {
-            let square = position.row * 9 + position.column
-            // Sorted so a spent budget gives up on the same digits every time.
-            for digit in options[position.row][position.column].sorted() where inSolution[square] & (1 << (digit - 1)) == 0 {
-                guard budget > 0, Task.isCancelled == false else {
-                    gaveUp[square] |= 1 << (digit - 1)
-                    continue
-                }
+        // A quick pass first, so a few hard digits can't spend the budget before the easy ones
+        // get a turn.
+        passes: for digitLimit in [nodeLimit / 400, nodeLimit / 20] {
+            for (position, digit) in legal {
+                let index = TrueCandidates.index(of: digit, at: position)
+                guard standings[index] == .undecided else { continue }
+                guard budget > 0, Task.isCancelled == false else { break passes }
                 var trial = grid
                 trial[position.row][position.column] = digit
                 guard var check = BitsetSearch(grid: trial) else { continue }
-                let solution = check.firstSolution(nodeLimit: min(budget, nodeLimit / 20), random: nil)
+                // Random digits, seeded for the same answer every time, give solutions unlike
+                // each other, which settle far more digits than the lowest-first search would.
+                let solution = check.firstSolution(
+                    nodeLimit: min(budget, digitLimit),
+                    random: SearchRandom(seed: UInt64(index))
+                )
                 budget -= check.nodes
                 if let solution {
                     for other in open {
-                        inSolution[other.row * 9 + other.column] |= 1 << (solution[other.row][other.column] - 1)
+                        let found = TrueCandidates.index(of: solution[other.row][other.column], at: other)
+                        standings[found] = .inSomeSolutions
                     }
-                } else if check.ranOut {
-                    gaveUp[square] |= 1 << (digit - 1)
+                } else if check.ranOut == false {
+                    standings[index] = .inNoSolution
                 }
             }
         }
-        for position in open {
-            let square = position.row * 9 + position.column
-            for digit in 0..<9 {
-                if inSolution[square] & (1 << digit) != 0 {
-                    standings[square * 9 + digit] = .inSomeSolutions
-                } else if gaveUp[square] & (1 << digit) != 0 {
-                    standings[square * 9 + digit] = .undecided
-                }
-            }
-        }
-        return TrueCandidates(solutionCount: nil, standings: standings)
+        return TrueCandidates(solutionCount: .atLeast(tally.solutions), standings: standings)
     }
 }
