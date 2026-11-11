@@ -135,4 +135,38 @@ struct BoardStateRestorationTests {
             }
         }
     }
+
+    @Test("History steps made after a game is restored say which squares changed, as they do while playing")
+    @MainActor
+    func testChangesAfterRestore() {
+        let first = Puzzle.Index(row: 0, column: 2)
+        let second = Puzzle.Index(row: 1, column: 1)
+        let third = Puzzle.Index(row: 2, column: 0)
+        let fourth = Puzzle.Index(row: 3, column: 1)
+
+        let played = Board(difficulty: .medium, givenCells: sampleGivenCells, solution: nil)
+        played.mark(positions: [first], as: 4)
+        played.mark(positions: [second], as: 7)
+        played.mark(positions: [third], as: 1)
+        // Each step holds the board before a move, and the squares the move before it changed
+        #expect(played.undoStack.map(\.changes) == [[], [first], [second]])
+
+        // A saved game comes back on a new board, whose cells are new ones
+        let reopened = Board(difficulty: .medium, givenCells: sampleGivenCells, solution: nil)
+        reopened.restore(
+            currentState: played.currentGrid,
+            simplePencilMarks: played.simplePencilMarks,
+            advancedPencilMarks: played.advancedPencilMarks,
+            backgroundColors: .empty(),
+            ruledOutCandidates: played.ruledOutCandidates,
+            undoStack: played.undoStack,
+            solution: [],
+            hintsUsed: 0,
+            incorrectMoves: 0
+        )
+        reopened.mark(positions: [fourth], as: 5)
+        reopened.pencil(positions: [first], as: 9)  // a filled square takes no note: no step
+        reopened.pencil(positions: [Puzzle.Index(row: 4, column: 1)], as: 2)
+        #expect(reopened.undoStack.map(\.changes) == [[], [first], [second], [third], [fourth]])
+    }
 }

@@ -193,12 +193,13 @@ extension Array where Element == Board.Cell {
     /// - Parameter oldCells: The previous cell array to compare against.
     /// - Returns: An array containing only the cells that have changed.
     func diff(from oldCells: [Board.Cell]) -> [Board.Cell] {
-        // Create a lookup for the old cells by their id
-        let oldCellDict = Dictionary(uniqueKeysWithValues: oldCells.map { ($0.id, $0) })
+        // Look the old cells up by where they are, not by id: a board restored from a saved
+        // game has new cells with new ids, and its saved history still holds the old ones.
+        let oldCellDict = Dictionary(oldCells.map { ($0.position, $0) }, uniquingKeysWith: { first, _ in first })
 
         // Filter the new cells: if a cell is not present in the old array or is different, consider it changed
         return self.filter { newCell in
-            guard let oldCell = oldCellDict[newCell.id] else {
+            guard let oldCell = oldCellDict[newCell.position] else {
                 // New cell not found in old array – treat as changed
                 return true
             }
