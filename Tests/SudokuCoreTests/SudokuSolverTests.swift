@@ -109,6 +109,13 @@ struct SudokuSolverTests {
         #expect(solution == nil)  // Should not find a solution
     }
 
+    @Test("SudokuSolver finds no solution wherever a clue clashes with another")
+    func testClashingClues() {
+        let clashing = easyPuzzle.withEachClashingClue()
+        #expect(clashing.isEmpty == false)
+        #expect(clashing.filter { SudokuSolver.solve(grid: $0).solution != nil }.isEmpty)
+    }
+
     @Test("A puzzle with no solution that arc consistency alone can't rule out returns nil")
     func testUnsolvableAfterSearch() {
         // A unique puzzle with one empty cell given a digit its peers allow but the solution

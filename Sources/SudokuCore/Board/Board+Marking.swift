@@ -36,16 +36,31 @@ extension Board {
     public func mark(positions: Set<Puzzle.Index>, as value: Int?) {
         guard positions.isEmpty == false else { return }
         recordingUndo {
+            var placedIncorrectValue = false
             for position in positions where cell(at: position).isGiven == false {
                 var cell = self.cells[position.linerIndex]
+                if let value, cell.value != value, isIncorrect(value, at: position) {
+                    placedIncorrectValue = true
+                }
                 cell.value = value
                 cell.ruledOutCandidates.removeAll()
                 cell.simplePencilMarks.removeAll()
                 cell.advancedPencilMarks.removeAll()
                 self.cells[position.linerIndex] = cell
             }
+            // One move, however many cells it marked
+            if placedIncorrectValue {
+                incorrectMoves += 1
+            }
             refreshDerivedState()
         }
+    }
+
+    /// Whether `value` differs from the solution's digit at `position`. `false` without a
+    /// solution to check against.
+    private func isIncorrect(_ value: Int, at position: Puzzle.Index) -> Bool {
+        guard let solution, solution.count == 9 else { return false }
+        return solution[position.row][position.column] != value
     }
 
     /// Clears cells, removing values, pencil marks, and background colors.

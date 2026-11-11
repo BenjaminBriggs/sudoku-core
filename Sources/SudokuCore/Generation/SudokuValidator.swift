@@ -186,7 +186,13 @@ extension Validator {
 }
 
 extension Validator {
+    /// Whether the puzzle has exactly one solution. Clues that clash, and grids that aren't
+    /// 9×9, have none.
     public static func hasUniqueSolution(_ puzzle: [[Int]]) -> Bool {
+        // Propagation only checks the cells still open, so two clues that clash would never
+        // meet: rule them out before the search starts.
+        guard hasNoConflicts(in: puzzle) else { return false }
+
         // Use a bitset for better performance (0b111111111 represents digits 1-9)
         typealias Domain = Int
         let FULL_DOMAIN: Domain = 0b111111111 // All 9 digits possible
