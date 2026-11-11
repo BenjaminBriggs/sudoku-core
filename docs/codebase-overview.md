@@ -59,7 +59,7 @@ Dependencies: `swift-collections` (1.1+), `swift-numerics` (1.0+), `swift-algori
 3. `SudokuDifficultyCalculator` — analyzes the resulting puzzle
 4. `PuzzleCreator` orchestrates the above into a `Puzzle`
 
-`SudokuSolver.solve(grid:)` (arc consistency + domain splitting) and `SudokuValidator` (`isValid`, `isCompleteAndValidSolution`, `hasUniqueSolution`) support the pipeline.
+`SudokuSolver.solve(grid:)` and `SudokuValidator` (`isValid`, `isCompleteAndValidSolution`, `hasUniqueSolution`, `solutionCount`) support the pipeline. Solving, uniqueness and solution counting all run one backtracking search, `BitsetSearch` (`SolutionAnalysis.swift`).
 
 ### Gameplay loop
 

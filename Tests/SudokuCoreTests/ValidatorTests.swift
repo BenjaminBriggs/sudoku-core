@@ -167,6 +167,27 @@ struct ValidatorTests {
         #expect(clashing.isEmpty == false)
         #expect(clashing.filter(Validator.hasUniqueSolution).isEmpty)
     }
+
+    @Test("hasUniqueSolution returns false for a grid that isn't 9×9 or holds a digit past 9")
+    func testHasUniqueSolutionMalformed() {
+        #expect(Validator.hasUniqueSolution(Array(nearlyComplete.dropLast())) == false)
+        var outOfRange = nearlyComplete
+        outOfRange[0][0] = 10
+        #expect(Validator.hasUniqueSolution(outOfRange) == false)
+    }
+
+    @Test("hasUniqueSolution agrees with solutionCount on every corpus puzzle, with and without a clue")
+    func testHasUniqueSolutionAgreesWithSolutionCount() {
+        for puzzle in CorpusPuzzle.fixtureCorpus {
+            var fewer = puzzle.startingState
+            let clue = Puzzle.Index.allIndices.first { fewer[$0.row][$0.column] != 0 }!
+            fewer[clue.row][clue.column] = 0
+            for grid in [puzzle.startingState, fewer] {
+                #expect(Validator.hasUniqueSolution(grid) == Validator.solutionCount(of: grid).isUnique)
+            }
+            #expect(Validator.hasUniqueSolution(puzzle.startingState))
+        }
+    }
 }
 
 extension [[Int]] {
