@@ -60,6 +60,12 @@ public enum HoDoKuCalculator {
         let path = SolvePathEmitter.emit(from: grid) { state in
             techniques.lazy.compactMap { $0.findHint(in: state) }.first
         }
+        return rating(of: path)
+    }
+
+    /// HoDoKu's rating of a path solved with ``techniques`` in their order, or nil when the
+    /// path stalls.
+    static func rating(of path: SolvePathEmitter.SolvePath) -> Rating? {
         guard path.solved else { return nil }
         var score = 0
         var level = HoDoKuLevel.easy
