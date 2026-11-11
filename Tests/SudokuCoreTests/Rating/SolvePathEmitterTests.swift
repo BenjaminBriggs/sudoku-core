@@ -107,4 +107,89 @@ struct AlternatePathTests {
         let paths = await task.value
         for path in paths { #expect(path.solved) }
     }
+
+}
+
+@Suite("Paired solve paths")
+struct PairedPathTests {
+    typealias SolvePath = SolvePathEmitter.SolvePath
+
+    /// Whether two paths make the same deductions in the same order and end in the same state.
+    /// A step's actions are compared as a set: solving the same grid twice can list one step's
+    /// actions in a different order, so `==` on paths is stricter than "the same path".
+    private func sameDeductions(_ a: SolvePath, _ b: SolvePath) -> Bool {
+        func deductions(_ path: SolvePath) -> [[String]] {
+            path.steps.map { [$0.technique.id.rawValue] + $0.actions.map { String(describing: $0) }.sorted() }
+        }
+        return deductions(a) == deductions(b) && a.solved == b.solved
+            && a.iterationCount == b.iterationCount && a.finalState == b.finalState
+    }
+
+    /// The path in HoDoKu's order, solved on its own.
+    private func hodokuPath(of grid: [[Int]], maxIterations: Int = 300) -> SolvePathEmitter.SolvePath {
+        SolvePathEmitter.emit(from: grid, maxIterations: maxIterations) { state in
+            HoDoKuCalculator.techniques.lazy.compactMap { $0.findHint(in: state) }.first
+        }
+    }
+
+    private func pair(_ grid: [[Int]], maxIterations: Int = 300)
+        -> (first: SolvePathEmitter.SolvePath, second: SolvePathEmitter.SolvePath)
+    {
+        SolvePathEmitter.emitPair(
+            from: grid, first: ClassicTechniques.all, second: HoDoKuCalculator.techniques,
+            maxIterations: maxIterations)
+    }
+
+    @Test("Paths solved together are the paths solved apart", arguments: CorpusPuzzle.selected)
+    func pairedPathsMatch(_ puzzle: CorpusPuzzle) {
+        let paths = pair(puzzle.startingState)
+        #expect(sameDeductions(paths.first, SolvePathEmitter.emit(from: puzzle.startingState)))
+        #expect(sameDeductions(paths.second, hodokuPath(of: puzzle.startingState)))
+    }
+
+    @Test("Paired paths stall, and stop at the cap, where the paths apart do")
+    func pairedPathsStallAndStop() {
+        let puzzle = RatedPuzzles.hardSwordfish.grid
+        // With a clue out there are several solutions, so both paths stall
+        var stalling = puzzle
+        let clue = Puzzle.Index.allIndices.first { stalling[$0.row][$0.column] != 0 }!
+        stalling[clue.row][clue.column] = 0
+        #expect(Validator.solutionCount(of: stalling).isUnique == false)
+
+        for (grid, cap) in [(stalling, 300), (puzzle, 3), (puzzle, 20), (Puzzle.example().solution, 300)] {
+            let paths = pair(grid, maxIterations: cap)
+            #expect(sameDeductions(paths.first, SolvePathEmitter.emit(from: grid, maxIterations: cap)))
+            #expect(sameDeductions(paths.second, hodokuPath(of: grid, maxIterations: cap)))
+        }
+    }
+
+    @Test("Paired paths part where the two orders pick different techniques")
+    func pairedPathsPart() {
+        // The same technique list twice never parts the paths; the list and its reverse part
+        // them at the first state where more than one technique applies.
+        let grid = RatedPuzzles.hardSwordfish.grid
+        let same = SolvePathEmitter.emitPair(
+            from: grid, first: ClassicTechniques.all, second: ClassicTechniques.all)
+        #expect(same.first == same.second)
+        #expect(sameDeductions(same.first, SolvePathEmitter.emit(from: grid)))
+
+        let reversed = Array(ClassicTechniques.all.reversed())
+        let apart = SolvePathEmitter.emitPair(from: grid, first: ClassicTechniques.all, second: reversed)
+        #expect(sameDeductions(apart.first, SolvePathEmitter.emit(from: grid)))
+        #expect(sameDeductions(apart.second, SolvePathEmitter.emit(from: grid) { state in
+            reversed.lazy.compactMap { $0.findHint(in: state) }.first
+        }))
+        #expect(apart.first.steps.map(\.technique.id) != apart.second.steps.map(\.technique.id))
+    }
+
+    @Test("The rating and its path are the ones worked out apart", arguments: CorpusPuzzle.selected)
+    func ratedPathMatches(_ puzzle: CorpusPuzzle) throws {
+        let rated = try SudokuDifficultyCalculator.ratedPath(for: puzzle.startingState)
+        #expect(sameDeductions(rated.path, SolvePathEmitter.emit(from: puzzle.startingState)))
+        #expect(rated.result == (try SudokuDifficultyCalculator.calculateDifficulty(for: puzzle.startingState)))
+        // The HoDoKu estimate is the one a solve in HoDoKu's order alone gives
+        let hodoku = HoDoKuCalculator.compute(for: puzzle.startingState)
+        #expect(rated.result.hodokuRating == hodoku?.score)
+        #expect(rated.result.hodokuLevel == hodoku?.level)
+    }
 }

@@ -99,6 +99,128 @@ public enum SolvePathEmitter {
         solve(from: start(initialGrid), steps: [], iterations: 0, maxIterations: maxIterations, nextHint: nextHint)
     }
 
+    /// Two solve paths through the same grid: one taking the first hint `first` finds at every
+    /// step, in its order, the other the first hint `second` finds.
+    ///
+    /// The same paths as emitting each on its own. What a technique finds at a state, and the
+    /// state its hint leads to, are worked out once for the two of them, so the second path
+    /// costs next to nothing wherever it is at a state the first went through and its order
+    /// picks from what the first already tried. Orders that agree for a stretch share all of
+    /// it, and paths that part and meet again share from there on.
+    ///
+    /// A technique is told apart by its id, so the same id in both lists must be the same
+    /// technique.
+    static func emitPair(
+        from initialGrid: [[Int]],
+        first: [any HintTechnique],
+        second: [any HintTechnique],
+        maxIterations: Int = 300
+    ) -> (first: SolvePath, second: SolvePath) {
+        let start = start(initialGrid)
+        var memo = SolveMemo()
+        let firstPath = solve(from: start, using: first, maxIterations: maxIterations, memo: &memo)
+        let secondPath = solve(from: start, using: second, maxIterations: maxIterations, memo: &memo)
+        return (firstPath, secondPath)
+    }
+
+    /// ``solve(from:steps:iterations:maxIterations:nextHint:)`` taking the first hint
+    /// `techniques` find at every step, in their order, and remembering in `memo` what it
+    /// works out.
+    private static func solve(
+        from start: BoardState,
+        using techniques: [any HintTechnique],
+        maxIterations: Int,
+        memo: inout SolveMemo
+    ) -> SolvePath {
+        var state = start
+        var key = SolveMemo.key(of: start)
+        var steps: [SolveStep] = []
+        var iterations = 0
+
+        while !state.isSolved {
+            iterations += 1
+            if iterations > maxIterations { break }
+
+            guard let found = memo.firstHint(of: techniques, in: state, at: key) else { break }
+            steps.append(SolveStep(found.hint))
+            (state, key) = memo.state(after: found.hint, by: found.technique, from: state, at: key)
+        }
+
+        return SolvePath(
+            steps: steps,
+            solved: state.isSolved,
+            finalState: state,
+            iterationCount: iterations
+        )
+    }
+
+    /// What solves have worked out at the states they went through: what each technique found
+    /// there, and the state its hint led to. A solve that reaches one of those states again
+    /// doesn't work it out a second time.
+    ///
+    /// For solves that start from the same state: a state is remembered by its digits and
+    /// candidates alone, which is all that tells two states of one solve apart.
+    private struct SolveMemo {
+        /// Each cell's digit, then each cell's candidates as a bitmask.
+        typealias Key = [UInt16]
+
+        /// Per state, what each technique tried there found: nil for nothing.
+        private var hints: [Key: [TechniqueID: HintStep?]] = [:]
+        /// Per state, the state each technique's hint led to.
+        private var next: [Key: [TechniqueID: (state: BoardState, key: Key)]] = [:]
+
+        /// The first hint `techniques` find at `state`, in their order, and the technique that
+        /// found it.
+        mutating func firstHint(
+            of techniques: [any HintTechnique], in state: BoardState, at key: Key
+        ) -> (technique: TechniqueID, hint: HintStep)? {
+            // Looked up once and put back once: the key is long to hash
+            var known = hints[key] ?? [:]
+            var learned = false
+            defer { if learned { hints[key] = known } }
+            for technique in techniques {
+                let id = technique.info.id
+                let hint: HintStep?
+                if let remembered = known[id] {
+                    hint = remembered
+                } else {
+                    hint = technique.findHint(in: state)
+                    known.updateValue(hint, forKey: id)
+                    learned = true
+                }
+                if let hint { return (id, hint) }
+            }
+            return nil
+        }
+
+        /// `state` with `hint` applied: the hint `technique` found there.
+        mutating func state(
+            after hint: HintStep, by technique: TechniqueID, from state: BoardState, at key: Key
+        ) -> (state: BoardState, key: Key) {
+            if let known = next[key]?[technique] { return known }
+            let applied = state.applying(hint)
+            let result = (applied, Self.key(of: applied))
+            next[key, default: [:]][technique] = result
+            return result
+        }
+
+        static func key(of state: BoardState) -> Key {
+            var key: Key = []
+            key.reserveCapacity(162)
+            for row in state.grid {
+                for digit in row { key.append(UInt16(digit)) }
+            }
+            for row in state.pencilMarks {
+                for candidates in row {
+                    var mask: UInt16 = 0
+                    for digit in candidates { mask |= 1 << UInt16(digit) }
+                    key.append(mask)
+                }
+            }
+            return key
+        }
+    }
+
     /// Other logical paths through the puzzle.
     ///
     /// The main path takes the easiest technique that applies at every step. At each of its
