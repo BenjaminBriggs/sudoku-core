@@ -99,9 +99,11 @@ public final class Board {
 
     // MARK: - Player Statistics
 
-    /// Count of incorrect values placed by the player.
+    /// Count of moves that placed an incorrect value.
     ///
-    /// This is incremented when a player places a value that doesn't match the solution.
+    /// Incremented once each time ``mark(positions:as:)`` places a value that doesn't match
+    /// the solution, however many cells the move marks. Later changes made while the value is
+    /// still on the board, undoing, and restoring a saved board don't count again.
     /// Only tracked when a solution is available.
     public internal(set) var incorrectMoves: Int = 0
 

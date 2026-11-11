@@ -72,9 +72,7 @@ extension Board {
     internal func updateCompletedSets(grid: [[Int]]) {
 
         // check the current state against the know solution
-        if grid == solution {
-            isSolved = true
-        } else if let solution, solution.count == 9 {
+        if let solution, solution.count == 9 {
             var matchesSolution = true
             for (row, columns) in grid.enumerated() {
                 for (col, value) in columns.enumerated() {
@@ -84,9 +82,6 @@ extension Board {
                 }
             }
             isSolvable = matchesSolution
-            if isSolvable == false {
-                incorrectMoves += 1
-            }
         }
 
         var completedRows: Set<Int> = []

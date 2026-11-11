@@ -24,6 +24,19 @@ struct BoardMarkingTests {
         [0, 0, 0, 0, 8, 0, 0, 7, 9]
     ]
 
+    // The solution of `sampleGivenCells`.
+    let sampleSolution: [[Int]] = [
+        [5, 3, 4, 6, 7, 8, 9, 1, 2],
+        [6, 7, 2, 1, 9, 5, 3, 4, 8],
+        [1, 9, 8, 3, 4, 2, 5, 6, 7],
+        [8, 5, 9, 7, 6, 1, 4, 2, 3],
+        [4, 2, 6, 8, 5, 3, 7, 9, 1],
+        [7, 1, 3, 9, 2, 4, 8, 5, 6],
+        [9, 6, 1, 5, 3, 7, 2, 8, 4],
+        [2, 8, 7, 4, 1, 9, 6, 3, 5],
+        [3, 4, 5, 2, 8, 6, 1, 7, 9]
+    ]
+
     // MARK: - mark(positions:as:)
 
     @Test("mark(positions:as:) sets value for non-given cells and ignores given cells")
@@ -45,6 +58,97 @@ struct BoardMarkingTests {
         board.mark(positions: [posGiven], as: 8)
         let cellGiven = board.cell(at: posGiven)
         #expect(cellGiven.value == 5)
+    }
+
+    // MARK: - incorrectMoves
+
+    @Test("incorrectMoves counts each wrong value placed, not every change made while one is on the board")
+    @MainActor
+    func testIncorrectMovesCountsPlacements() {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: sampleSolution)
+        let wrong = Puzzle.Index(row: 0, column: 2)  // 4 in the solution
+
+        board.mark(positions: [wrong], as: 9)
+        #expect(board.incorrectMoves == 1)
+
+        // Correct values, an undo, a clear and notes change the board while the 9 is still wrong
+        board.mark(positions: [Puzzle.Index(row: 1, column: 1)], as: 7)
+        board.mark(positions: [Puzzle.Index(row: 1, column: 2)], as: 2)
+        board.undo()
+        board.clearCell(at: [Puzzle.Index(row: 1, column: 1)])
+        board.pencil(positions: [Puzzle.Index(row: 2, column: 0)], as: 1)
+        #expect(board.incorrectMoves == 1)
+
+        // Placing the value the cell already holds isn't another move
+        board.mark(positions: [wrong], as: 9)
+        #expect(board.incorrectMoves == 1)
+
+        // A second wrong value is a second incorrect move
+        board.mark(positions: [Puzzle.Index(row: 0, column: 3)], as: 1)  // 6 in the solution
+        #expect(board.incorrectMoves == 2)
+
+        // Correcting a wrong value doesn't take the count back
+        board.mark(positions: [wrong], as: 4)
+        #expect(board.incorrectMoves == 2)
+    }
+
+    @Test("incorrectMoves counts one move when several cells are marked at once")
+    @MainActor
+    func testIncorrectMovesCountsOnePerMove() {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: sampleSolution)
+        // Neither cell holds a 9 in the solution
+        board.mark(positions: [Puzzle.Index(row: 0, column: 2), Puzzle.Index(row: 0, column: 3)], as: 9)
+        #expect(board.incorrectMoves == 1)
+    }
+
+    @Test("incorrectMoves stays at zero without a solution to check against")
+    @MainActor
+    func testIncorrectMovesNeedsSolution() {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: nil)
+        board.mark(positions: [Puzzle.Index(row: 0, column: 2)], as: 9)
+        #expect(board.incorrectMoves == 0)
+    }
+
+    @Test("Restoring a board with a wrong value on it keeps the saved incorrectMoves")
+    @MainActor
+    func testRestoreKeepsIncorrectMoves() {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: sampleSolution)
+        var current = sampleGivenCells
+        current[0][2] = 9  // 4 in the solution
+        board.restore(
+            currentState: current,
+            simplePencilMarks: .empty(),
+            advancedPencilMarks: .empty(),
+            backgroundColors: .empty(),
+            ruledOutCandidates: .empty(),
+            undoStack: [],
+            solution: sampleSolution,
+            hintsUsed: 0,
+            incorrectMoves: 3
+        )
+        #expect(board.isSolvable == false)
+        #expect(board.incorrectMoves == 3)
+    }
+
+    @Test("A board corrected in its last cell is solved and solvable")
+    @MainActor
+    func testIsSolvableAfterCorrectingTheLastCell() {
+        let board = Board(difficulty: .easy, givenCells: sampleGivenCells, solution: sampleSolution)
+        let empty = Puzzle.Index.allIndices.filter { sampleGivenCells[$0.row][$0.column] == 0 }
+        for position in empty.dropLast() {
+            board.mark(positions: [position], as: sampleSolution[position.row][position.column])
+        }
+        let last = empty[empty.count - 1]
+        let answer = sampleSolution[last.row][last.column]
+
+        board.mark(positions: [last], as: answer % 9 + 1)
+        #expect(board.isSolvable == false)
+        #expect(board.isSolved == false)
+
+        board.mark(positions: [last], as: answer)
+        #expect(board.isSolved)
+        #expect(board.isSolvable)
+        #expect(board.incorrectMoves == 1)
     }
 
     // MARK: - clearCell(at:)
