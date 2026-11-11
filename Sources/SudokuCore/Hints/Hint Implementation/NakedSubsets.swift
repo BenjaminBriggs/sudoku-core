@@ -21,10 +21,19 @@ extension HintFinder {
     static func findNakedSubsets(n: Int, technique: TechniqueInfo, in state: BoardState)
         -> HintStep?
     {
+        // Each empty cell's candidates as a bitmask (bit d set for digit d), by cell index
+        // (`row * 9 + column`), worked out once for all 27 units
+        var candidates = [Int](repeating: 0, count: 81)
+        for row in 0..<9 {
+            for column in 0..<9 where state.grid[row][column] == 0 {
+                candidates[row * 9 + column] = state.pencilMarks[row][column].reduce(0) { $0 | (1 << $1) }
+            }
+        }
+
         // Check all units (rows, columns, houses)
         for unit in SudokuUnit.allUnits {
             if let hint = findNakedSubsetsInUnit(
-                n: n, unit: unit, technique: technique, state: state)
+                n: n, unit: unit, technique: technique, state: state, candidates: candidates)
             {
                 return hint
             }
@@ -36,105 +45,65 @@ extension HintFinder {
     ///
     /// Collects empty cells whose candidate count is at most `n`, then checks every combination
     /// of `n` such cells. If the union of their candidates contains exactly `n` digits, those
-    /// digits can be removed from all other cells in the unit. Uses a bitset for fast union counting.
+    /// digits can be removed from all other cells in the unit. Candidates are bitmasks, so a
+    /// combination that isn't a subset costs a few ORs.
     /// - Parameters:
     ///   - n: The subset size (2 = pair, 3 = triple, 4 = quad).
     ///   - unit: The row, column, or box to search.
     ///   - technique: The `TechniqueInfo` to label the result with.
     ///   - state: The current board state.
+    ///   - candidates: Each empty cell's candidates as a bitmask, by cell index.
     /// - Returns: A `HintStep` with candidate removal actions, or `nil` if no naked subset is found.
     private static func findNakedSubsetsInUnit(
         n: Int,
         unit: SudokuUnit,
         technique: TechniqueInfo,
-        state: BoardState
+        state: BoardState,
+        candidates: [Int]
     ) -> HintStep? {
-        // Get all empty cells with their candidates in this unit
-        // Pre-allocate array with capacity for better performance
-        var cellCandidates: [(Puzzle.Index, Set<Int>)] = []
-        cellCandidates.reserveCapacity(9)
-
         let positions = unit.positions
-        let grid = state.grid
-        let pencilMarks = state.pencilMarks
+        let unitCandidates = positions.map { candidates[$0.row * 9 + $0.column] }
 
-        for position in positions {
-            if grid[position.row][position.column] == 0 {
-                let candidates = pencilMarks[position.row][position.column]
-                let count = candidates.count
-                if count > 0 && count <= n {
-                    cellCandidates.append((position, candidates))
-                }
-            }
-        }
-
-        // Need at least n cells to form a subset
-        if cellCandidates.count < n {
-            return nil
-        }
+        // The unit's empty cells with at most n candidates, as indices into its positions
+        let small = (0..<9).filter { unitCandidates[$0] != 0 && unitCandidates[$0].nonzeroBitCount <= n }
 
         // Check all combinations of n cells
-        for combo in combinations(of: cellCandidates, choose: n) {
-            let positions = combo.map { $0.0 }
-            let candidateSets = combo.map { $0.1 }
+        for choice in LookupTables.choices(of: small.count, choose: n) {
+            // A naked subset's cells hold exactly n candidates between them
+            var subsetDigits = 0
+            var subsetCells = 0
+            for index in choice {
+                subsetDigits |= unitCandidates[small[index]]
+                subsetCells |= 1 << small[index]
+            }
+            guard subsetDigits.nonzeroBitCount == n else { continue }
 
-            // Find union of all candidates using bitset for faster operations
-            var allCandidatesBits = 0
-            for candidates in candidateSets {
-                for digit in candidates {
-                    allCandidatesBits |= (1 << (digit - 1))
+            // Check if we can remove any of its candidates from the unit's other cells
+            var removals: [HintAction] = []
+            var eliminated: [Puzzle.Index] = []
+            for index in 0..<9 where subsetCells & (1 << index) == 0 {
+                let shared = unitCandidates[index] & subsetDigits
+                guard shared != 0 else { continue }
+                for digit in 1...9 where shared & (1 << digit) != 0 {
+                    removals.append(HintAction(position: positions[index], ruleOut: digit))
                 }
+                eliminated.append(positions[index])
             }
 
-            // Count bits to get number of unique candidates
-            let candidateCount = allCandidatesBits.nonzeroBitCount
-
-            // Check if the union has exactly n candidates
-            if candidateCount == n {
-                // Convert bitset back to Set for compatibility
-                var allCandidates = Set<Int>()
-                for digit in 1...9 {
-                    if (allCandidatesBits & (1 << (digit - 1))) != 0 {
-                        allCandidates.insert(digit)
-                    }
-                }
-                // This is a naked subset
-                let subsetPositions = Set(positions)
-
-                // Find all other cells in this unit
-                let otherPositions = Set(unit.positions).subtracting(subsetPositions)
-
-                // Check if we can remove any candidates from other cells
-                var removals: [HintAction] = []
-                var excludeIndices = Set<Puzzle.Index>()
-
-                for position in otherPositions {
-                    if state.grid[position.row][position.column] == 0 {
-                        let candidates = state.pencilMarks[position.row][position.column]
-                        for digit in allCandidates {
-                            if candidates.contains(digit) {
-                                removals.append(HintAction(position: position, ruleOut: digit))
-                                excludeIndices.insert(position)
-                            }
-                        }
-                    }
-                }
-
-                if removals.isEmpty == false {
-                    return HintStep(
+            if removals.isEmpty == false {
+                return HintStep(
+                    actions: removals,
+                    technique: technique,
+                    reasoning: HintReasoning(
                         actions: removals,
-                        technique: technique,
-                        reasoning: HintReasoning(
-                            actions: removals,
-                            focusDigits: Array(allCandidates).sorted(),
-                            units: [unit],
-                            components: [
-                                .subset(subsetPositions, in: state, unit: unit),
-                                .eliminated(excludeIndices, in: state, unit: unit)
-                            ]
-                        )
+                        focusDigits: (1...9).filter { subsetDigits & (1 << $0) != 0 },
+                        units: [unit],
+                        components: [
+                            .subset(choice.map { positions[small[$0]] }, in: state, unit: unit),
+                            .eliminated(eliminated, in: state, unit: unit)
+                        ]
                     )
-                }
+                )
             }
         }
 

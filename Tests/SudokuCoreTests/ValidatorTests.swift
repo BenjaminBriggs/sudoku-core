@@ -160,4 +160,56 @@ struct ValidatorTests {
         let result = Validator.hasUniqueSolution(unsolvable)
         #expect(result == false)
     }
+
+    @Test("hasUniqueSolution returns false wherever a clue clashes with another")
+    func testHasUniqueSolutionClashingClues() {
+        let clashing = sampleIncomplete.withEachClashingClue()
+        #expect(clashing.isEmpty == false)
+        #expect(clashing.filter(Validator.hasUniqueSolution).isEmpty)
+    }
+
+    @Test("hasUniqueSolution returns false for a grid that isn't 9×9 or holds a digit past 9")
+    func testHasUniqueSolutionMalformed() {
+        #expect(Validator.hasUniqueSolution(Array(nearlyComplete.dropLast())) == false)
+        var outOfRange = nearlyComplete
+        outOfRange[0][0] = 10
+        #expect(Validator.hasUniqueSolution(outOfRange) == false)
+    }
+
+    @Test("hasUniqueSolution agrees with solutionCount on every corpus puzzle, with and without a clue")
+    func testHasUniqueSolutionAgreesWithSolutionCount() {
+        for puzzle in CorpusPuzzle.fixtureCorpus {
+            var fewer = puzzle.startingState
+            let clue = Puzzle.Index.allIndices.first { fewer[$0.row][$0.column] != 0 }!
+            fewer[clue.row][clue.column] = 0
+            for grid in [puzzle.startingState, fewer] {
+                #expect(Validator.hasUniqueSolution(grid) == Validator.solutionCount(of: grid).isUnique)
+            }
+            #expect(Validator.hasUniqueSolution(puzzle.startingState))
+        }
+    }
+}
+
+extension [[Int]] {
+    /// The grid once for every empty cell and every digit one of that cell's row, column or
+    /// box clues already holds, with the digit placed there: every way to add one clashing clue.
+    func withEachClashingClue() -> [[[Int]]] {
+        var grids: [[[Int]]] = []
+        for row in 0..<9 {
+            for column in 0..<9 where self[row][column] == 0 {
+                var peers = Set<Int>()
+                for offset in 0..<9 {
+                    peers.insert(self[row][offset])
+                    peers.insert(self[offset][column])
+                    peers.insert(self[(row / 3) * 3 + offset / 3][(column / 3) * 3 + offset % 3])
+                }
+                for digit in peers.sorted() where digit != 0 {
+                    var grid = self
+                    grid[row][column] = digit
+                    grids.append(grid)
+                }
+            }
+        }
+        return grids
+    }
 }

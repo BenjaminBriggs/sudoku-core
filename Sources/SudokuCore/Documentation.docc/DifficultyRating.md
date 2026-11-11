@@ -129,8 +129,15 @@ print("Calculated level: \(info.level), difficulty \(info.difficulty)")
 1. ``SolvePathEmitter`` simulates a human solve, applying the easiest applicable hint at each step and recording a technique-annotated path.
 2. ``ScoreCalculator`` sums each step's ``TechniqueInfo/scorePoints`` over that path into difficulty and tedium, and takes the level from the hardest step.
 3. ``SECalculator`` reports the hardest technique on the path (peak difficulty).
-4. ``HoDoKuCalculator`` solves again in HoDoKu's order to estimate HoDoKu's rating.
+4. ``HoDoKuCalculator`` solves in HoDoKu's order to estimate HoDoKu's rating. The calculator solves the two orders together, so anything a technique finds at a state both paths reach is worked out once.
 5. ``TimeEstimator`` converts the score into a baseline time estimate.
+
+When you want the rating and the path it came from, ask for both at once rather than emitting the path and then rating the grid, which solves it again:
+
+```swift
+let rated = try SudokuDifficultyCalculator.ratedPath(for: startingState)
+print("\(rated.result.level) over \(rated.path.steps.count) steps")
+```
 
 Use them directly when you want the solve path itself or the ratings without re-solving:
 

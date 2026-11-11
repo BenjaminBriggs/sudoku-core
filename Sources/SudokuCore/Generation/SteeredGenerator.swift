@@ -68,7 +68,10 @@ extension SudokuGenerator {
     ///   - bestEffort: Return the closest puzzle found, with `matchesLevel` false, rather
     ///     than `nil` when the level isn't reached.
     /// - Returns: `nil` when the level isn't reached within `maxRatings` (and not
-    ///   `bestEffort`), or when the task is cancelled.
+    ///   `bestEffort`), or when the task is cancelled. Best effort also returns `nil` when
+    ///   it has no puzzle to give: the clue range leaves nothing to rate, or every puzzle
+    ///   rated needs guessing, which a clue range of 28 to 32 does for about one solution
+    ///   in two hundred.
     public static func createPuzzle(
         level: PuzzleDifficulty.Level,
         symmetry: Symmetry = .none,
@@ -83,6 +86,26 @@ extension SudokuGenerator {
         ).get()
     }
 
+    /// ``createPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)`` taking its
+    /// randomness from `generator`: a generator seeded the same way gives the same puzzle.
+    ///
+    /// - Parameter solution: The solved grid to take clues from, or `nil` for a random one
+    ///   from `generator`.
+    public static func createPuzzle(
+        level: PuzzleDifficulty.Level,
+        symmetry: Symmetry = .none,
+        givens: ClosedRange<Int>? = nil,
+        from solution: [[Int]]? = nil,
+        maxRatings: Int = 40,
+        bestEffort: Bool = false,
+        using generator: inout some RandomNumberGenerator
+    ) -> SteeredPuzzle? {
+        try? steerPuzzle(
+            level: level, symmetry: symmetry, givens: givens, from: solution,
+            maxRatings: maxRatings, bestEffort: bestEffort, using: &generator
+        ).get()
+    }
+
     /// ``createPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)``, saying why when
     /// it finds nothing.
     public static func steerPuzzle(
@@ -93,12 +116,34 @@ extension SudokuGenerator {
         maxRatings: Int = 40,
         bestEffort: Bool = false
     ) -> Result<SteeredPuzzle, SteerMiss> {
+        var generator = SystemRandomNumberGenerator()
+        return steerPuzzle(
+            level: level, symmetry: symmetry, givens: givens, from: solution,
+            maxRatings: maxRatings, bestEffort: bestEffort, using: &generator
+        )
+    }
+
+    /// ``steerPuzzle(level:symmetry:givens:from:maxRatings:bestEffort:)`` taking its
+    /// randomness from `generator`: a generator seeded the same way gives the same result.
+    ///
+    /// - Parameter solution: The solved grid to take clues from, or `nil` for a random one
+    ///   from `generator`.
+    public static func steerPuzzle(
+        level: PuzzleDifficulty.Level,
+        symmetry: Symmetry = .none,
+        givens: ClosedRange<Int>? = nil,
+        from solution: [[Int]]? = nil,
+        maxRatings: Int = 40,
+        bestEffort: Bool = false,
+        using generator: inout some RandomNumberGenerator
+    ) -> Result<SteeredPuzzle, SteerMiss> {
+        let solution = solution ?? SolutionGenerator.generateRandomSolution(using: &generator)
         var steer = Steer(
             solution: solution, symmetry: symmetry, level: level,
             givens: givens ?? 0...81, maxRatings: maxRatings
         )
         let found: Steer.Rated
-        switch steer.run() {
+        switch steer.run(using: &generator) {
         case .success(let rated): found = rated
         case .failure(let miss): return .failure(miss)
         }
@@ -141,14 +186,14 @@ private struct Steer {
     }
 
     /// The closest puzzle found, or why there's none at all.
-    mutating func run() -> Result<Rated, SteerMiss> {
+    mutating func run(using generator: inout some RandomNumberGenerator) -> Result<Rated, SteerMiss> {
         let level = self.level
         let range = self.range
 
         // Remove orbits to a minimal puzzle, keeping the order they came out in
         var grid = solution
         var removed: [[Puzzle.Index]] = []
-        for orbit in symmetry.orbits.shuffled() {
+        for orbit in symmetry.orbits.shuffled(using: &generator) {
             if Task.isCancelled { return .failure(.cancelled) }
             set(orbit, in: &grid, to: false)
             if Validator.solutionCount(of: grid).isUnique {
@@ -187,12 +232,12 @@ private struct Steer {
         guard let entry else {
             // Nothing in the range reaches the level (or the budget ran out first)
             if ratings < maxRatings, longest < removed.count { givensBlocked = true }
-            return climb()
+            return climb(using: &generator)
         }
         guard entry.rated.result.needsGuessing == false, entry.rated.result.level == level else {
             // The order jumps straight past the level: too hard at the most clues allowed
             if entry.count == shortest, shortest > 1 { givensBlocked = true }
-            return climb()
+            return climb(using: &generator)
         }
 
         // Exit: the smallest deeper prefix that passes the level or the window. The prefixes
@@ -206,7 +251,7 @@ private struct Steer {
             if let exit { last = exit.count - 1 }
         }
         if last > entry.count, ratings < maxRatings {
-            let candidate = prefix(removed, count: Int.random(in: entry.count...last))
+            let candidate = prefix(removed, count: Int.random(in: entry.count...last, using: &generator))
             if let result = rate(candidate), result.needsGuessing == false, result.level == level {
                 return .success((candidate, result))
             }
@@ -243,7 +288,7 @@ private struct Steer {
     /// Pushes the closest puzzle short of the level harder by swaps until it rates at the level
     /// or the budget runs out; `best` either way. Only a puzzle one level short is worth it:
     /// a swap changes a step or two, not the whole character of the puzzle.
-    private mutating func climb() -> Result<Rated, SteerMiss> {
+    private mutating func climb(using generator: inout some RandomNumberGenerator) -> Result<Rated, SteerMiss> {
         let levels = PuzzleDifficulty.Level.allCases
         guard var current = best, current.result.level < level,
             levels.firstIndex(of: level)! - levels.firstIndex(of: current.result.level)! == 1
@@ -252,7 +297,7 @@ private struct Steer {
         }
         while ratings < maxRatings, current.result.level < level {
             if Task.isCancelled { return .failure(.cancelled) }
-            guard let swapped = swap(current.grid) else { continue }
+            guard let swapped = swap(current.grid, using: &generator) else { continue }
             guard givens.contains(clueCount(swapped)) else {
                 ratings += 1
                 continue
@@ -282,15 +327,15 @@ private struct Steer {
 
     /// One removed orbit back, then up to two given orbits out, keeping a unique solution.
     /// `nil` when nothing could come out, which still costs a try against the budget.
-    private mutating func swap(_ grid: [[Int]]) -> [[Int]]? {
+    private mutating func swap(_ grid: [[Int]], using generator: inout some RandomNumberGenerator) -> [[Int]]? {
         let orbits = symmetry.orbits
         let isGiven = { (orbit: [Puzzle.Index], grid: [[Int]]) in grid[orbit[0].row][orbit[0].column] != 0 }
         // The puzzle being climbed always has at least one orbit out.
-        let back = orbits.filter { isGiven($0, grid) == false }.randomElement()!
+        let back = orbits.filter { isGiven($0, grid) == false }.randomElement(using: &generator)!
         var candidate = grid
         set(back, in: &candidate, to: true)
         var taken = 0
-        for orbit in orbits.shuffled() where orbit != back && isGiven(orbit, candidate) {
+        for orbit in orbits.shuffled(using: &generator) where orbit != back && isGiven(orbit, candidate) {
             set(orbit, in: &candidate, to: false)
             if Validator.solutionCount(of: candidate).isUnique {
                 taken += 1

@@ -40,7 +40,15 @@ if let steered = SudokuGenerator.createPuzzle(level: .expert, symmetry: .rotatio
 }
 ```
 
-It returns `nil` when the level isn't reached within `maxRatings`; pass `bestEffort: true` for the closest puzzle instead, with `matchesLevel` false. ``PuzzleDifficulty/Level/tediumRange`` is the singles effort the generator aims for at each level (Beginner 150–300, the rest 250–450).
+It returns `nil` when the level isn't reached within `maxRatings`; pass `bestEffort: true` for the closest puzzle instead, with `matchesLevel` false. Best effort still has nothing to give when every puzzle it rated needs guessing, which a narrow clue range can cause. ``PuzzleDifficulty/Level/tediumRange`` is the singles effort the generator aims for at each level (Beginner 150–300, the rest 250–450).
+
+Steering is a search that misses at random: one try finds Advanced about a third of the time and Master about a tenth. For a puzzle you can make again, such as in a test, pass a seeded generator. The same seed gives the same solution and the same puzzle:
+
+```swift
+var generator = MySeededGenerator(seed: 42)  // any RandomNumberGenerator
+let solution = SolutionGenerator.generateRandomSolution(using: &generator)
+let steered = SudokuGenerator.createPuzzle(level: .hard, from: solution, using: &generator)
+```
 
 For quality rules, ``SudokuDifficultyCalculator/DifficultyResult`` measures `needsGuessing`, `hardestTechniqueCount` (steps using the hardest technique) and `hardestTechniqueAfterLastHardestStep` (the hardest technique still needed once the hardest step is done).
 

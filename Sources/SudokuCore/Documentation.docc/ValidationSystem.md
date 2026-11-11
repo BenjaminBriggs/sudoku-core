@@ -259,19 +259,21 @@ print("Valid candidates: \(options)")
 
 ## Solving Arbitrary Grids
 
-``SudokuSolver`` is a constraint-propagation solver (arc consistency with domain splitting) for any grid — no human-style techniques involved. Use it when you need *a* solution rather than a rated solve path:
+``SudokuSolver`` solves any grid by search — no human-style techniques involved. It runs the same backtracking search that ``Validator`` counts solutions with, so the two always agree on whether a grid can be solved. Use it when you need *a* solution rather than a rated solve path:
 
 ```swift
 let (solution, callCount) = SudokuSolver.solve(grid: startingState)
 
 if let solution {
-    print("Solved in \(callCount) propagation calls")
+    print("Solved after filling \(callCount) squares")
 } else {
     print("No solution exists")
 }
 ```
 
-`callCount` is a rough work measure — higher means more backtracking was needed. For uniqueness checking prefer ``Validator/hasUniqueSolution(_:)``, and for human-style difficulty use ``SudokuDifficultyCalculator`` (which falls back to `SudokuSolver` only when hint techniques can't finish a puzzle).
+Clues that clash, grids that aren't 9×9 and digits outside 0…9 have no solution. A grid with several solutions gives the first the search reaches, trying the lowest digit first: the same one every time.
+
+`callCount` is a rough work measure: the squares the search filled, counting every attempt. It is one more than the grid's empty squares when the search never had to back up, and higher means more backtracking was needed. For uniqueness checking prefer ``Validator/hasUniqueSolution(_:)``, and for human-style difficulty use ``SudokuDifficultyCalculator`` (which falls back to `SudokuSolver` only when hint techniques can't finish a puzzle).
 
 ## Validation During Generation
 

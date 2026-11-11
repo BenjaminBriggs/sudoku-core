@@ -1,6 +1,11 @@
 import Testing
 @testable import SudokuCore
 
+/// Every test here that generates takes its randomness from a seeded generator, so a run is the
+/// same every time. Steering is a search that misses at random: Intermediate with 27 to 30
+/// clues is found about one try in five, so a test on the system's generator fails some runs
+/// however many tries it allows. If a change to the generator moves what a seed finds, pick
+/// another seed; the tests are about what a found puzzle is like, not about which seed finds it.
 struct SteeredGeneratorTests {
     /// The first puzzle `make` finds in `tries`. Not `lazy.compactMap { }.first`: that calls
     /// the closure twice per element, and a random generator can return nil the second time.
@@ -15,8 +20,9 @@ struct SteeredGeneratorTests {
     func reachesLevel(_ level: PuzzleDifficulty.Level) throws {
         // Beginner and Intermediate land almost every time; Advanced about a third of
         // solutions, so allow enough solutions that a miss is a real failure.
+        var generator = SearchRandom(seed: 1)
         let steered = try #require(
-            Self.firstFound(tries: 20) { SudokuGenerator.createPuzzle(level: level) }
+            Self.firstFound(tries: 20) { SudokuGenerator.createPuzzle(level: level, using: &generator) }
         )
         let rerated = try SudokuDifficultyCalculator.calculateDifficulty(for: steered.puzzle.startingState)
         #expect(steered.matchesLevel)
@@ -28,8 +34,10 @@ struct SteeredGeneratorTests {
 
     @Test("Steered puzzles are clues of the solution they came from")
     func cluesComeFromSolution() throws {
-        let solution = SolutionGenerator.generateRandomSolution()
-        let steered = try #require(SudokuGenerator.createPuzzle(level: .medium, from: solution, bestEffort: true))
+        var generator = SearchRandom(seed: 2)
+        let solution = SolutionGenerator.generateRandomSolution(using: &generator)
+        let steered = try #require(
+            SudokuGenerator.createPuzzle(level: .medium, from: solution, bestEffort: true, using: &generator))
         #expect(steered.puzzle.solution == solution)
         for index in Puzzle.Index.allIndices {
             let clue = steered.puzzle.startingState[index.row][index.column]
@@ -39,15 +47,21 @@ struct SteeredGeneratorTests {
 
     @Test("Steered puzzles keep the symmetry", arguments: [Symmetry.rotational180, .rotational90, .diagonal, .orthogonal, .diagonals])
     func keepsSymmetry(_ symmetry: Symmetry) throws {
-        let steered = try #require(SudokuGenerator.createPuzzle(level: .hard, symmetry: symmetry, bestEffort: true))
+        var generator = SearchRandom(seed: 3)
+        let steered = try #require(
+            SudokuGenerator.createPuzzle(level: .hard, symmetry: symmetry, bestEffort: true, using: &generator))
         #expect(symmetry.isSatisfied(by: steered.puzzle.startingState))
         #expect(Validator.solutionCount(of: steered.puzzle.startingState).isUnique)
     }
 
     @Test("The rating budget bounds the work")
     func ratingBudget() {
+        var generator = SearchRandom(seed: 4)
         for _ in 0..<5 {
-            guard let steered = SudokuGenerator.createPuzzle(level: .expert, maxRatings: 6, bestEffort: true) else {
+            guard
+                let steered = SudokuGenerator.createPuzzle(
+                    level: .expert, maxRatings: 6, bestEffort: true, using: &generator)
+            else {
                 continue
             }
             #expect(steered.ratings <= 6)
@@ -57,8 +71,9 @@ struct SteeredGeneratorTests {
     @Test("Without best effort a missed level returns nil, never a wrong-level puzzle")
     func missedLevelIsNil() {
         // One rating can't search; whatever comes back must still be the level asked for
+        var generator = SearchRandom(seed: 5)
         for _ in 0..<5 {
-            if let steered = SudokuGenerator.createPuzzle(level: .expert, maxRatings: 1) {
+            if let steered = SudokuGenerator.createPuzzle(level: .expert, maxRatings: 1, using: &generator) {
                 #expect(steered.matchesLevel)
                 #expect(steered.result.level == .expert)
             }
@@ -67,7 +82,9 @@ struct SteeredGeneratorTests {
 
     @Test("Best effort reports a missed level")
     func bestEffortReportsMiss() throws {
-        let steered = try #require(SudokuGenerator.createPuzzle(level: .professional, maxRatings: 2, bestEffort: true))
+        var generator = SearchRandom(seed: 6)
+        let steered = try #require(
+            SudokuGenerator.createPuzzle(level: .professional, maxRatings: 2, bestEffort: true, using: &generator))
         #expect(steered.matchesLevel == (steered.result.level == .professional))
         #expect(steered.result.needsGuessing == false)
     }
@@ -82,8 +99,10 @@ struct SteeredGeneratorTests {
     }
 
     @Test("Steered Beginner puzzles are singles in the tedium window", arguments: 0..<3)
-    func beginnerTedium(_: Int) throws {
-        let steered = try #require(Self.firstFound(tries: 3) { SudokuGenerator.createPuzzle(level: .easy) })
+    func beginnerTedium(_ index: Int) throws {
+        var generator = SearchRandom(seed: 70 + UInt64(index))
+        let steered = try #require(
+            Self.firstFound(tries: 3) { SudokuGenerator.createPuzzle(level: .easy, using: &generator) })
         #expect(steered.result.difficulty == 0)
         #expect(PuzzleDifficulty.Level.easy.tediumRange.contains(steered.result.tedium))
         // 150 tedium is about 37 naked singles; 300 about 21 hidden ones
@@ -108,8 +127,11 @@ struct SteeredGeneratorTests {
     // about 25 to 30 clues: puzzles with 31 or more are singles-only almost always.
     @Test("A clue range keeps the puzzle's clue count in it", arguments: [23...26, 27...30])
     func cluesInRange(_ givens: ClosedRange<Int>) throws {
+        var generator = SearchRandom(seed: 8)
         let steered = try #require(
-            Self.firstFound(tries: 10) { SudokuGenerator.createPuzzle(level: .medium, givens: givens) }
+            Self.firstFound(tries: 10) {
+                SudokuGenerator.createPuzzle(level: .medium, givens: givens, using: &generator)
+            }
         )
         #expect(givens.contains(Self.clues(steered.puzzle.startingState)))
         #expect(steered.result.level == .medium)
@@ -118,7 +140,8 @@ struct SteeredGeneratorTests {
     @Test("A range below any minimal puzzle is a clue miss, with no rating spent")
     func unreachableRangeIsGivensMiss() {
         // No minimal puzzle has fewer than 17 clues
-        let result = SudokuGenerator.steerPuzzle(level: .medium, givens: 0...16)
+        var generator = SearchRandom(seed: 9)
+        let result = SudokuGenerator.steerPuzzle(level: .medium, givens: 0...16, using: &generator)
         guard case .failure(let miss) = result else {
             Issue.record("Found a 16-clue puzzle")
             return
@@ -129,8 +152,9 @@ struct SteeredGeneratorTests {
     @Test("Too many clues for the level is a clue miss")
     func tooManyCluesForLevel() {
         // Expert needs far fewer than 60 clues
+        var generator = SearchRandom(seed: 10)
         for _ in 0..<3 {
-            let result = SudokuGenerator.steerPuzzle(level: .expert, givens: 60...70)
+            let result = SudokuGenerator.steerPuzzle(level: .expert, givens: 60...70, using: &generator)
             guard case .failure(let miss) = result else {
                 Issue.record("Found an Expert puzzle with 60+ clues")
                 return
@@ -141,11 +165,56 @@ struct SteeredGeneratorTests {
 
     @Test("Best effort stays in the clue range")
     func bestEffortInRange() throws {
+        var generator = SearchRandom(seed: 11)
         for _ in 0..<3 {
             let steered = try #require(
-                SudokuGenerator.createPuzzle(level: .expert, givens: 28...32, maxRatings: 10, bestEffort: true))
+                SudokuGenerator.createPuzzle(
+                    level: .expert, givens: 28...32, maxRatings: 10, bestEffort: true, using: &generator))
             #expect((28...32).contains(Self.clues(steered.puzzle.startingState)))
         }
+    }
+
+    @Test("Best effort has nothing to give when every puzzle in the clue range needs guessing")
+    func bestEffortNeverGuesses() throws {
+        // About one solution in two hundred removes its clues in an order where every puzzle
+        // with 28 to 32 of them already needs guessing. Best effort never returns one that
+        // does, so it comes back empty, as a clue miss. Seed 99 is such a solution.
+        var generator = SearchRandom(seed: 99)
+        let result = SudokuGenerator.steerPuzzle(
+            level: .expert, givens: 28...32, maxRatings: 10, bestEffort: true, using: &generator)
+        guard case .failure(let miss) = result else {
+            Issue.record("Seed 99 no longer gives a range of puzzles that all need guessing; find another")
+            return
+        }
+        #expect(miss == .givens)
+    }
+
+    // MARK: - Seeding
+
+    @Test("A generator seeded the same way gives the same solution and the same puzzle")
+    func seededGenerationRepeats() throws {
+        for seed in UInt64(20)..<24 {
+            var first = SearchRandom(seed: seed)
+            var second = SearchRandom(seed: seed)
+            let solution = SolutionGenerator.generateRandomSolution(using: &first)
+            #expect(solution == SolutionGenerator.generateRandomSolution(using: &second))
+            #expect(try Validator.isCompleteAndValidSolution(solution))
+
+            let one = SudokuGenerator.createPuzzle(level: .medium, symmetry: .rotational180, bestEffort: true, using: &first)
+            let two = SudokuGenerator.createPuzzle(level: .medium, symmetry: .rotational180, bestEffort: true, using: &second)
+            #expect(one?.puzzle == two?.puzzle)
+            #expect(one?.result == two?.result)
+            #expect(one?.ratings == two?.ratings)
+        }
+    }
+
+    @Test("Different seeds give different solutions")
+    func seedsDiffer() {
+        var first = SearchRandom(seed: 30)
+        var second = SearchRandom(seed: 31)
+        #expect(
+            SolutionGenerator.generateRandomSolution(using: &first)
+                != SolutionGenerator.generateRandomSolution(using: &second))
     }
 }
 

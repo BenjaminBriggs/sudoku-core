@@ -28,35 +28,41 @@ extension HintFinder {
     static func findNYWing(size n: Int, technique: TechniqueInfo, in state: BoardState) -> HintStep? {
         let grid = state.grid
         let pencilMarks = state.pencilMarks
+        let peers = LookupTables.peerMasks
 
-        // Candidate bitmasks (bit d set for digit d) for empty cells with two or more notes.
-        // Solved and single-candidate cells can't take part, so they stay 0.
-        var masks = Array(repeating: Array(repeating: 0, count: 9), count: 9)
+        // Candidate bitmasks (bit d set for digit d) for empty cells with two or more notes,
+        // by cell index (`row * 9 + column`). Solved and single-candidate cells can't take
+        // part, so they stay 0 and out of `eligible`.
+        var masks = [Int](repeating: 0, count: 81)
+        var eligible: UInt128 = 0
         for row in 0..<9 {
             for column in 0..<9 where grid[row][column] == 0 && pencilMarks[row][column].count >= 2 {
-                masks[row][column] = pencilMarks[row][column].reduce(0) { $0 | (1 << $1) }
+                masks[row * 9 + column] = pencilMarks[row][column].reduce(0) { $0 | (1 << $1) }
+                eligible |= LookupTables.cellBit(row * 9 + column)
             }
         }
-        let mask = { (cell: Puzzle.Index) in masks[cell.row][cell.column] }
-        let sees = { (a: Puzzle.Index, b: Puzzle.Index) in LookupTables.cellNeighbours[a.row][a.column].contains(b) }
+        let position = { (cell: Int) in Puzzle.Index(row: cell / 9, column: cell % 9) }
 
         // Builds the hint for a full group whose only unrestricted digit is z, if it eliminates.
-        func evaluate(unit: SudokuUnit, pivots: [Puzzle.Index], wings: [Puzzle.Index], z: Int) -> HintStep? {
-            let cells = pivots + wings
-            let zCells = cells.filter { mask($0) & (1 << z) != 0 }
-            var targets = LookupTables.cellNeighbours[zCells[0].row][zCells[0].column]
-            for cell in zCells.dropFirst() {
-                targets.formIntersection(LookupTables.cellNeighbours[cell.row][cell.column])
+        func evaluate(unit: SudokuUnit, pivots: [Int], wings: [Int], z: Int) -> HintStep? {
+            // Cells that see every copy of z in the group, and aren't in it
+            var targets = LookupTables.allCellsMask
+            for cell in pivots + wings {
+                targets &= ~LookupTables.cellBit(cell)
+                if masks[cell] & (1 << z) != 0 { targets &= peers[cell] }
             }
-            let eliminationCells = targets.filter { position in
-                cells.contains(position) == false
-                    && grid[position.row][position.column] == 0
-                    && pencilMarks[position.row][position.column].contains(z)
+            // Ascending cell index, which is row then column
+            var eliminationCells: [Puzzle.Index] = []
+            while targets != 0 {
+                let cell = targets.trailingZeroBitCount
+                targets &= targets - 1
+                if grid[cell / 9][cell % 9] == 0, pencilMarks[cell / 9][cell % 9].contains(z) {
+                    eliminationCells.append(position(cell))
+                }
             }
             guard eliminationCells.isEmpty == false else { return nil }
 
-            let removals = eliminationCells.sorted { ($0.row, $0.column) < ($1.row, $1.column) }
-                .map { HintAction(position: $0, ruleOut: z) }
+            let removals = eliminationCells.map { HintAction(position: $0, ruleOut: z) }
             return HintStep(
                 actions: removals,
                 technique: technique,
@@ -65,77 +71,152 @@ extension HintFinder {
                     focusDigits: [z],
                     units: [unit],
                     components: [
-                        .pivot(pivots, in: state, unit: unit),
-                        .wing(wings, in: state),
+                        .pivot(pivots.map(position), in: state, unit: unit),
+                        .wing(wings.map(position), in: state),
                         .eliminated(eliminationCells, candidates: [z])
                     ]
                 )
             )
         }
 
+        var search = NYWingSearch(n: n, masks: masks, peers: peers)
         for unit in SudokuUnit.allUnits {
-            let unitCells = unit.positions.filter { mask($0) != 0 }
+            let unitCells = unit.positions.map { $0.row * 9 + $0.column }.filter { masks[$0] != 0 }
             for pivotCount in 1...(n - 2) {
-                for pivots in combinations(of: unitCells, choose: pivotCount) {
-                    let pivotUnion = pivots.reduce(0) { $0 | mask($1) }
+                for choice in LookupTables.choices(of: unitCells.count, choose: pivotCount) {
+                    var pivotUnion = 0
+                    var pivotCells: UInt128 = 0
+                    // Wing cells see every pivot.
+                    var common = LookupTables.allCellsMask
+                    for index in choice {
+                        let pivot = unitCells[index]
+                        pivotUnion |= masks[pivot]
+                        pivotCells |= LookupTables.cellBit(pivot)
+                        common &= peers[pivot]
+                    }
                     guard pivotUnion.nonzeroBitCount <= n else { continue }
 
-                    // Wing cells see every pivot.
-                    var common = LookupTables.cellNeighbours[pivots[0].row][pivots[0].column]
-                    for pivot in pivots.dropFirst() {
-                        common.formIntersection(LookupTables.cellNeighbours[pivot.row][pivot.column])
-                    }
-                    let pool = common
-                        .filter { mask($0) != 0 && pivots.contains($0) == false }
-                        .sorted { ($0.row, $0.column) < ($1.row, $1.column) }
+                    let poolCells = common & eligible
                     let needed = n - pivotCount
-                    guard pool.count >= needed else { continue }
+                    guard poolCells.nonzeroBitCount >= needed else { continue }
                     // A group inside one unit has every digit restricted, so it never has a z.
                     // Pivots that share a unit but not a box-line segment leave wings only there.
-                    let group = pivots + pool
-                    if SudokuUnit.allUnits.contains(where: { unit in group.allSatisfy(unit.positions.contains) }) { continue }
+                    let group = pivotCells | poolCells
+                    if LookupTables.unitMasks.contains(where: { $0 & group == group }) { continue }
 
-                    // Pivots share a unit, so they start with every digit restricted.
-                    var holders = Array(repeating: [Puzzle.Index](), count: 10)
-                    for pivot in pivots {
-                        for digit in 1...9 where mask(pivot) & (1 << digit) != 0 { holders[digit].append(pivot) }
+                    search.start(pivots: pivotCells, pool: poolCells, pivotUnion: pivotUnion, needed: needed)
+                    let hint = search.extend(from: 0, union: pivotUnion, unrestricted: 0) { wings, z in
+                        evaluate(unit: unit, pivots: choice.map { unitCells[$0] }, wings: wings, z: z)
                     }
-
-                    // Depth-first over wing cells. Adding cells only grows the digits and can only
-                    // unrestrict them, so a branch past n digits or with two unrestricted is dead.
-                    var wings: [Puzzle.Index] = []
-                    func extend(from start: Int, union: Int, unrestricted: Int) -> HintStep? {
-                        if wings.count == needed {
-                            guard union.nonzeroBitCount == n, unrestricted.nonzeroBitCount == 1 else { return nil }
-                            return evaluate(unit: unit, pivots: pivots, wings: wings, z: unrestricted.trailingZeroBitCount)
-                        }
-                        guard pool.count - start >= needed - wings.count else { return nil }
-                        for i in start..<pool.count {
-                            let cell = pool[i]
-                            let cellMask = mask(cell)
-                            let next = union | cellMask
-                            guard next.nonzeroBitCount <= n else { continue }
-                            var nextUnrestricted = unrestricted
-                            for digit in 1...9 where cellMask & (1 << digit) != 0 && nextUnrestricted & (1 << digit) == 0 {
-                                if holders[digit].contains(where: { sees(cell, $0) == false }) {
-                                    nextUnrestricted |= 1 << digit
-                                }
-                            }
-                            guard nextUnrestricted.nonzeroBitCount <= 1 else { continue }
-
-                            for digit in 1...9 where cellMask & (1 << digit) != 0 { holders[digit].append(cell) }
-                            wings.append(cell)
-                            if let hint = extend(from: i + 1, union: next, unrestricted: nextUnrestricted) { return hint }
-                            wings.removeLast()
-                            for digit in 1...9 where cellMask & (1 << digit) != 0 { holders[digit].removeLast() }
-                        }
-                        return nil
-                    }
-                    if let hint = extend(from: 0, union: pivotUnion, unrestricted: 0) { return hint }
+                    if let hint { return hint }
                 }
             }
         }
 
+        return nil
+    }
+}
+
+/// The depth-first search over wing cells for one choice of pivots. Kept in a struct, and
+/// reused from one choice of pivots to the next, so the search allocates nothing as it goes:
+/// it runs at every state every other technique fails at.
+private struct NYWingSearch {
+    /// The number of cells and digits.
+    let n: Int
+    /// Candidate bitmasks (bit d set for digit d) by cell index; 0 for cells that can't take part.
+    let masks: [Int]
+    let peers: [UInt128]
+
+    /// The wing cells still to find.
+    private var needed = 0
+    /// Cells that see every pivot and could join without taking the group past `n` digits, in
+    /// ascending cell index, which is row then column.
+    private var pool: [Int] = []
+    /// The group's cells holding each digit.
+    private var holders = [UInt128](repeating: 0, count: 10)
+    private var wings: [Int] = []
+
+    init(n: Int, masks: [Int], peers: [UInt128]) {
+        self.n = n
+        self.masks = masks
+        self.peers = peers
+    }
+
+    /// Sets the search up for a choice of pivots.
+    mutating func start(pivots: UInt128, pool poolCells: UInt128, pivotUnion: Int, needed: Int) {
+        self.needed = needed
+        wings.removeAll(keepingCapacity: true)
+
+        // A cell that takes the pivots' digits past n on its own can never join
+        pool.removeAll(keepingCapacity: true)
+        var remaining = poolCells
+        while remaining != 0 {
+            let cell = remaining.trailingZeroBitCount
+            remaining &= remaining - 1
+            if (pivotUnion | masks[cell]).nonzeroBitCount <= n { pool.append(cell) }
+        }
+
+        // Pivots share a unit, so they start with every digit restricted.
+        for digit in 1...9 { holders[digit] = 0 }
+        var remainingPivots = pivots
+        while remainingPivots != 0 {
+            let pivot = remainingPivots.trailingZeroBitCount
+            remainingPivots &= remainingPivots - 1
+            var digits = masks[pivot]
+            while digits != 0 {
+                holders[digits.trailingZeroBitCount] |= LookupTables.cellBit(pivot)
+                digits &= digits - 1
+            }
+        }
+    }
+
+    /// Depth-first over wing cells from `pool[start]`. Adding cells only grows the digits and
+    /// can only unrestrict them, so a branch past n digits or with two unrestricted is dead.
+    ///
+    /// - Parameter accept: Given a full group's wings and its one unrestricted digit, returns
+    ///   the hint if the group eliminates anything.
+    mutating func extend(
+        from start: Int, union: Int, unrestricted: Int,
+        accept: (_ wings: [Int], _ z: Int) -> HintStep?
+    ) -> HintStep? {
+        if wings.count == needed {
+            guard union.nonzeroBitCount == n, unrestricted.nonzeroBitCount == 1 else { return nil }
+            return accept(wings, unrestricted.trailingZeroBitCount)
+        }
+        guard pool.count - start >= needed - wings.count else { return nil }
+        for i in start..<pool.count {
+            let cell = pool[i]
+            let cellMask = masks[cell]
+            let next = union | cellMask
+            guard next.nonzeroBitCount <= n else { continue }
+            // A digit stops being restricted once a cell holding it doesn't see this one
+            var nextUnrestricted = unrestricted
+            let unseen = ~peers[cell]
+            var digits = cellMask
+            while digits != 0 {
+                let digit = digits.trailingZeroBitCount
+                digits &= digits - 1
+                if holders[digit] & unseen != 0 { nextUnrestricted |= 1 << digit }
+            }
+            guard nextUnrestricted.nonzeroBitCount <= 1 else { continue }
+
+            let bit = LookupTables.cellBit(cell)
+            digits = cellMask
+            while digits != 0 {
+                holders[digits.trailingZeroBitCount] |= bit
+                digits &= digits - 1
+            }
+            wings.append(cell)
+            if let hint = extend(from: i + 1, union: next, unrestricted: nextUnrestricted, accept: accept) {
+                return hint
+            }
+            wings.removeLast()
+            digits = cellMask
+            while digits != 0 {
+                holders[digits.trailingZeroBitCount] &= ~bit
+                digits &= digits - 1
+            }
+        }
         return nil
     }
 }

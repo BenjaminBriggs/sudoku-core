@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Collections
 
 // MARK: - Fish Pattern Technique (Generic for X-Wing, Swordfish, Jellyfish)
 extension HintFinder {
@@ -22,6 +21,17 @@ extension HintFinder {
         return techniques[n - 2]
     }
 
+    // The finders below work on bitmasks rather than sets. A base line's candidates for a
+    // digit are a 9-bit mask of the cross lines they're in, a set of lines is a 9-bit mask of
+    // line indices, and a set of cells is a `UInt128` (see `LookupTables.peerMasks`). Fish are
+    // tried at every state every easier technique fails at, six sizes and kinds each time, so
+    // the search has to be cheap when it finds nothing.
+
+    /// The lines in a 9-bit line mask, ascending.
+    private static func lines(in mask: Int) -> [Int] {
+        (0..<9).filter { mask & (1 << $0) != 0 }
+    }
+
     // MARK: - Fin Detection Helpers
 
     /// Detects fins in a fish pattern for either orientation.
@@ -31,72 +41,65 @@ extension HintFinder {
     /// each cross line appears in, and the remaining positions are treated as fins. The
     /// first partition that validates is returned.
     ///
+    /// Nearly every fish that reaches here has no valid fins, so nothing is allocated until
+    /// one does.
+    ///
     /// - Parameters:
-    ///   - digit: The candidate digit being analysed.
-    ///   - fishBaseLines: The set of base-line indices forming the fish.
-    ///   - allCrossLines: The union of cross-line indices across all base lines.
-    ///   - baseLineToCrossLines: A mapping from each base line to the cross lines where the digit appears.
+    ///   - digitBit: The candidate digit being analysed, as its bit in `candidates`.
+    ///   - fishBaseLines: The base lines forming the fish, as a mask.
+    ///   - allCrossLines: The union of cross lines across the fish's base lines, as a mask.
+    ///   - crossLines: For each base line, the cross lines where the digit appears, as a mask.
     ///   - n: The fish size (2 = X-Wing, 3 = Swordfish, 4 = Jellyfish).
-    ///   - baseOrientation: Whether base lines are rows or columns.
-    ///   - state: The current board state snapshot.
-    /// - Returns: A tuple of the `n` core cross lines and the set of fin cell positions,
-    ///   or `nil` if no valid finned partition exists.
+    ///   - cell: Converts (baseLine, crossLine) into a cell index for the orientation.
+    ///   - candidates: Each empty cell's candidates as a bitmask, by cell index.
+    /// - Returns: The `n` core cross lines as a mask and the fin cells, or `nil` if no valid
+    ///   finned partition exists.
     private static func detectFins(
-        digit: Int,
-        fishBaseLines: Set<Int>,
-        allCrossLines: Set<Int>,
-        baseLineToCrossLines: [Int: Set<Int>],
+        digitBit: Int,
+        fishBaseLines: Int,
+        allCrossLines: Int,
+        crossLines: [Int],
         n: Int,
-        baseOrientation: Puzzle.Index.Orientation,
-        state: BoardState
-    ) -> (coreCrossLines: Set<Int>, fins: Set<Puzzle.Index>)? {
-        // Orientation abstraction: `makeIndex` converts (baseLine, crossLine) into
-        // a Puzzle.Index regardless of whether base lines are rows or columns.
-        let makeIndex: (Int, Int) -> Puzzle.Index = baseOrientation == .row
-            ? { base, cross in Puzzle.Index(row: base, column: cross) }
-            : { base, cross in Puzzle.Index(row: cross, column: base) }
-
-        // Count how many base lines each cross line appears in
-        var crossLineCounts: [Int: Int] = [:]
-        for crossLine in allCrossLines {
-            var count = 0
-            for baseLine in fishBaseLines {
-                if baseLineToCrossLines[baseLine]?.contains(crossLine) == true {
-                    count += 1
+        cell: (Int, Int) -> Int,
+        candidates: [Int]
+    ) -> (coreCrossLines: Int, fins: UInt128)? {
+        // Core cross lines appear in the most base lines; fin cross lines appear in fewer.
+        // Order them descending by frequency so the first n are the best core candidates,
+        // ties broken by ascending index for deterministic output. A fish has at most six
+        // cross lines here, kept four bits each in one integer, most frequent lowest.
+        var sortedCrossLines = 0
+        var crossLineCount = 0
+        for frequency in stride(from: n, through: 1, by: -1) {
+            for crossLine in 0..<9 where allCrossLines & (1 << crossLine) != 0 {
+                var count = 0
+                for baseLine in 0..<9 where fishBaseLines & (1 << baseLine) != 0 {
+                    if crossLines[baseLine] & (1 << crossLine) != 0 { count += 1 }
+                }
+                if count == frequency {
+                    sortedCrossLines |= crossLine << (4 * crossLineCount)
+                    crossLineCount += 1
                 }
             }
-            crossLineCounts[crossLine] = count
         }
-
-        // Core cross lines appear in the most base lines; fin cross lines appear in fewer.
-        // Sort descending by frequency so the first n entries are the best core candidates.
-        // Ties are broken by ascending index for deterministic output.
-        let sortedCrossLines = allCrossLines.sorted {
-            if crossLineCounts[$0]! != crossLineCounts[$1]! {
-                return crossLineCounts[$0]! > crossLineCounts[$1]!
-            }
-            return $0 < $1
-        }
-
-        guard sortedCrossLines.count >= n else { return nil }
 
         // Try every partition, most frequent lines first. Frequency alone can't pick the
         // core: a valid core line can appear in fewer base lines than a fin line does.
         // There are at most C(n+2, n) = 15 partitions, so the full search is cheap.
-        for combo in combinations(of: sortedCrossLines, choose: n) {
-            let coreCrossLines = Set(combo)
-            let finCrossLines = allCrossLines.subtracting(coreCrossLines)
-
-            if let result = validateFins(
-                digit: digit,
+        for choice in LookupTables.choices(of: crossLineCount, choose: n) {
+            var coreCrossLines = 0
+            for index in choice {
+                coreCrossLines |= 1 << ((sortedCrossLines >> (4 * index)) & 0xF)
+            }
+            if let fins = validateFins(
+                digitBit: digitBit,
                 fishBaseLines: fishBaseLines,
                 coreCrossLines: coreCrossLines,
-                finCrossLines: finCrossLines,
-                baseLineToCrossLines: baseLineToCrossLines,
-                makeIndex: makeIndex,
-                state: state
+                finCrossLines: allCrossLines & ~coreCrossLines,
+                crossLines: crossLines,
+                cell: cell,
+                candidates: candidates
             ) {
-                return result
+                return (coreCrossLines, fins)
             }
         }
 
@@ -111,76 +114,46 @@ extension HintFinder {
     /// 3. At least one elimination exists: a candidate in a core cross line, outside the
     ///    fish base lines, whose cell **sees every fin** (shares a row, column, or box).
     ///
-    /// - Parameters:
-    ///   - digit: The candidate digit being analysed.
-    ///   - fishBaseLines: The set of base-line indices forming the fish.
-    ///   - coreCrossLines: The proposed core cross-line indices.
-    ///   - finCrossLines: The cross-line indices that fall outside the core set.
-    ///   - baseLineToCrossLines: A mapping from each base line to the cross lines where the digit appears.
-    ///   - makeIndex: A closure that converts (baseLine, crossLine) into a `Puzzle.Index`.
-    ///   - state: The current board state snapshot.
-    /// - Returns: The validated `(coreCrossLines, fins)` tuple, or `nil` if invalid.
+    /// - Returns: The fin cells, or `nil` if the partition is invalid.
     private static func validateFins(
-        digit: Int,
-        fishBaseLines: Set<Int>,
-        coreCrossLines: Set<Int>,
-        finCrossLines: Set<Int>,
-        baseLineToCrossLines: [Int: Set<Int>],
-        makeIndex: (Int, Int) -> Puzzle.Index,
-        state: BoardState
-    ) -> (coreCrossLines: Set<Int>, fins: Set<Puzzle.Index>)? {
-        // Collect fin positions: cells at the intersection of base lines and fin cross lines
-        // that still hold the digit as a pencil mark.
-        var fins = Set<Puzzle.Index>()
-        for baseLine in fishBaseLines {
-            guard let crossLines = baseLineToCrossLines[baseLine] else { continue }
-            for crossLine in finCrossLines {
-                if crossLines.contains(crossLine) {
-                    let position = makeIndex(baseLine, crossLine)
-                    if state.pencilMarks[position.row][position.column].contains(digit) {
-                        fins.insert(position)
-                    }
-                }
+        digitBit: Int,
+        fishBaseLines: Int,
+        coreCrossLines: Int,
+        finCrossLines: Int,
+        crossLines: [Int],
+        cell: (Int, Int) -> Int,
+        candidates: [Int]
+    ) -> UInt128? {
+        // Fin positions: the fish's candidates in the fin cross lines. Every fin cross line
+        // holds a base line's candidate, so there is at least one fin.
+        var fins: UInt128 = 0
+        for baseLine in 0..<9 where fishBaseLines & (1 << baseLine) != 0 {
+            let inFinLines = crossLines[baseLine] & finCrossLines
+            for crossLine in 0..<9 where inFinLines & (1 << crossLine) != 0 {
+                fins |= LookupTables.cellBit(cell(baseLine, crossLine))
             }
         }
+        guard fins != 0 else { return nil }
 
-        // Every fin cross line holds a base line's candidate, so there is at least one fin.
         // Same-box constraint: all fins must share one 3x3 box so that
         // eliminations can be confined to cells that see the entire fin group.
-        guard let firstFin = fins.first else { return nil }
-        let finBox = (firstFin.row / 3, firstFin.column / 3)
-        for fin in fins {
-            let box = (fin.row / 3, fin.column / 3)
-            if box != finBox {
-                return nil
-            }
-        }
+        let firstFin = fins.trailingZeroBitCount
+        let finBox = LookupTables.unitMasks[18 + (firstFin / 27) * 3 + (firstFin % 9) / 3]
+        guard fins & ~finBox == 0 else { return nil }
 
         // Elimination verification: scan core cross lines outside the fish base lines.
         // A candidate is only eliminable if the cell sees every fin (i.e. shares a
         // constraining unit with all fin positions). At least one such elimination must
         // exist for the partition to be useful.
-        var hasEliminations = false
-        for crossLine in coreCrossLines {
-            for baseLine in 0..<9 where fishBaseLines.contains(baseLine) == false {
-                let position = makeIndex(baseLine, crossLine)
-                if state.grid[position.row][position.column] == 0 {
-                    let candidates = state.pencilMarks[position.row][position.column]
-                    if candidates.contains(digit) {
-                        let cellNeighbours = Self.getConstrainingCells(for: position)
-                        if fins.allSatisfy({ cellNeighbours.contains($0) }) {
-                            hasEliminations = true
-                            break
-                        }
-                    }
+        for crossLine in 0..<9 where coreCrossLines & (1 << crossLine) != 0 {
+            for baseLine in 0..<9 where fishBaseLines & (1 << baseLine) == 0 {
+                let target = cell(baseLine, crossLine)
+                if candidates[target] & digitBit != 0, fins & ~LookupTables.peerMasks[target] == 0 {
+                    return fins
                 }
             }
-            if hasEliminations { break }
         }
-
-        guard hasEliminations else { return nil }
-
-        return (coreCrossLines, fins)
+        return nil
     }
 
     // MARK: - Main Fish Finding
@@ -196,10 +169,22 @@ extension HintFinder {
     ///   - state: The current board state snapshot.
     /// - Returns: A `HintStep` describing the pattern and its eliminations, or `nil` if none found.
     static func findNFish(n: Int, requiresFin: Bool = false, in state: BoardState) -> HintStep? {
-        if let hint = findNFishInOrientation(n: n, requiresFin: requiresFin, baseOrientation: .row, state: state) {
+        // Each empty cell's candidates as a bitmask (bit d set for digit d), by cell index
+        var candidates = [Int](repeating: 0, count: 81)
+        for row in 0..<9 {
+            for column in 0..<9 where state.grid[row][column] == 0 {
+                candidates[row * 9 + column] = state.pencilMarks[row][column].reduce(0) { $0 | (1 << $1) }
+            }
+        }
+
+        if let hint = findNFishInOrientation(
+            n: n, requiresFin: requiresFin, baseOrientation: .row, candidates: candidates)
+        {
             return hint
         }
-        if let hint = findNFishInOrientation(n: n, requiresFin: requiresFin, baseOrientation: .column, state: state) {
+        if let hint = findNFishInOrientation(
+            n: n, requiresFin: requiresFin, baseOrientation: .column, candidates: candidates)
+        {
             return hint
         }
         return nil
@@ -207,173 +192,150 @@ extension HintFinder {
 
     /// Searches for a fish pattern in a single orientation (row-based or column-based).
     ///
-    /// The algorithm iterates over each digit 1-9, builds a map of base lines to the
-    /// cross lines where the digit appears, then checks every `n`-combination of base
-    /// lines. A perfect fish has exactly `n` cross lines; a finned fish has `n+1` or
-    /// `n+2` cross lines with valid fins.
+    /// The algorithm iterates over each digit 1-9, works out for each base line the cross
+    /// lines where the digit appears, then checks every `n`-combination of base lines. A
+    /// perfect fish has exactly `n` cross lines; a finned fish has `n+1` or `n+2` cross lines
+    /// with valid fins.
     ///
     /// - Parameters:
     ///   - n: The fish size (2 = X-Wing, 3 = Swordfish, 4 = Jellyfish).
     ///   - requiresFin: When `true`, only finned variants are returned.
     ///   - baseOrientation: Whether base lines are rows or columns.
-    ///   - state: The current board state snapshot.
+    ///   - candidates: Each empty cell's candidates as a bitmask, by cell index.
     /// - Returns: A `HintStep` for the first valid fish found, or `nil`.
     private static func findNFishInOrientation(
         n: Int,
         requiresFin: Bool,
         baseOrientation: Puzzle.Index.Orientation,
-        state: BoardState
+        candidates: [Int]
     ) -> HintStep? {
-        // `makeIndex` maps (baseLine, crossLine) -> Puzzle.Index for either orientation.
-        let makeIndex: (Int, Int) -> Puzzle.Index = baseOrientation == .row
-            ? { base, cross in Puzzle.Index(row: base, column: cross) }
-            : { base, cross in Puzzle.Index(row: cross, column: base) }
+        // `cell` maps (baseLine, crossLine) to a cell index for either orientation.
+        let cell: (Int, Int) -> Int = baseOrientation == .row
+            ? { base, cross in base * 9 + cross }
+            : { base, cross in cross * 9 + base }
+        let position = { (cell: Int) in Puzzle.Index(row: cell / 9, column: cell % 9) }
 
-        // Pre-compute pencil marks for all cells to avoid repeated lookups
-        let pencilMarks = state.pencilMarks
+        // For each base line, the cross lines where the digit appears as a candidate, and
+        // the base lines with 2+ candidate positions, which are the ones that take part.
+        var crossLines = [Int](repeating: 0, count: 9)
+        var baseLines: [Int] = []
+        baseLines.reserveCapacity(9)
 
         // For each digit
         for digit in 1...9 {
-            // Build a map of base lines -> cross lines where digit appears as a candidate
-            var baseLineToCrossLines: [Int: Set<Int>] = [:]
-            baseLineToCrossLines.reserveCapacity(9)
+            let digitBit = 1 << digit
 
+            baseLines.removeAll(keepingCapacity: true)
             for baseLine in 0..<9 {
-                var candidateCrossLines = Set<Int>()
-                candidateCrossLines.reserveCapacity(9)
-
-                for crossLine in 0..<9 {
-                    let position = makeIndex(baseLine, crossLine)
-                    if state.grid[position.row][position.column] == 0 {
-                        if pencilMarks[position.row][position.column].contains(digit) {
-                            candidateCrossLines.insert(crossLine)
-                        }
-                    }
+                crossLines[baseLine] = 0
+                var mask = 0
+                for crossLine in 0..<9 where candidates[cell(baseLine, crossLine)] & digitBit != 0 {
+                    mask |= 1 << crossLine
                 }
-
-                // Include base lines with 2+ candidate positions
-                if candidateCrossLines.count >= 2 {
-                    baseLineToCrossLines[baseLine] = candidateCrossLines
+                if mask.nonzeroBitCount >= 2 {
+                    crossLines[baseLine] = mask
+                    baseLines.append(baseLine)
                 }
             }
 
             // Need at least 2 base lines with candidates
-            if baseLineToCrossLines.count < 2 {
+            if baseLines.count < 2 {
                 continue
             }
 
-            // Check all combinations of n base lines (sorted for determinism)
-            let baseLines = Array(baseLineToCrossLines.keys).sorted()
-            for combo in combinations(of: baseLines, choose: n) {
-                let fishBaseLines = Set(combo)
-
-                // Get union of all cross lines
-                var allCrossLines = Set<Int>()
-                for baseLine in fishBaseLines {
-                    if let crossLines = baseLineToCrossLines[baseLine] {
-                        allCrossLines.formUnion(crossLines)
-                    }
+            // Check all combinations of n base lines, in ascending order for determinism
+            for choice in LookupTables.choices(of: baseLines.count, choose: n) {
+                var allCrossLines = 0
+                var isBaseLine = 0
+                for index in choice {
+                    allCrossLines |= crossLines[baseLines[index]]
+                    isBaseLine |= 1 << baseLines[index]
                 }
+                let crossLineCount = allCrossLines.nonzeroBitCount
 
                 // Check for perfect fish or finned fish
                 var coreCrossLines = allCrossLines
-                var fins = Set<Puzzle.Index>()
+                var finCells: UInt128 = 0
                 var includesFin = false
 
-                if allCrossLines.count == n {
-                    // Perfect fish
-                    if requiresFin {
-                        continue // Skip perfect fish when requiring fins
-                    }
-                    // Process as regular fish
-                } else if allCrossLines.count > n && allCrossLines.count <= n + 2 {
-                    // Potential finned fish
-                    if requiresFin {
-                        // Try to detect fins
-                        if let finData = detectFins(
-                            digit: digit,
-                            fishBaseLines: fishBaseLines,
+                if crossLineCount == n {
+                    // Perfect fish: skipped when requiring fins
+                    if requiresFin { continue }
+                } else if crossLineCount > n && crossLineCount <= n + 2 {
+                    // Potential finned fish: skipped unless requiring fins
+                    guard requiresFin,
+                        let finData = detectFins(
+                            digitBit: digitBit,
+                            fishBaseLines: isBaseLine,
                             allCrossLines: allCrossLines,
-                            baseLineToCrossLines: baseLineToCrossLines,
+                            crossLines: crossLines,
                             n: n,
-                            baseOrientation: baseOrientation,
-                            state: state
-                        ) {
-                            coreCrossLines = finData.coreCrossLines
-                            fins = finData.fins
-                            includesFin = true
-                        } else {
-                            continue // Not a valid finned fish
-                        }
-                    } else {
-                        continue // Skip finned patterns when not requiring fins
-                    }
+                            cell: cell,
+                            candidates: candidates
+                        )
+                    else { continue }
+                    coreCrossLines = finData.coreCrossLines
+                    finCells = finData.fins
+                    includesFin = true
                 } else {
                     continue // Too many cross lines or not enough
                 }
 
-                // Create matrix of positions where the digit appears
-                var fishPositions = Set<Puzzle.Index>()
-                for baseLine in fishBaseLines {
-                    for crossLine in coreCrossLines {
-                        let position = makeIndex(baseLine, crossLine)
-                        if state.grid[position.row][position.column] == 0 &&
-                            state.pencilMarks[position.row][position.column].contains(digit) {
-                            fishPositions.insert(position)
-                        }
+                // Check if we can eliminate digit from other cells: the core cross lines'
+                // candidates outside the base lines. For a finned fish, only those that see
+                // every fin.
+                var eliminationCells: [Int] = []
+                for crossLine in 0..<9 where coreCrossLines & (1 << crossLine) != 0 {
+                    for baseLine in 0..<9 where isBaseLine & (1 << baseLine) == 0 {
+                        let target = cell(baseLine, crossLine)
+                        guard candidates[target] & digitBit != 0 else { continue }
+                        if includesFin, finCells & ~LookupTables.peerMasks[target] != 0 { continue }
+                        eliminationCells.append(target)
                     }
                 }
-                // Include fins in fish positions for visualization. Every base line holds at
+                guard eliminationCells.isEmpty == false else { continue }
+
+                let fishBaseLines = choice.map { baseLines[$0] }
+                let coreLines = lines(in: coreCrossLines)
+                // Ascending cell index, which is row then column
+                var fins: [Int] = []
+                var remainingFins = finCells
+                while remainingFins != 0 {
+                    fins.append(remainingFins.trailingZeroBitCount)
+                    remainingFins &= remainingFins - 1
+                }
+
+                // The fish's candidates in its core cross lines. Every base line holds at
                 // least two candidates, each in a core line or a fin.
-                fishPositions.formUnion(fins)
-
-                // Check if we can eliminate digit from other cells
-                var removals: [HintAction] = []
-                var eliminationCells = Set<Puzzle.Index>()
-
-                for crossLine in coreCrossLines {
-                    for baseLine in 0..<9 where fishBaseLines.contains(baseLine) == false {
-                        let position = makeIndex(baseLine, crossLine)
-                        if state.grid[position.row][position.column] == 0 {
-                            let candidates = state.pencilMarks[position.row][position.column]
-                            if candidates.contains(digit) {
-                                // For finned fish, only eliminate if cell sees all fins
-                                if includesFin {
-                                    let cellNeighbours = Self.getConstrainingCells(for: position)
-                                    if fins.allSatisfy({ cellNeighbours.contains($0) }) == false {
-                                        continue // Cell doesn't see all fins
-                                    }
-                                }
-                                removals.append(HintAction(position: position, ruleOut: digit))
-                                eliminationCells.insert(position)
-                            }
-                        }
+                var basePositions: [Puzzle.Index] = []
+                for baseLine in fishBaseLines {
+                    for crossLine in coreLines where candidates[cell(baseLine, crossLine)] & digitBit != 0 {
+                        basePositions.append(position(cell(baseLine, crossLine)))
                     }
                 }
 
-                if removals.isEmpty == false {
-                    let technique = fishTechnique(
-                        for: n,
-                        includesFin: includesFin
-                    )
-                    let crossOrientation: Puzzle.Index.Orientation = baseOrientation == .row ? .column : .row
-                    let fishUnits = fishBaseLines.map { SudokuUnit(orientation: baseOrientation, index: $0) }
-                        + coreCrossLines.map { SudokuUnit(orientation: crossOrientation, index: $0) }
-                    return HintStep(
+                let removals = eliminationCells.map { HintAction(position: position($0), ruleOut: digit) }
+                let technique = fishTechnique(
+                    for: n,
+                    includesFin: includesFin
+                )
+                let crossOrientation: Puzzle.Index.Orientation = baseOrientation == .row ? .column : .row
+                let fishUnits = fishBaseLines.map { SudokuUnit(orientation: baseOrientation, index: $0) }
+                    + coreLines.map { SudokuUnit(orientation: crossOrientation, index: $0) }
+                return HintStep(
+                    actions: removals,
+                    technique: technique,
+                    reasoning: HintReasoning(
                         actions: removals,
-                        technique: technique,
-                        reasoning: HintReasoning(
-                            actions: removals,
-                            focusDigits: [digit],
-                            units: fishUnits,
-                            components: [
-                                .base(fishPositions.subtracting(fins), candidates: [digit]),
-                                .fin(fins, candidates: [digit]),
-                                .eliminated(eliminationCells, candidates: [digit])
-                            ]
-                        )
+                        focusDigits: [digit],
+                        units: fishUnits,
+                        components: [
+                            .base(basePositions, candidates: [digit]),
+                            .fin(fins.map(position), candidates: [digit]),
+                            .eliminated(eliminationCells.map(position), candidates: [digit])
+                        ]
                     )
-                }
+                )
             }
         }
 

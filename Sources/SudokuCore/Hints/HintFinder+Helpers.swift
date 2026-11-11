@@ -71,63 +71,6 @@ extension HintFinder {
         return Array(array.combinations(ofCount: k).map { Array($0) })
     }
 
-    /// Checks that no digit appears more than once in any row, column, or 3x3 box.
-    ///
-    /// Only placed (non-zero) values are checked. Empty cells are ignored.
-    ///
-    /// - Parameter grid: The 9x9 grid of placed digit values (0 for empty).
-    /// - Returns: `true` if the grid has no duplicate digits in any unit; `false` otherwise.
-    static func checkNoConflicts(in grid: [[Int]]) -> Bool {
-        // Check rows
-        for row in 0..<9 {
-            var seen = Set<Int>()
-            for col in 0..<9 {
-                let value = grid[row][col]
-                if value != 0 {
-                    if seen.contains(value) {
-                        return false
-                    }
-                    seen.insert(value)
-                }
-            }
-        }
-
-        // Check columns
-        for col in 0..<9 {
-            var seen = Set<Int>()
-            for row in 0..<9 {
-                let value = grid[row][col]
-                if value != 0 {
-                    if seen.contains(value) {
-                        return false
-                    }
-                    seen.insert(value)
-                }
-            }
-        }
-
-        // Check houses
-        for houseRow in stride(from: 0, to: 9, by: 3) {
-            for houseCol in stride(from: 0, to: 9, by: 3) {
-                var seen = Set<Int>()
-                for r in houseRow..<(houseRow + 3) {
-                    for c in houseCol..<(houseCol + 3) {
-                        let value = grid[r][c]
-                        if value != 0 {
-                            if seen.contains(value) {
-                                return false
-                            }
-                            seen.insert(value)
-                        }
-                    }
-                }
-            }
-        }
-
-        return true
-    }
-
-
     /// The unit kinds a strong link can be found in.
     enum StrongLinkUnit: CaseIterable {
         case row
@@ -310,5 +253,17 @@ extension HintFinder {
             }
         }
         return (restrictions, highlighted)
+    }
+}
+
+extension Set where Element == Puzzle.Index {
+    /// The cells by row, then column.
+    ///
+    /// A set gives its cells in an order that changes from one set to the next, even with the
+    /// same cells in it. A hint built by walking one would list its actions or cells
+    /// differently each time it was found, and two finds of the same hint wouldn't compare
+    /// equal. Walk this instead wherever the order ends up in a hint.
+    var inGridOrder: [Puzzle.Index] {
+        sorted { ($0.row, $0.column) < ($1.row, $1.column) }
     }
 }

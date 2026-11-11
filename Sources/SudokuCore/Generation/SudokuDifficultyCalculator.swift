@@ -44,13 +44,40 @@ public enum SudokuDifficultyCalculator {
         try calculateDifficulty(for: initialGrid, estimatingHoDoKu: true)
     }
 
-    /// ``calculateDifficulty(for:)``, leaving out the HoDoKu estimate when `estimatingHoDoKu` is
-    /// false. The estimate solves the puzzle a second time, so the generator leaves it out of the
-    /// many ratings it makes along the way.
-    static func calculateDifficulty(for initialGrid: [[Int]], estimatingHoDoKu: Bool) throws -> DifficultyResult {
+    /// ``calculateDifficulty(for:)`` together with the solve path the rating was worked out
+    /// from: the same path as ``SolvePathEmitter/emit(from:maxIterations:)``. For callers that
+    /// show both, so the puzzle isn't solved once for the path and again for the rating.
+    public static func ratedPath(
+        for initialGrid: [[Int]]
+    ) throws -> (path: SolvePathEmitter.SolvePath, result: DifficultyResult) {
+        try ratedPath(for: initialGrid, estimatingHoDoKu: true)
+    }
 
-        // Build a solve path once and derive metrics from it
-        let path = SolvePathEmitter.emit(from: initialGrid)
+    /// ``calculateDifficulty(for:)``, leaving out the HoDoKu estimate when `estimatingHoDoKu` is
+    /// false. The estimate solves in HoDoKu's order wherever that parts from the main path's,
+    /// so the generator leaves it out of the many ratings it makes along the way.
+    static func calculateDifficulty(for initialGrid: [[Int]], estimatingHoDoKu: Bool) throws -> DifficultyResult {
+        try ratedPath(for: initialGrid, estimatingHoDoKu: estimatingHoDoKu).result
+    }
+
+    static func ratedPath(
+        for initialGrid: [[Int]], estimatingHoDoKu: Bool
+    ) throws -> (path: SolvePathEmitter.SolvePath, result: DifficultyResult) {
+
+        // Build the solve path once and derive metrics from it. The HoDoKu estimate needs the
+        // path in HoDoKu's order too, which is the same path until the two orders disagree,
+        // so both are solved together and share the work up to there.
+        let path: SolvePathEmitter.SolvePath
+        let hodoku: HoDoKuCalculator.Rating?
+        if estimatingHoDoKu {
+            let paths = SolvePathEmitter.emitPair(
+                from: initialGrid, first: ClassicTechniques.all, second: HoDoKuCalculator.techniques)
+            path = paths.first
+            hodoku = HoDoKuCalculator.rating(of: paths.second)
+        } else {
+            path = SolvePathEmitter.emit(from: initialGrid)
+            hodoku = nil
+        }
         var techniquesUsed: [TechniqueInfo] = path.steps.map { $0.technique }
         var iterationCount: Int = path.iterationCount
         var state = path.finalState
@@ -79,14 +106,12 @@ public enum SudokuDifficultyCalculator {
         wasSolved = state.isSolved
 
         // Calculate difficulty metrics
-        // Compute the score, SE rating and time estimate from the same path; the HoDoKu
-        // estimate solves in HoDoKu's order.
+        // Compute the score, SE rating and time estimate from the same path
         let se = SECalculator.compute(from: path)
         let score = ScoreCalculator.compute(from: path)
-        let hodoku = estimatingHoDoKu ? HoDoKuCalculator.compute(for: initialGrid) : nil
         let timeEstimate = TimeEstimator.estimate(fromHoDoKu: score.score)
 
-        return try calculateDifficultyMetrics(
+        let result = try calculateDifficultyMetrics(
             wasSolved: wasSolved,
             techniquesUsed: techniquesUsed,
             iterationCount: iterationCount,
@@ -95,6 +120,7 @@ public enum SudokuDifficultyCalculator {
             hodoku: hodoku,
             estimatedTimeSeconds: timeEstimate.personalizedSeconds ?? timeEstimate.baselineSeconds
         )
+        return (path, result)
     }
 
     // Helpers moved to SolveUtilities.swift (BoardState.fromGrid, BoardState.isSolved, BoardState.applying, HintFinder.firstHint)

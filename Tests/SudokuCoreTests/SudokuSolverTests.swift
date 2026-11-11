@@ -80,36 +80,77 @@ struct SudokuSolverTests {
 
         #expect(solution != nil)
         #expect(solution == completeSudoku)
-        #expect(callCount == 1)  // Only needs one call for a complete puzzle
+        #expect(callCount == 1)  // Nothing to fill: the search only looks once
     }
-    
+
     @Test("SudokuSolver correctly solves an easy puzzle")
     func testSolveEasyPuzzle() {
         let (solution, callCount) = SudokuSolver.solve(grid: easyPuzzle)
+        let emptySquares = easyPuzzle.joined().filter { $0 == 0 }.count
 
         #expect(solution != nil)
         #expect(solution != easyPuzzle)  // Solution should be different from input
         #expect(try! Validator.isCompleteAndValidSolution(solution!))
-        #expect(callCount >= 1)  // Should need multiple calls for an incomplete puzzle
-        #expect(callCount < 50)  // But not too many for an easy puzzle
+        // Singles all the way, so every square is filled once and the search never backs up
+        #expect(callCount == emptySquares + 1)
     }
-    
+
     @Test("SudokuSolver correctly solves a hard puzzle")
     func testSolveHardPuzzle() {
         let (solution, callCount) = SudokuSolver.solve(grid: hardPuzzle)
+        let emptySquares = hardPuzzle.joined().filter { $0 == 0 }.count
 
         #expect(solution != nil)
         #expect(try! Validator.isCompleteAndValidSolution(solution!))
-        #expect(callCount >= 10)  // Should need more calls for a hard puzzle
+        #expect(callCount >= emptySquares + 1)  // At least one fill per empty square
     }
-    
+
+    @Test("SudokuSolver keeps the clues and finds each corpus puzzle's solution")
+    func testSolvesTheCorpus() {
+        for puzzle in CorpusPuzzle.fixtureCorpus {
+            #expect(SudokuSolver.solve(grid: puzzle.startingState).solution == puzzle.solution)
+        }
+    }
+
+    @Test("SudokuSolver gives the same one of several solutions every time")
+    func testSeveralSolutions() throws {
+        var sparse = easyPuzzle
+        sparse[0] = Array(repeating: 0, count: 9)
+        sparse[4] = Array(repeating: 0, count: 9)
+        #expect(Validator.solutionCount(of: sparse).cappedCount == 2)
+
+        let solution = try #require(SudokuSolver.solve(grid: sparse).solution)
+        #expect(try Validator.isCompleteAndValidSolution(solution))
+        for row in 0..<9 {
+            for column in 0..<9 where sparse[row][column] != 0 {
+                #expect(solution[row][column] == sparse[row][column])
+            }
+        }
+        #expect(SudokuSolver.solve(grid: sparse).solution == solution)
+    }
+
+    @Test("SudokuSolver finds no solution for a grid that isn't 9×9 or holds a digit past 9")
+    func testMalformedGrids() {
+        #expect(SudokuSolver.solve(grid: invalidPuzzle).solution == nil)
+        var outOfRange = easyPuzzle
+        outOfRange[0][2] = 10
+        #expect(SudokuSolver.solve(grid: outOfRange).solution == nil)
+    }
+
     @Test("SudokuSolver correctly identifies an unsolvable puzzle")
     func testUnsolvablePuzzle() {
         let (solution, _) = SudokuSolver.solve(grid: unsolvablePuzzle)
         #expect(solution == nil)  // Should not find a solution
     }
 
-    @Test("A puzzle with no solution that arc consistency alone can't rule out returns nil")
+    @Test("SudokuSolver finds no solution wherever a clue clashes with another")
+    func testClashingClues() {
+        let clashing = easyPuzzle.withEachClashingClue()
+        #expect(clashing.isEmpty == false)
+        #expect(clashing.filter { SudokuSolver.solve(grid: $0).solution != nil }.isEmpty)
+    }
+
+    @Test("A puzzle with no solution that only the search can rule out returns nil")
     func testUnsolvableAfterSearch() {
         // A unique puzzle with one empty cell given a digit its peers allow but the solution
         // doesn't have: it has no solution, which only the search finds.
