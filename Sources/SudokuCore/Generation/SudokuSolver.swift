@@ -14,8 +14,13 @@ public enum SudokuSolver {
     
 
     /// Solve the Sudoku and return the solution along with the call count
+    ///
+    /// Clues that clash, and grids that aren't 9×9, have no solution.
     /// - Returns: Tuple with the solution (if found) and the number of AC calls
     public static func solve(grid: [[Int]]) -> (solution: [[Int]]?, callCount: Int) {
+        // Arc consistency only narrows cells that are still open, so two clues that clash
+        // would never meet: rule them out before the search starts.
+        guard Validator.hasNoConflicts(in: grid) else { return (nil, 0) }
 
         /// The current domains for each cell
         var domains: DomainGrid = Array(
