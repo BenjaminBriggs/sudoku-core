@@ -255,3 +255,15 @@ extension HintFinder {
         return (restrictions, highlighted)
     }
 }
+
+extension Set where Element == Puzzle.Index {
+    /// The cells by row, then column.
+    ///
+    /// A set gives its cells in an order that changes from one set to the next, even with the
+    /// same cells in it. A hint built by walking one would list its actions or cells
+    /// differently each time it was found, and two finds of the same hint wouldn't compare
+    /// equal. Walk this instead wherever the order ends up in a hint.
+    var inGridOrder: [Puzzle.Index] {
+        sorted { ($0.row, $0.column) < ($1.row, $1.column) }
+    }
+}

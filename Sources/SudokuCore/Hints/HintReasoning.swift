@@ -257,7 +257,7 @@ extension HintComponent {
         in state: BoardState,
         unit: SudokuUnit?
     ) -> HintComponent where S.Element == Puzzle.Index {
-        HintComponent(role: role, cells: positions.map { CellFact($0, in: state) }, unit: unit)
+        HintComponent(role: role, cells: ordered(positions).map { CellFact($0, in: state) }, unit: unit)
     }
 
     /// Stamps every cell with the same fixed candidate set.
@@ -269,9 +269,18 @@ extension HintComponent {
     ) -> HintComponent where S.Element == Puzzle.Index {
         HintComponent(
             role: role,
-            cells: positions.map { CellFact(position: $0, candidates: candidates) },
+            cells: ordered(positions).map { CellFact(position: $0, candidates: candidates) },
             unit: unit
         )
+    }
+
+    /// The positions in the order they came, unless they came as a set. A set has no order of
+    /// its own, and the one it gives changes from one set to the next even with the same
+    /// cells in it, so the same hint found twice would list them differently and not compare
+    /// equal. Sets are listed by row, then column.
+    private static func ordered<S: Sequence>(_ positions: S) -> [Puzzle.Index] where S.Element == Puzzle.Index {
+        guard let unordered = positions as? Set<Puzzle.Index> else { return Array(positions) }
+        return unordered.inGridOrder
     }
 }
 

@@ -128,7 +128,7 @@ extension HintFinder {
                             let end2Neighbors = LookupTables.cellNeighbours[end2Pos.row][end2Pos.column]
                             let commonNeighbors = end1Neighbors.intersection(end2Neighbors)
 
-                            for position in commonNeighbors {
+                            for position in commonNeighbors.inGridOrder {
                                 if skyscraperPositions.contains(position) {
                                     continue
                                 }
