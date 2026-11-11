@@ -19,9 +19,20 @@ extension HintFinder {
     ///   - state: The current immutable board snapshot to analyse.
     /// - Returns: A `HintStep` with candidate removal actions, or `nil` if no hidden subset is found.
     static func findHiddenSubsets(n: Int, technique: TechniqueInfo, in state: BoardState) -> HintStep? {
+        // Each empty cell's candidates as a bitmask (bit d set for digit d), by cell index
+        // (`row * 9 + column`), worked out once for all 27 units
+        var candidates = [Int](repeating: 0, count: 81)
+        for row in 0..<9 {
+            for column in 0..<9 where state.grid[row][column] == 0 {
+                candidates[row * 9 + column] = state.pencilMarks[row][column].reduce(0) { $0 | (1 << $1) }
+            }
+        }
+
         // Check all units (rows, columns, houses)
         for unit in SudokuUnit.allUnits {
-            if let hint = findHiddenSubsetsInUnit(n: n, unit: unit, technique: technique, state: state) {
+            if let hint = findHiddenSubsetsInUnit(
+                n: n, unit: unit, technique: technique, state: state, candidates: candidates)
+            {
                 return hint
             }
         }
@@ -32,108 +43,82 @@ extension HintFinder {
     ///
     /// Maps each unplaced digit to the cells where it appears as a candidate. Then checks every
     /// combination of `n` available digits. If those `n` digits are confined to exactly `n` cells,
-    /// all other candidates can be removed from those cells. Uses a bitset to track placed digits.
+    /// all other candidates can be removed from those cells. Digits and cells are bitmasks, so
+    /// a combination that isn't a subset costs a few ORs.
     /// - Parameters:
     ///   - n: The subset size (2 = pair, 3 = triple, 4 = quad).
     ///   - unit: The row, column, or box to search.
     ///   - technique: The `TechniqueInfo` to label the result with.
     ///   - state: The current board state.
+    ///   - candidates: Each empty cell's candidates as a bitmask, by cell index.
     /// - Returns: A `HintStep` with candidate removal actions, or `nil` if no hidden subset is found.
     private static func findHiddenSubsetsInUnit(
         n: Int,
         unit: SudokuUnit,
         technique: TechniqueInfo,
-        state: BoardState
+        state: BoardState,
+        candidates: [Int]
     ) -> HintStep? {
-        // Use array instead of dictionary for digit->cells mapping (digits 1-9)
-        // Index 0 is unused, indices 1-9 correspond to digits 1-9
-        var digitToCells: [Set<Puzzle.Index>] = Array(repeating: Set<Puzzle.Index>(), count: 10)
+        let positions = unit.positions
 
-        // Pre-compute grid and pencil marks for faster access
-        let grid = state.grid
-        let pencilMarks = state.pencilMarks
-
-        // Gather cells for each digit in this unit
-        var placedDigitsBits = 0
-        for position in unit.positions {
-            let value = grid[position.row][position.column]
+        // For each digit 1-9, the unit's cells holding it as a candidate: bit i for the
+        // unit's i-th cell. Index 0 is unused.
+        var digitCells = [Int](repeating: 0, count: 10)
+        var placedDigits = 0
+        for (index, position) in positions.enumerated() {
+            let value = state.grid[position.row][position.column]
             if value == 0 {  // Empty cell
-                let candidates = pencilMarks[position.row][position.column]
-                for digit in candidates {
-                    digitToCells[digit].insert(position)
+                let cellCandidates = candidates[position.row * 9 + position.column]
+                for digit in 1...9 where cellCandidates & (1 << digit) != 0 {
+                    digitCells[digit] |= 1 << index
                 }
             } else {
-                placedDigitsBits |= (1 << (value - 1))
+                placedDigits |= 1 << value
             }
         }
 
-        // Get available digits using bitset
-        var availableDigits: [Int] = []
-        availableDigits.reserveCapacity(9)
-        for digit in 1...9 {
-            let bit = 1 << (digit - 1)
-            if (placedDigitsBits & bit) == 0 {
-                availableDigits.append(digit)
+        let availableDigits = (1...9).filter { placedDigits & (1 << $0) == 0 }
+
+        for choice in LookupTables.choices(of: availableDigits.count, choose: n) {
+            // All the cells where these digits can appear. For a hidden subset the n digits
+            // must each have a cell, and be confined to exactly n cells between them.
+            var unionCells = 0
+            var subsetDigits = 0
+            var allDigitsPresent = true
+            for index in choice {
+                let digit = availableDigits[index]
+                unionCells |= digitCells[digit]
+                subsetDigits |= 1 << digit
+                if digitCells[digit] == 0 { allDigitsPresent = false }
             }
-        }
+            guard unionCells.nonzeroBitCount == n, allDigitsPresent else { continue }
 
-        let digitCombinations = combinations(of: availableDigits, choose: n)
-
-        for digitCombo in digitCombinations {
-            // Get all cells where these digits can appear
-            var unionCells = Set<Puzzle.Index>()
-            unionCells.reserveCapacity(n)
-
-            for digit in digitCombo {
-                unionCells.formUnion(digitToCells[digit])
+            // We have a hidden subset: remove all other digits from these n cells
+            let subsetPositions = (0..<9).filter { unionCells & (1 << $0) != 0 }.map { positions[$0] }
+            var removals: [HintAction] = []
+            for position in subsetPositions {
+                let others = candidates[position.row * 9 + position.column] & ~subsetDigits
+                for digit in 1...9 where others & (1 << digit) != 0 {
+                    removals.append(HintAction(position: position, ruleOut: digit))
+                }
             }
 
-            // For a hidden subset, these n digits must be confined to exactly n cells
-            if unionCells.count == n {
-                // Verify that all digits in the combo actually appear in the union
-                var allDigitsPresent = true
-                for digit in digitCombo {
-                    let cells = digitToCells[digit]
-                    if cells.isEmpty || cells.isSubset(of: unionCells) == false {
-                        allDigitsPresent = false
-                        break
-                    }
-                }
-
-                if allDigitsPresent == false {
-                    continue
-                }
-
-                // We have a hidden subset
-                let subsetDigits = Set(digitCombo)
-                var removals: [HintAction] = []
-                removals.reserveCapacity(unionCells.count * 6)  // Estimate
-
-                // Remove all other digits from these n cells
-                for position in unionCells {
-                    let candidates = pencilMarks[position.row][position.column]
-                    for digit in candidates where subsetDigits.contains(digit) == false {
-                        removals.append(HintAction(position: position, ruleOut: digit))
-                    }
-                }
-
-                if removals.isEmpty == false {
-                    return HintStep(
+            if removals.isEmpty == false {
+                return HintStep(
+                    actions: removals,
+                    technique: technique,
+                    reasoning: HintReasoning(
                         actions: removals,
-                        technique: technique,
-                        reasoning: HintReasoning(
-                            actions: removals,
-                            focusDigits: digitCombo.sorted(),
-                            units: [unit],
-                            // The subset cells are also the cells that lose candidates, so a single
-                            // `.subset` component (carrying each cell's real pencil marks) captures
-                            // the pattern; the eliminations themselves are in `reasoning.eliminations`.
-                            components: [
-                                .subset(unionCells, in: state, unit: unit)
-                            ]
-                        )
+                        focusDigits: choice.map { availableDigits[$0] },
+                        units: [unit],
+                        // The subset cells are also the cells that lose candidates, so a single
+                        // `.subset` component (carrying each cell's real pencil marks) captures
+                        // the pattern; the eliminations themselves are in `reasoning.eliminations`.
+                        components: [
+                            .subset(subsetPositions, in: state, unit: unit)
+                        ]
                     )
-                }
+                )
             }
         }
 
