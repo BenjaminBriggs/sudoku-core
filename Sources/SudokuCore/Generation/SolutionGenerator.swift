@@ -15,10 +15,17 @@ public enum SolutionGenerator {
     ///
     /// - Returns: A 9x9 grid (Solution) with digits 1..9 in each cell, obeying Sudoku constraints.
     public static func generateRandomSolution() -> [[Int]] {
+        var generator = SystemRandomNumberGenerator()
+        return generateRandomSolution(using: &generator)
+    }
+
+    /// ``generateRandomSolution()`` taking its randomness from `generator`, so a generator
+    /// seeded the same way gives the same solution.
+    public static func generateRandomSolution(using generator: inout some RandomNumberGenerator) -> [[Int]] {
         var grid = Solution.empty()
         // Repeatedly attempt to fill the grid until successful (though typically 1 attempt is enough).
         // The fillWithBacktracking() call returns true if it managed to fill the entire grid.
-        while !fillWithBacktracking(&grid) {
+        while !fillWithBacktracking(&grid, using: &generator) {
             grid = Solution.empty()
         }
         return grid
@@ -29,7 +36,9 @@ public enum SolutionGenerator {
     /// Recursively fills the `grid` in place with digits 1..9,
     /// ensuring no row/column/box conflicts. Returns `true` if fully filled.
     /// Optimized version using bitsets to track used digits.
-    private static func fillWithBacktracking(_ grid: inout [[Int]]) -> Bool {
+    private static func fillWithBacktracking(
+        _ grid: inout [[Int]], using generator: inout some RandomNumberGenerator
+    ) -> Bool {
         var rowUsed = Array(repeating: 0, count: 9)
         var colUsed = Array(repeating: 0, count: 9)
         var boxUsed = Array(repeating: 0, count: 9)
@@ -53,7 +62,8 @@ public enum SolutionGenerator {
             rowUsed: &rowUsed,
             colUsed: &colUsed,
             boxUsed: &boxUsed,
-            cell: 0
+            cell: 0,
+            using: &generator
         )
     }
 
@@ -63,7 +73,8 @@ public enum SolutionGenerator {
         rowUsed: inout [Int],
         colUsed: inout [Int],
         boxUsed: inout [Int],
-        cell: Int
+        cell: Int,
+        using generator: inout some RandomNumberGenerator
     ) -> Bool {
         // If we've filled all 81 cells, we're done
         if cell == 81 {
@@ -80,7 +91,8 @@ public enum SolutionGenerator {
                 rowUsed: &rowUsed,
                 colUsed: &colUsed,
                 boxUsed: &boxUsed,
-                cell: cell + 1
+                cell: cell + 1,
+                using: &generator
             )
         }
 
@@ -88,7 +100,7 @@ public enum SolutionGenerator {
         let used = rowUsed[row] | colUsed[col] | boxUsed[boxIndex]
 
         // Try digits 1..9 in random order
-        for num in (1...9).shuffled() {
+        for num in (1...9).shuffled(using: &generator) {
             let bit = 1 << (num - 1)
 
             // Check if this digit is already used
@@ -105,7 +117,8 @@ public enum SolutionGenerator {
                     rowUsed: &rowUsed,
                     colUsed: &colUsed,
                     boxUsed: &boxUsed,
-                    cell: cell + 1
+                    cell: cell + 1,
+                    using: &generator
                 ) {
                     return true
                 }
