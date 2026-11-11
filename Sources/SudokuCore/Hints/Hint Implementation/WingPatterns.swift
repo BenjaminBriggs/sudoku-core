@@ -160,7 +160,7 @@ extension HintFinder {
                 if eliminationCells.isEmpty == false {
                     var removals: [HintAction] = []
                     removals.reserveCapacity(eliminationCells.count)
-                    for cell in eliminationCells {
+                    for cell in eliminationCells.inGridOrder {
                         removals.append(HintAction(position: cell, ruleOut: eliminationDigit))
                     }
 

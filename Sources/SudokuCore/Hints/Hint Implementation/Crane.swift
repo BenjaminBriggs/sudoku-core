@@ -49,7 +49,7 @@ extension HintFinder {
 
                             var removals: [HintAction] = []
                             var eliminationCells = Set<Puzzle.Index>()
-                            for position in commonNeighbours where allFour.contains(position) == false {
+                            for position in commonNeighbours.inGridOrder where allFour.contains(position) == false {
                                 if grid[position.row][position.column] == 0,
                                    pencilMarks[position.row][position.column].contains(digit) {
                                     removals.append(HintAction(position: position, ruleOut: digit))

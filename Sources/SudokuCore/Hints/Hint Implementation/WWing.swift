@@ -140,7 +140,7 @@ extension HintFinder {
             var removals: [HintAction] = []
             var eliminationCells = Set<Puzzle.Index>()
 
-            for position in commonNeighbours {
+            for position in commonNeighbours.inGridOrder {
                 if position == cellA || position == cellB { continue }
                 if grid[position.row][position.column] == 0,
                    pencilMarks[position.row][position.column].contains(eliminationDigit) {

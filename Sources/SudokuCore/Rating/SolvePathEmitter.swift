@@ -39,8 +39,8 @@ public enum SolvePathEmitter {
             HintStep(actions: actions, technique: technique, reasoning: reasoning)
         }
 
-        /// The same deduction: technique and actions. Reasoning is left out because some
-        /// techniques list its cells in no fixed order.
+        /// The same deduction: technique and actions. Reasoning isn't compared; a step found
+        /// again at the same state has equal reasoning too.
         public static func == (lhs: SolveStep, rhs: SolveStep) -> Bool {
             lhs.technique == rhs.technique && lhs.actions == rhs.actions
         }
