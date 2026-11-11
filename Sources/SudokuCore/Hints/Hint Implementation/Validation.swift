@@ -20,7 +20,7 @@ extension HintFinder {
     /// - Returns: A `HintStep` with a `clearPosition` action for the offending cell(s),
     ///   or `nil` if the board is valid.
     static func checkValidity(in state: BoardState) -> HintStep? {
-        if checkNoConflicts(in: state.grid) == false {
+        if Validator.hasNoConflicts(in: state.grid) == false {
             // Find the conflict
             var conflictActions: [HintAction] = []
             var conflictCells = Set<Puzzle.Index>()

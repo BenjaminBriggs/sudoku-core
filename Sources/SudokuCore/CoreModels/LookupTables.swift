@@ -139,4 +139,56 @@ enum LookupTables {
 
         return table
     }()
+
+    // MARK: - Cell sets as bitmasks
+
+    // A set of cells is a `UInt128` with bit `row * 9 + column` set for each cell in it, so
+    // "does this cell see all of those" is one AND instead of a hash lookup per cell.
+
+    /// The bit for one cell in a cell-set bitmask.
+    static func cellBit(_ cell: Int) -> UInt128 { 1 << UInt128(cell) }
+
+    /// All 81 cells.
+    static let allCellsMask: UInt128 = (1 << 81) - 1
+
+    /// Each cell's 20 neighbours, indexed by `row * 9 + column`.
+    static let peerMasks: [UInt128] = (0..<81).map { cell in
+        cellNeighbours[cell / 9][cell % 9].reduce(0) { $0 | cellBit($1.row * 9 + $1.column) }
+    }
+
+    /// The cells of each unit, in `SudokuUnit.allUnits` order: rows, columns, houses.
+    static let unitMasks: [UInt128] = (rowCells + columnCells + boxCells).map { cells in
+        cells.reduce(0) { $0 | cellBit($1.row * 9 + $1.column) }
+    }
+
+    /// Every way to choose `k` of `0..<count`, as ascending index lists in lexicographic order:
+    /// `choices[count][k]`, for `count` up to 9. Worked out once, so a finder that tries every
+    /// combination of a unit's cells or lines doesn't build the lists again at every state.
+    static let choices: [[[[Int]]]] = (0...9).map { count in
+        (0...count).map { k in
+            var result: [[Int]] = []
+            var current: [Int] = []
+            func choose(from start: Int) {
+                if current.count == k {
+                    result.append(current)
+                    return
+                }
+                guard count - start >= k - current.count else { return }
+                for index in start..<count {
+                    current.append(index)
+                    choose(from: index + 1)
+                    current.removeLast()
+                }
+            }
+            choose(from: 0)
+            return result
+        }
+    }
+
+    /// `choices[count][k]`, or none when `k` is out of range: what `combinations(of:choose:)`
+    /// gives for a list of `count` items, as indices into it.
+    static func choices(of count: Int, choose k: Int) -> [[Int]] {
+        guard k > 0, k <= count else { return [] }
+        return choices[count][k]
+    }
 }
