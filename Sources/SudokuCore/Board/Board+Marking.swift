@@ -211,10 +211,35 @@ extension Board {
         }
     }
 
+    /// Makes a ruled-out candidate a candidate again for the specified cells, taking back
+    /// ``ruleOut(positions:as:)``.
+    ///
+    /// Only that one candidate comes back. The cells' other ruled-out candidates stay ruled
+    /// out, and their pencil marks are left alone: ruling out removed the value from them, but
+    /// whether it was there before isn't recorded, so putting it back could add a mark the
+    /// player never wrote.
+    ///
+    /// Cells with values are skipped. Records one undo step, and none if nothing changed.
+    ///
+    /// - Parameters:
+    ///   - positions: Set of positions where the value should no longer be ruled out.
+    ///   - value: The candidate number (1-9) to rule back in.
+    public func ruleIn(positions: Set<Puzzle.Index>, as value: Int) {
+        guard positions.isEmpty == false else { return }
+        recordingUndo {
+            for position in positions where cell(at: position).value == nil {
+                self.cells[position.linerIndex]
+                    .ruledOutCandidates
+                    .remove(value)
+            }
+        }
+    }
+
     /// Applies a hint to the board by executing all of its actions.
     ///
     /// This processes each action in the hint step (solving cells, adding pencil marks,
-    /// ruling out candidates, or clearing cells) and updates validation afterward.
+    /// ruling candidates out or back in, or clearing cells) and updates validation afterward.
+    /// The whole hint is one undo step.
     ///
     /// The ``hintsUsed`` counter is automatically incremented.
     ///
@@ -235,6 +260,11 @@ extension Board {
                 )
             case .ruleOut(let value):
                 ruleOut(
+                    positions: [action.position],
+                    as: value
+                )
+            case .ruleIn(let value):
+                ruleIn(
                     positions: [action.position],
                     as: value
                 )

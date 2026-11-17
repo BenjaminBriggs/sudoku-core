@@ -33,6 +33,8 @@ SudokuCore is the engine behind a Sudoku application: the game logic, puzzle gen
 - ``Board/mark(positions:as:)``
 - ``Board/pencil(positions:as:)``
 - ``Board/advancedPencil(positions:as:)``
+- ``Board/ruleOut(positions:as:)``
+- ``Board/ruleIn(positions:as:)``
 - ``Board/clearCell(at:)``
 - ``Board/color(positions:as:)``
 - ``Board/undo()``

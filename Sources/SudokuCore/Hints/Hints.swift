@@ -10,6 +10,11 @@ public struct HintAction: Sendable {
     public enum ActionType: Sendable {
         case solveAs(Int)
         case ruleOut(Int)
+        /// Makes a ruled-out digit a candidate again, taking back an earlier `ruleOut`.
+        ///
+        /// Validation uses it when a square's answer has been ruled out: every technique
+        /// reasons from the candidates that are left, so the false mark has to go first.
+        case ruleIn(Int)
         case pencilIn(Int)
         case clear
     }
@@ -33,6 +38,14 @@ public struct HintAction: Sendable {
 
     public init(
         position: Puzzle.Index,
+        ruleIn: Int
+    ) {
+        self.position = position
+        self.action = .ruleIn(ruleIn)
+    }
+
+    public init(
+        position: Puzzle.Index,
         pencilIn: Int
     ) {
         self.position = position
@@ -52,6 +65,8 @@ public struct HintAction: Sendable {
             return "Hint add \(solveAs) at \(position.description)"
         case .ruleOut(let ruleOut):
             return "Hint remove \(ruleOut) at \(position.description)"
+        case .ruleIn(let ruleIn):
+            return "Hint rule in \(ruleIn) at \(position.description)"
         case .pencilIn(let pencilIn):
             return "Hint pencil \(pencilIn) at \(position.description)"
         case .clear:

@@ -38,7 +38,7 @@ public struct RecordedStep: Sendable, Hashable, Codable {
             digits = step.actions.compactMap { action in
                 switch action.action {
                 case .solveAs(let digit), .ruleOut(let digit): digit
-                case .pencilIn, .clear: nil
+                case .ruleIn, .pencilIn, .clear: nil
                 }
             }
         }

@@ -25,6 +25,9 @@ extension HintAction: Hashable {
             hasher.combine(value)
         case .clear:
             hasher.combine(4)
+        case .ruleIn(let value):
+            hasher.combine(5)
+            hasher.combine(value)
         }
     }
 }
@@ -36,6 +39,8 @@ extension HintAction.ActionType: Equatable {
         case (.solveAs(let lv), .solveAs(let rv)):
             return lv == rv
         case (.ruleOut(let lv), .ruleOut(let rv)):
+            return lv == rv
+        case (.ruleIn(let lv), .ruleIn(let rv)):
             return lv == rv
         case (.pencilIn(let lv), .pencilIn(let rv)):
             return lv == rv

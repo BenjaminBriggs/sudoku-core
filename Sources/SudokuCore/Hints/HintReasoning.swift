@@ -144,7 +144,7 @@ extension HintReasoning {
                 placements.append(CandidateRef(position: action.position, digit: digit))
             case .ruleOut(let digit):
                 eliminations.append(CandidateRef(position: action.position, digit: digit))
-            case .pencilIn, .clear:
+            case .ruleIn, .pencilIn, .clear:
                 break
             }
         }
