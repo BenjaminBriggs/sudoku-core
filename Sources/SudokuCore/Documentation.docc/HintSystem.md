@@ -138,6 +138,7 @@ struct HintAction {
     enum ActionType {
         case solveAs(Int)        // Place this value
         case ruleOut(Int)        // Eliminate a candidate
+        case ruleIn(Int)         // Take back a ruled-out candidate
         case pencilIn(Int)       // Add a pencil mark
         case clear               // Clear the cell
     }
@@ -154,6 +155,8 @@ for action in hint.actions {
         print("Place \(value) at \(pos)")
     case .ruleOut(let value):
         print("Eliminate \(value) from \(pos)")
+    case .ruleIn(let value):
+        print("Make \(value) a candidate at \(pos) again")
     case .pencilIn(let value):
         print("Note \(value) as candidate at \(pos)")
     case .clear:
@@ -164,21 +167,27 @@ for action in hint.actions {
 
 ## Detecting Player Mistakes
 
-The `.validation` technique doesn't advance the solve — it finds what's wrong. It checks, in priority order: duplicate digits in a row, then a column, then a box, and finally (when the board has a solution) any filled cell that disagrees with it.
+The `.validation` technique doesn't advance the solve — it finds what's wrong. It checks, in priority order: duplicate digits in a row, then a column, then a box, then (when the board has a solution) any filled cell that disagrees with it, and finally (again only with a solution) the first empty cell whose answer has been ruled out.
 
 ```swift
 if let mistake = ValidationTechnique().findHint(in: board.state) {
-    // Each action is a .clear for an offending cell
+    // A .clear for each offending cell, or one .ruleIn for a ruled-out answer
     for action in mistake.actions {
-        print("Conflict at \(action.position)")
+        print("Mistake at \(action.position)")
     }
-    board.apply(hint: mistake)  // Clears the offending cells
+    board.apply(hint: mistake)  // Clears the offending cells, or rules the answer back in
 }
 ```
 
 `.validation` has difficulty 0, so it sorts first in ``ClassicTechniques/all`` — when the board contains an error, ``HintFinder/firstHint(in:using:)`` returns the mistake before suggesting any solving technique. A player who asks for a hint on a broken board is told what to fix first.
 
-The hint's reasoning records the conflicting cells as a `.constraint` component and, when the solution is known, which of the two duplicates is actually correct as the `.subject`.
+A ruled-out answer matters because every technique reasons from ``BoardState/pencilMarks``, which a board builds as each cell's valid options minus its ruled-out candidates. With the answer missing, a technique can find a "naked single" that isn't the answer, or an elimination built on the false mark. Validation catches it when the answer is still a valid option but not a candidate, one cell per hint. A wrong number is reported first: it is the more basic mistake, and it can itself be what makes an answer invalid. Applying the hint calls ``Board/ruleIn(positions:as:)``, which takes back that one candidate and leaves the cell's other ruled-out candidates and pencil marks alone; the whole hint is one undo step.
+
+The hint's reasoning tells the three kinds apart:
+
+- **A clash** records the conflicting cells as a `.constraint` component, the unit as its only unit and, when the solution is known, which of the two duplicates is actually correct as the `.subject`.
+- **A wrong number** has no `.constraint` component. Its `.subject` is the cell, carrying the correct value as the fact's `value`, which is also the focus digit.
+- **A ruled-out answer** has no `.constraint` component either. Its `.subject` is the cell as it is, empty: no `value`, and the candidates it has left, which never include the answer. The focus digit is the answer that was ruled out.
 
 ## Parsing Board States from Strings
 

@@ -186,7 +186,7 @@ struct TechniqueVerificationTests {
                         if state.pencilMarks[cell.row][cell.column].contains(digit) == false { failures.append("\(where_): removes absent \(c)") }
                         if solution[cell.row][cell.column] == digit { failures.append("UNSOUND \(where_): removes answer \(c)") }
                         if reference.eliminations.contains(c) == false { failures.append("mislabelled \(where_): \(c) isn't a \(technique.rawValue) elimination") }
-                    case .pencilIn, .clear:
+                    case .ruleIn, .pencilIn, .clear:
                         failures.append("\(where_): unexpected \(action.debugDescription)")
                     }
                 }

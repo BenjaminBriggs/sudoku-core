@@ -8,17 +8,23 @@ import Foundation
 
 // MARK: - Validation Technique
 extension HintFinder {
-    /// Checks the board for conflicts and incorrect placements, returning a hint if any are found.
+    /// Checks the board for conflicts, incorrect placements and ruled-out answers, returning a
+    /// hint if any are found.
     ///
     /// The check proceeds in priority order:
     /// 1. Duplicate digits within a **row** (returns immediately on first conflict).
     /// 2. Duplicate digits within a **column**.
     /// 3. Duplicate digits within a **3x3 box (house)**.
     /// 4. If a solution is available, cells whose value differs from the solution.
+    /// 5. If a solution is available, the first empty cell whose answer is a valid option but
+    ///    missing from its candidates, because it has been ruled out.
+    ///
+    /// A wrong number comes before a ruled-out answer: it is the more basic mistake, and it can
+    /// itself be what leaves an answer invalid.
     ///
     /// - Parameter state: The current board state snapshot to validate.
-    /// - Returns: A `HintStep` with a `clearPosition` action for the offending cell(s),
-    ///   or `nil` if the board is valid.
+    /// - Returns: A `HintStep` with a `clearPosition` action for the offending cell(s), or a
+    ///   `ruleIn` action for a ruled-out answer, or `nil` if the board is valid.
     static func checkValidity(in state: BoardState) -> HintStep? {
         if Validator.hasNoConflicts(in: state.grid) == false {
             // Find the conflict
@@ -159,8 +165,44 @@ extension HintFinder {
                     }
                 }
             }
+
+            if let ruledOut = ruledOutAnswer(in: state, solution: solution) {
+                return ruledOut
+            }
         }
 
+        return nil
+    }
+
+    /// A hint for the first empty cell, in row-major order, whose answer is still a valid option
+    /// but has been ruled out of its candidates. Every technique trusts the candidates, so one
+    /// missing answer is enough to send them to a wrong step.
+    ///
+    /// One cell per hint, as for a wrong number: the action restores one candidate, and asking
+    /// again finds the next.
+    ///
+    /// The cell is the `.subject`, snapshotted as it is: empty, with the candidates it has left.
+    /// That tells it apart from a wrong number, whose subject carries the correct value.
+    private static func ruledOutAnswer(in state: BoardState, solution: [[Int]]) -> HintStep? {
+        for row in 0..<9 {
+            for col in 0..<9 where state.grid[row][col] == 0 {
+                let answer = solution[row][col]
+                guard state.validOptions[row][col].contains(answer),
+                      state.pencilMarks[row][col].contains(answer) == false
+                else { continue }
+                let position = Puzzle.Index(row: row, column: col)
+                let actions = [HintAction(position: position, ruleIn: answer)]
+                return HintStep(
+                    actions: actions,
+                    technique: .validation,
+                    reasoning: HintReasoning(
+                        actions: actions,
+                        focusDigits: [answer],
+                        components: [.subject([position], in: state)]
+                    )
+                )
+            }
+        }
         return nil
     }
 

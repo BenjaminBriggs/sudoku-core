@@ -90,6 +90,17 @@ For sophisticated solving techniques:
 board.advancedPencil(positions: [position], as: 3)
 ```
 
+### Ruling Candidates Out and Back In
+
+Rule a candidate out to drop it from ``Board/Cell/allowedValues`` and the hint engine's candidates, and rule it back in to take that back:
+
+```swift
+board.ruleOut(positions: [position], as: 4)  // Also removes 4 from the pencil marks
+board.ruleIn(positions: [position], as: 4)   // Only lifts the rule-out; pencil marks stay as they are
+```
+
+Each is one undo step. The `.validation` hint rules a cell's answer back in when it has been ruled out (see <doc:HintSystem>).
+
 ### Auto Pencil Mode
 
 Enable automatic pencil mark maintenance:

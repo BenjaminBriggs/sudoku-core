@@ -53,6 +53,9 @@ extension BoardState {
                 gridChanged = true
             case .ruleOut(let value):
                 newPencilMarks[action.position.row][action.position.column].remove(value)
+            case .ruleIn(let value):
+                // Only a valid option comes back: the merge below drops any other.
+                newPencilMarks[action.position.row][action.position.column].insert(value)
             case .pencilIn(_):
                 break
             case .clear:
