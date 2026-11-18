@@ -61,30 +61,33 @@ Techniques are ordered from easiest to hardest:
 4. **Naked/Hidden Pairs** (50) - Two cells share two candidates
 5. **Naked/Hidden Triples** (60) - Three cells share three candidates
 6. **Naked/Hidden Quads** (70) - Four cells share four candidates
-7. **X-Wing** (80) - Fish pattern with 2 cells per unit
-8. **Swordfish** (84) - Fish pattern with 3 cells per unit
-9. **XY-Wing** (86) - Bivalue pivot and two bivalue wings
-10. **XYZ-Wing** (88) - Three-candidate pivot and two wings
-11. **Skyscraper** (89) - Two strong links in parallel lines joined by a weak link
-12. **Two-String Kite** (90) - The same chain with one strong link in a row and one in a column
-13. **Crane** (91) - The same chain with one strong link in a box
-14. **Empty Rectangle** (92) - A box's candidates on one row and column, plus a strong link
-15. **W-Wing** (95) - Two matching bivalue cells joined by a strong link
-16. **Unique Rectangles** (96-101) - Types 1, 2, 4, 5 and 3; only when the puzzle has one solution
-17. **BUG+1** (102) - All cells bivalue but one; only when the puzzle has one solution
-18. **Jellyfish** (103) - Fish pattern with 4 cells per unit
-19. **Finned X-Wing / Swordfish** (104, 105) - Fish with extra candidates, sashimi included
-20. **4-Y-Wing** (106) - Four cells holding four digits, every digit but one restricted
-21. **Finned Jellyfish** (107) - A Jellyfish with extra candidates, sashimi included
-22. **5- to 7-Y-Wing** (130-140) - n cells holding n digits, every digit but one restricted
+7. **BUG+1** (75) - All cells bivalue but one; only when the puzzle has one solution
+8. **X-Wing** (80) - Fish pattern with 2 cells per unit
+9. **Unique Rectangle Type 1** (82) - Only when the puzzle has one solution
+10. **Swordfish** (84) - Fish pattern with 3 cells per unit
+11. **XY-Wing** (86) - Bivalue pivot and two bivalue wings
+12. **XYZ-Wing** (88) - Three-candidate pivot and two wings
+13. **Skyscraper** (89) - Two strong links in parallel lines joined by a weak link
+14. **Two-String Kite** (90) - The same chain with one strong link in a row and one in a column
+15. **Crane** (91) - The same chain with one strong link in a box
+16. **Empty Rectangle** (92) - A box's candidates on one row and column, plus a strong link
+17. **W-Wing** (95) - Two matching bivalue cells joined by a strong link
+18. **Unique Rectangles** (97-101) - Types 2, 4, 5 and 3; only when the puzzle has one solution
+19. **Jellyfish** (103) - Fish pattern with 4 cells per unit
+20. **Finned X-Wing** (104) - An X-Wing with extra candidates, sashimi included
+21. **4-Y-Wing** (105) - Four cells holding four digits, every digit but one restricted
+22. **Finned Swordfish / Jellyfish** (106, 107) - Fish with extra candidates, sashimi included
+23. **5- to 7-Y-Wing** (130-140) - n cells holding n digits, every digit but one restricted
 
 Each technique's ``TechniqueInfo/level`` rises with this order: singles (1-2) are Beginner;
-locked candidates, pairs and triples (3-5) Intermediate; quads to Empty Rectangle (6-14)
-Advanced; W-Wing to 4-Y-Wing (15-20) Expert; and Finned Jellyfish and the 5- to 7-Y-Wings
-(21-22) Master. X-Wing, Swordfish, XY-Wing and XYZ-Wing come in the order players are taught
-them. The finned fish come late, as in HoDoKu, Sudoku Explainer and SudokuWiki: almost every
-Skyscraper is also a sashimi Finned X-Wing, and with the fish tried first a Skyscraper would
-never be the hint.
+locked candidates, pairs and triples (3-5) Intermediate; quads to XYZ-Wing (6-12) Advanced;
+the single-digit patterns and W-Wing (13-17) Expert; the harder unique rectangles to 4-Y-Wing
+(18-21) Master; and finned Swordfish and Jellyfish and the 5- to 7-Y-Wings (22-23)
+Grandmaster. BUG+1 comes before X-Wing and unique rectangle type 1 straight after it, where
+SudokuWiki tries them; X-Wing, Swordfish, XY-Wing and XYZ-Wing come in the order players are
+taught them. The finned fish come late, as in HoDoKu, Sudoku Explainer and SudokuWiki: almost
+every Skyscraper is also a sashimi Finned X-Wing, and with the fish tried first a Skyscraper
+would never be the hint.
 
 The uniqueness techniques run only when ``BoardState/assumesUniqueSolution`` is `true`.
 `Board` sets it when its givens have one solution, and ``SolvePathEmitter`` sets it the
@@ -226,22 +229,20 @@ Implement a progressive hint system that starts with easier techniques:
 ```swift
 class HintProvider {
     private let techniques: [[any HintTechnique]] = [
-        // Level 1: Basic
+        // Level 1: Beginner
         [NakedSingleTechnique(), HiddenSingleTechnique()],
 
         // Level 2: Intermediate
-        [LockedCandidatesTechnique(kind: .pointing), LockedCandidatesTechnique(kind: .claiming)],
-
-        // Level 3: Advanced
-        [NakedSubsetTechnique(size: 2), HiddenSubsetTechnique(size: 2),
+        [LockedCandidatesTechnique(kind: .pointing), LockedCandidatesTechnique(kind: .claiming),
+         NakedSubsetTechnique(size: 2), HiddenSubsetTechnique(size: 2),
          NakedSubsetTechnique(size: 3), HiddenSubsetTechnique(size: 3)],
 
-        // Level 4: Expert
+        // Level 3: Advanced
         [FishTechnique(size: 2, finned: false), FishTechnique(size: 3, finned: false),
-         SkyscraperTechnique()],
+         XYWingTechnique(), XYZWingTechnique()],
 
-        // Level 5: Master
-        [XYWingTechnique(), XYZWingTechnique()]
+        // Level 4: Expert
+        [SkyscraperTechnique(), WWingTechnique()]
     ]
 
     func findHint(for board: Board, maxLevel: Int) -> HintStep? {
@@ -257,6 +258,8 @@ class HintProvider {
     }
 }
 ```
+
+Each tier above is some of the techniques at one of the package's levels; ``ClassicTechniques/upTo(_:)`` gives every technique up to a level, in solve order.
 
 ## Hint Visualization
 

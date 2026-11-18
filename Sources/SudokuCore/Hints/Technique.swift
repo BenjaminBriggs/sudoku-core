@@ -60,15 +60,18 @@ public struct TechniqueInfo: Codable, Hashable, Sendable, Identifiable {
     /// step's, whatever the rest of the path: a short solve through a W-Wing is never Beginner,
     /// and a long path of singles never rises above it. `.easy` for techniques that don't say.
     ///
-    /// The classic levels follow what players are taught, and rise with the solve order:
+    /// The classic levels follow what players are taught, and rise with the solve order. Each
+    /// level above Intermediate adds a few ideas, so no step up asks too much at once:
     /// - Beginner: singles.
     /// - Intermediate: locked candidates, pairs and triples.
-    /// - Advanced: quads and what is taught next, X-Wing, Swordfish, XY-Wing and XYZ-Wing, then
-    ///   the four single-digit patterns (Skyscraper, Two-String Kite, Crane, Empty Rectangle),
-    ///   the hardest step of most Advanced puzzles.
-    /// - Expert: techniques found mostly in solver references: W-Wing, the Unique Rectangles,
-    ///   BUG+1, Jellyfish, Finned X-Wing and Finned Swordfish, and 4-Y-Wing.
-    /// - Master: Finned Jellyfish, the 5- to 7-Y-Wings, and guessing.
+    /// - Advanced: what courses teach after the basics: quads, the fish X-Wing and Swordfish,
+    ///   XY-Wing and XYZ-Wing, and a first use of uniqueness, BUG+1 and Unique Rectangle Type 1.
+    /// - Expert: the single-digit patterns (Skyscraper, Two-String Kite, Crane, Empty Rectangle)
+    ///   and W-Wing.
+    /// - Master: the harder Unique Rectangles (Types 2 to 5), Jellyfish, Finned X-Wing and
+    ///   4-Y-Wing.
+    /// - Grandmaster: what the references keep for their top tiers, Finned Swordfish, Finned
+    ///   Jellyfish and the 5- to 7-Y-Wings, and guessing.
     ///
     /// HoDoKu's own levels, which ``HoDoKuCalculator`` uses, are in ``RatingTables/HoDoKu/steps``.
     public let level: PuzzleDifficulty.Level
@@ -145,38 +148,38 @@ extension TechniqueInfo {
     public static let nakedQuad = classic("nakedQuad", 70, "Naked Quad", 3.2, 120, .hard)
     public static let hiddenQuad = classic("hiddenQuad", 70, "Hidden Quad", 3.4, 150, .hard)
     public static let xWing = classic("xWing", 80, "X-Wing", 3.8, 140, .hard)
-    public static let finnedXWing = classic("finnedXWing", 104, "Finned X-Wing", 4.2, 130, .expert)
+    public static let finnedXWing = classic("finnedXWing", 104, "Finned X-Wing", 4.2, 130, .professional)
     public static let swordfish = classic("swordfish", 84, "Swordfish", 4.4, 150, .hard)
-    public static let skyscraper = classic("skyscraper", 89, "Skyscraper", 4.0, 130, .hard)
-    public static let twoStringKite = classic("twoStringKite", 90, "Two-String Kite", 4.0, 150, .hard)
-    public static let emptyRectangle = classic("emptyRectangle", 92, "Empty Rectangle", 4.0, 120, .hard)
+    public static let skyscraper = classic("skyscraper", 89, "Skyscraper", 4.0, 130, .expert)
+    public static let twoStringKite = classic("twoStringKite", 90, "Two-String Kite", 4.0, 150, .expert)
+    public static let emptyRectangle = classic("emptyRectangle", 92, "Empty Rectangle", 4.0, 120, .expert)
     public static let finnedSwordfish = classic(
-        "finnedSwordfish", 105, "Finned Swordfish", 4.8, 200, .expert)
+        "finnedSwordfish", 106, "Finned Swordfish", 4.8, 200, .grandmaster)
     public static let wWing = classic("wWing", 95, "W-Wing", 4.4, 150, .expert)
-    public static let jellyfish = classic("jellyfish", 103, "Jellyfish", 4.8, 160, .expert)
+    public static let jellyfish = classic("jellyfish", 103, "Jellyfish", 4.8, 160, .professional)
     public static let finnedJellyfish = classic(
-        "finnedJellyfish", 107, "Finned Jellyfish", 5.1, 250, .professional)
+        "finnedJellyfish", 107, "Finned Jellyfish", 5.1, 250, .grandmaster)
     public static let xyWing = classic("xyWing", 86, "XY-Wing", 4.5, 160, .hard)
     public static let xyzWing = classic("xyzWing", 88, "XYZ-Wing", 5.2, 180, .hard)
-    public static let crane = classic("crane", 91, "Crane", 4.0, 120, .hard)
+    public static let crane = classic("crane", 91, "Crane", 4.0, 120, .expert)
     public static let uniqueRectangleType1 = classic(
-        "uniqueRectangleType1", 96, "Unique Rectangle Type 1", 4.5, 100, .expert)
+        "uniqueRectangleType1", 82, "Unique Rectangle Type 1", 4.5, 100, .hard)
     public static let uniqueRectangleType2 = classic(
-        "uniqueRectangleType2", 97, "Unique Rectangle Type 2", 4.5, 100, .expert)
+        "uniqueRectangleType2", 97, "Unique Rectangle Type 2", 4.5, 100, .professional)
     public static let uniqueRectangleType3 = classic(
-        "uniqueRectangleType3", 101, "Unique Rectangle Type 3", 4.6, 100, .expert)
+        "uniqueRectangleType3", 101, "Unique Rectangle Type 3", 4.6, 100, .professional)
     public static let uniqueRectangleType4 = classic(
-        "uniqueRectangleType4", 98, "Unique Rectangle Type 4", 4.5, 100, .expert)
+        "uniqueRectangleType4", 98, "Unique Rectangle Type 4", 4.5, 100, .professional)
     public static let uniqueRectangleType5 = classic(
-        "uniqueRectangleType5", 99, "Unique Rectangle Type 5", 4.6, 100, .expert)
-    public static let bug = classic("bug", 102, "BUG+1", 5.6, 100, .expert)
-    public static let fourYWing = classic("fourYWing", 106, "4-Y-Wing", 5.4, 260, .expert)
-    public static let fiveYWing = classic("fiveYWing", 130, "5-Y-Wing", 5.6, 260, .professional)
-    public static let sixYWing = classic("sixYWing", 135, "6-Y-Wing", 5.8, 260, .professional)
-    public static let sevenYWing = classic("sevenYWing", 140, "7-Y-Wing", 6.0, 260, .professional)
-    /// Not a technique: the solver fell back to guessing, HoDoKu's give-up. Master, like the
-    /// hardest techniques.
-    public static let unknown = classic("unknown", 9999, "Unknown", 8.0, 300, .professional)
+        "uniqueRectangleType5", 99, "Unique Rectangle Type 5", 4.6, 100, .professional)
+    public static let bug = classic("bug", 75, "BUG+1", 5.6, 100, .hard)
+    public static let fourYWing = classic("fourYWing", 105, "4-Y-Wing", 5.4, 260, .professional)
+    public static let fiveYWing = classic("fiveYWing", 130, "5-Y-Wing", 5.6, 260, .grandmaster)
+    public static let sixYWing = classic("sixYWing", 135, "6-Y-Wing", 5.8, 260, .grandmaster)
+    public static let sevenYWing = classic("sevenYWing", 140, "7-Y-Wing", 6.0, 260, .grandmaster)
+    /// Not a technique: the solver fell back to guessing, HoDoKu's give-up. Grandmaster, the top
+    /// level, like the hardest techniques.
+    public static let unknown = classic("unknown", 9999, "Unknown", 8.0, 300, .grandmaster)
 
     /// All classic technique infos, one per legacy enum case (35 total), in solve order:
     /// ``ClassicTechniques/all``'s order, then ``unknown``. Their ``difficulty`` rises with it.
@@ -186,13 +189,12 @@ extension TechniqueInfo {
         .validation, .nakedSingle, .hiddenSingle,
         .lockedCandidatesPointing, .lockedCandidatesClaiming,
         .nakedPair, .hiddenPair, .nakedTriple, .hiddenTriple,
-        .nakedQuad, .hiddenQuad, .xWing, .swordfish, .xyWing, .xyzWing,
-        .skyscraper, .twoStringKite, .crane, .emptyRectangle,
-        .wWing,
-        .uniqueRectangleType1, .uniqueRectangleType2, .uniqueRectangleType4,
-        .uniqueRectangleType5, .uniqueRectangleType3, .bug,
-        .jellyfish, .finnedXWing, .finnedSwordfish, .fourYWing,
-        .finnedJellyfish, .fiveYWing, .sixYWing, .sevenYWing, .unknown,
+        .nakedQuad, .hiddenQuad, .bug, .xWing, .uniqueRectangleType1, .swordfish,
+        .xyWing, .xyzWing,
+        .skyscraper, .twoStringKite, .crane, .emptyRectangle, .wWing,
+        .uniqueRectangleType2, .uniqueRectangleType4, .uniqueRectangleType5,
+        .uniqueRectangleType3, .jellyfish, .finnedXWing, .fourYWing,
+        .finnedSwordfish, .finnedJellyfish, .fiveYWing, .sixYWing, .sevenYWing, .unknown,
     ]
 }
 

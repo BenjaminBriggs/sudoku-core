@@ -59,7 +59,8 @@ struct HardPuzzleDifficultyTests {
             let result = try SudokuDifficultyCalculator.calculateDifficulty(for: grid)
 
             // Short solve paths through hard techniques score low; the level comes from the
-            // hardest step. One of these stalls after an XY-Wing and rates Master (guessing).
+            // hardest step. None of these stalls: the hardest steps run from BUG+1 at Advanced
+            // to a 4-Y-Wing at Master.
             #expect(
                 result.level >= .hard,
                 "Puzzle should be at least Advanced (score: \(Int(result.score)), level: \(result.level.rawValue), hardest: \(result.hardestTechnique?.id.rawValue ?? "unknown"))"

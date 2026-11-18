@@ -158,7 +158,8 @@ struct RatingSnapshotTests {
 struct GeneratorContractTests {
     /// Per commit: the quick levels, with and without symmetry. The soak adds the hard levels.
     static let cases: [(PuzzleDifficulty.Level, Symmetry)] = {
-        let levels: [PuzzleDifficulty.Level] = CorpusPuzzle.isSoak ? [.easy, .medium, .hard, .expert, .professional] : [.easy, .medium, .hard]
+        let levels: [PuzzleDifficulty.Level] = CorpusPuzzle.isSoak
+            ? [.easy, .medium, .hard, .expert, .professional, .grandmaster] : [.easy, .medium, .hard]
         let symmetries: [Symmetry] = CorpusPuzzle.isSoak ? [.none, .rotational180, .rotational90, .diagonal] : [.none, .rotational180]
         return levels.flatMap { level in symmetries.map { (level, $0) } }
     }()

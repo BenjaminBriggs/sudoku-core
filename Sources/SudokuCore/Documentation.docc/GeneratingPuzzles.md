@@ -42,7 +42,7 @@ if let steered = SudokuGenerator.createPuzzle(level: .expert, symmetry: .rotatio
 
 It returns `nil` when the level isn't reached within `maxRatings`; pass `bestEffort: true` for the closest puzzle instead, with `matchesLevel` false. Best effort still has nothing to give when every puzzle it rated needs guessing, which a narrow clue range can cause. ``PuzzleDifficulty/Level/tediumRange`` is the singles effort the generator aims for at each level (Beginner 150–300, the rest 250–450).
 
-Steering is a search that misses at random: one try finds Advanced about a third of the time and Master about a tenth. For a puzzle you can make again, such as in a test, pass a seeded generator. The same seed gives the same solution and the same puzzle:
+Steering is a search that misses at random: one try finds Advanced or Expert about one time in six, Master one in twelve and Grandmaster one in twenty. For a puzzle you can make again, such as in a test, pass a seeded generator. The same seed gives the same solution and the same puzzle:
 
 ```swift
 var generator = MySeededGenerator(seed: 42)  // any RandomNumberGenerator
@@ -78,9 +78,10 @@ Puzzles are classified after rating with ``SudokuDifficultyCalculator``, by the 
 
 - `.easy` (Beginner) - Singles only
 - `.medium` (Intermediate) - Locked candidates, pairs, triples
-- `.hard` (Advanced) - Quads, X-Wing, Swordfish, XY-Wing, XYZ-Wing, single-digit patterns
-- `.expert` (Expert) - W-Wing, unique rectangles, BUG+1, Jellyfish, finned X-Wing and swordfish, 4-Y-Wing
-- `.professional` (Master) - Finned jellyfish, 5- to 7-Y-Wings, or the solver had to guess
+- `.hard` (Advanced) - Quads, BUG+1, X-Wing, unique rectangle type 1, Swordfish, XY-Wing, XYZ-Wing
+- `.expert` (Expert) - Single-digit patterns, W-Wing
+- `.professional` (Master) - Unique rectangle types 2 to 5, Jellyfish, finned X-Wing, 4-Y-Wing
+- `.grandmaster` (Grandmaster) - Finned swordfish and jellyfish, 5- to 7-Y-Wings, or the solver had to guess
 
 ### Empty Cell Count
 
@@ -177,9 +178,10 @@ The level is the hardest technique's:
 
 - **Beginner**: singles only
 - **Intermediate**: locked candidates, pairs, triples
-- **Advanced**: quads, X-Wing, Swordfish, XY- and XYZ-Wings, single-digit patterns
-- **Expert**: W-Wing, unique rectangles, BUG+1, Jellyfish, finned X-Wing and swordfish, 4-Y-Wings
-- **Master**: finned jellyfish, 5- to 7-Y-Wings, or needs guessing
+- **Advanced**: quads, BUG+1, X-Wing, unique rectangle type 1, Swordfish, XY- and XYZ-Wings
+- **Expert**: single-digit patterns, W-Wing
+- **Master**: unique rectangle types 2 to 5, Jellyfish, finned X-Wing, 4-Y-Wings
+- **Grandmaster**: finned swordfish and jellyfish, 5- to 7-Y-Wings, or needs guessing
 
 The score sums HoDoKu's points over every step, split into difficulty (steps beyond singles) and tedium (singles). <doc:DifficultyRating> has the full tables, and covers the estimate of HoDoKu's own rating.
 

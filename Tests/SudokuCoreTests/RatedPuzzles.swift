@@ -148,7 +148,7 @@ enum RatedPuzzles {
 
     /// Very Hard: Requires a single-digit pattern
     /// Actual: SE 4.0, score 178 (few steps, so a low cumulative score despite the kite); the
-    /// hint finder stalls after the Two-String Kite, so the calculator rates it Master. The kite
+    /// hint finder stalls after the Two-String Kite, so the calculator rates it Grandmaster. The kite
     /// crosses off the note a sashimi Finned X-Wing used to (SE 4.2, score 158), and is tried
     /// before the finned fish since the solve order follows what players are taught.
     static let veryHardXYZWing = RatedPuzzle(
@@ -187,11 +187,13 @@ enum RatedPuzzles {
     ]
 
     /// Puzzles grouped by the level of the hardest step on the hint finder's path. Singles-only
-    /// puzzles are Beginner however long; a short path through an XY-Wing or Two-String Kite is
-    /// Advanced however short. Where the hint finder stalls, the calculator rates Master instead.
+    /// puzzles are Beginner however long; a path through an XY-Wing is Advanced and one through a
+    /// Two-String Kite Expert, however short. Where the hint finder stalls, the calculator rates
+    /// Grandmaster instead.
     static let byDifficulty: [String: [RatedPuzzle]] = [
         "Beginner": [veryEasy, easy, medium, mediumHard],
         "Intermediate": [hardXWing, hardSwordfish],
-        "Advanced": [hardXYWing, veryHardXYZWing, nakedQuadRegression],
+        "Advanced": [hardXYWing, nakedQuadRegression],
+        "Expert": [veryHardXYZWing],
     ]
 }

@@ -18,7 +18,7 @@ import Foundation
 ///
 /// The level is the hardest step's ``TechniqueInfo/level``, nothing else. Unlike HoDoKu, a long
 /// path never promotes a puzzle: fifty singles are a tedious Beginner puzzle, and one W-Wing
-/// after twenty singles is an Expert one. Guessing is Master.
+/// after twenty singles is an Expert one. Guessing is Grandmaster.
 ///
 /// ## Additional Ratings
 /// The calculator also computes:
@@ -223,7 +223,7 @@ public enum SudokuDifficultyCalculator {
 
         /// The solve path stalls and the solver has to guess (`.unknown` closes the techniques).
         ///
-        /// The score then only counts the steps before the stall, but the level is Master:
+        /// The score then only counts the steps before the stall, but the level is Grandmaster:
         /// guessing is HoDoKu's give-up, beyond every rated technique.
         public var needsGuessing: Bool {
             techniquesUsed.contains(.unknown)
@@ -279,13 +279,14 @@ public enum SudokuDifficultyCalculator {
         }
 
         public var puzzleDifficulty: PuzzleDifficulty {
+            // For a result that names no technique: one of the level's own, or guessing at the top
             let fallback: TechniqueInfo = {
                 switch self.level {
                 case .easy: return .hiddenSingle
                 case .medium: return .lockedCandidatesPointing
                 case .hard: return .xWing
-                case .expert: return .finnedSwordfish
-                case .professional: return .unknown
+                case .expert: return .skyscraper
+                case .professional: return .jellyfish
                 case .grandmaster: return .unknown
                 case .custom: return .hiddenSingle
                 }

@@ -230,36 +230,38 @@ public enum ClassicTechniques {
         HiddenSubsetTechnique(size: 2),
         NakedSubsetTechnique(size: 3),
         HiddenSubsetTechnique(size: 3),
-        // Advanced. After the quads, X-Wing, Swordfish, XY-Wing and XYZ-Wing, in the order
-        // players are taught them. A puzzle needs an XY-Wing about twice as often as an X-Wing.
+        // Advanced: what courses teach after the basics. BUG+1 before X-Wing and Unique Rectangle
+        // Type 1 straight after it, where SudokuWiki tries them, so the first use of uniqueness
+        // comes with the first fish. Then Swordfish, XY-Wing and XYZ-Wing, in the order players
+        // are taught them. Type 1 before the wings also keeps it findable: an XY-Wing can cross
+        // off one digit of a rectangle's corner, and the finder needs both digits in all four.
         NakedSubsetTechnique(size: 4),
         HiddenSubsetTechnique(size: 4),
+        BUGTechnique(),
         FishTechnique(size: 2, finned: false),
+        UniqueRectangleTechnique(type: 1),
         FishTechnique(size: 3, finned: false),
         XYWingTechnique(),
         XYZWingTechnique(),
-        // The four single-digit patterns, Advanced because they are the hardest step of most
-        // Advanced puzzles.
+        // Expert: the four single-digit patterns, then W-Wing.
         SkyscraperTechnique(),
         TwoStringKiteTechnique(),
         CraneTechnique(),
         EmptyRectangleTechnique(),
-        // Expert: techniques players mostly meet in solver references.
         WWingTechnique(),
-        UniqueRectangleTechnique(type: 1),
+        // Master: the harder Unique Rectangles, Jellyfish, Finned X-Wing and 4-Y-Wing. The
+        // finned fish come late, where HoDoKu, Sudoku Explainer and SudokuWiki try them: tried
+        // earlier, a finned fish takes the step from a simpler pattern that crosses off the same
+        // notes, and almost every Skyscraper is also a sashimi Finned X-Wing.
         UniqueRectangleTechnique(type: 2),
         UniqueRectangleTechnique(type: 4),
         UniqueRectangleTechnique(type: 5),
         UniqueRectangleTechnique(type: 3),
-        BUGTechnique(),
-        // Jellyfish and the finned fish late, where HoDoKu, Sudoku Explainer and SudokuWiki try
-        // them. Tried earlier, a finned fish takes the step from a simpler pattern that crosses
-        // off the same notes: almost every Skyscraper is also a sashimi Finned X-Wing.
         FishTechnique(size: 4, finned: false),
         FishTechnique(size: 2, finned: true),
-        FishTechnique(size: 3, finned: true),
         NYWingTechnique(size: 4),
-        // Master
+        // Grandmaster: what the references keep for their top tiers.
+        FishTechnique(size: 3, finned: true),
         FishTechnique(size: 4, finned: true),
         NYWingTechnique(size: 5),
         NYWingTechnique(size: 6),

@@ -190,45 +190,54 @@ struct SudokuDifficultyCalculatorTests {
         #expect(result.puzzleDifficulty.score == result.tedium)
     }
 
-    @Test("A stalled solve is Master, whatever the steps before it")
-    func testGuessingIsMaster() throws {
+    @Test("A stalled solve is Grandmaster, whatever the steps before it")
+    func testGuessingIsGrandmaster() throws {
         // Stalls after a Two-String Kite; the solver fallback finishes it. The kite crosses off
         // the note a sashimi Finned X-Wing did when the finned fish were tried first.
         let result = try SudokuDifficultyCalculator.calculateDifficulty(for: RatedPuzzles.veryHardXYZWing.grid)
         #expect(result.needsGuessing)
-        #expect(result.level == .professional)
+        #expect(result.level == .grandmaster)
         #expect(result.hardestTechnique == .twoStringKite, "the marker isn't a technique")
         #expect(Int(result.score) == result.difficulty + result.tedium, "the marker's points aren't counted")
-        #expect(result.puzzleDifficulty.level == .professional)
+        #expect(result.puzzleDifficulty.level == .grandmaster)
         #expect(result.puzzleDifficulty.hardestTechnique == TechniqueInfo.twoStringKite.id)
     }
 
-    @Test("A puzzle is Advanced through an XY-Wing and Expert through a W-Wing", arguments: [
-        // Corpus puzzles: the first was Expert, the second Advanced, before the levels came to
-        // follow what players are taught
+    @Test("A puzzle is at its hardest step's level, without guessing", arguments: [
+        // Corpus puzzles, each solved through the technique named, at the level that technique
+        // now gives (TechniqueTests.solveOrder). The comments say where the hardest step itself
+        // changed with the six levels.
         ("020603000300049080004000160007500400150004008090800051709006000800000094040050000",
          TechniqueInfo.xyWing, PuzzleDifficulty.Level.hard),
+        // Was Expert through its one W-Wing: Type 1, now tried before the wings, takes that step
+        // and the W-Wing isn't needed
         ("003708000002005003680040000960000071010004900007000068470251000030080050000030006",
+         .uniqueRectangleType1, .hard),
+        // Expert for its BUG+1 before; the path is the same, but BUG+1 is Advanced now and the
+        // Skyscrapers on it are Expert
+        ("010039700005000000090800010000000800000507160870400009100026403030001000029340000",
+         .skyscraper, .expert),
+        ("020400709400100000700000806200680000007000082000275004040000005012039000600000000",
          .wWing, .expert),
+        // Expert for its BUG+1 before; the path is the same, but the Type 2 on it is Master now
+        ("000048000400000605009700120000000002650893070010050900700004050000900016200506007",
+         .uniqueRectangleType2, .professional),
+        ("940001000600000000002800054000307045107000930004000200000600000406032090700005082",
+         .uniqueRectangleType4, .professional),
+        ("000020000810957000060000000001060509000890301003071060590310020200000015106080000",
+         .fourYWing, .professional),
+        ("790100400000006000010040200000090008000403001030010074006700809400031000000900100",
+         .finnedSwordfish, .grandmaster),
+        ("000098070750060400083147090000000204010030007568000000001009000000600021805000003",
+         .fiveYWing, .grandmaster),
     ])
-    func testWingLevels(_ id: String, _ hardest: TechniqueInfo, _ level: PuzzleDifficulty.Level) throws {
+    func testLevelByHardestStep(_ id: String, _ hardest: TechniqueInfo, _ level: PuzzleDifficulty.Level) throws {
         let puzzle = try #require(CorpusPuzzle.fixtureCorpus.first { $0.id == id })
         let result = try SudokuDifficultyCalculator.calculateDifficulty(for: puzzle.startingState)
         #expect(result.needsGuessing == false)
         #expect(result.hardestTechnique == hardest)
         #expect(result.level == level)
         #expect(result.puzzleDifficulty.level == level)
-    }
-
-    @Test("The hardest techniques make a puzzle Master without guessing")
-    func testFiveYWingIsMaster() throws {
-        // A corpus puzzle the hint finder solves through a 5-Y-Wing
-        let id = "000098070750060400083147090000000204010030007568000000001009000000600021805000003"
-        let puzzle = try #require(CorpusPuzzle.fixtureCorpus.first { $0.id == id })
-        let result = try SudokuDifficultyCalculator.calculateDifficulty(for: puzzle.startingState)
-        #expect(result.needsGuessing == false)
-        #expect(result.hardestTechnique == .fiveYWing)
-        #expect(result.level == .professional)
     }
 
     @Test("Difficulty score increases with technique complexity")

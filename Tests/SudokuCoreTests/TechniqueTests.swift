@@ -49,9 +49,11 @@ struct TechniqueTests {
     }
 
     /// Every classic technique in solve order, with the level it gives a puzzle. The levels
-    /// follow what players are taught: X-Wing, Swordfish, XY-Wing and XYZ-Wing are Advanced with
-    /// the four single-digit patterns, and the techniques players mostly meet in solver
-    /// references are Expert. Changing a row changes ratings: update the snapshots on purpose.
+    /// follow what players are taught, each above Intermediate adding a few ideas: Advanced is
+    /// what courses teach after the basics, with BUG+1 and Unique Rectangle Type 1 tried where
+    /// SudokuWiki tries them; Expert the single-digit patterns and W-Wing; Master the harder
+    /// rectangles, Jellyfish, Finned X-Wing and 4-Y-Wing; Grandmaster what the references keep
+    /// for their top tiers. Changing a row changes ratings: update the snapshots on purpose.
     static let solveOrder: [(info: TechniqueInfo, level: PuzzleDifficulty.Level)] = [
         (.nakedSingle, .easy),
         (.hiddenSingle, .easy),
@@ -63,29 +65,29 @@ struct TechniqueTests {
         (.hiddenTriple, .medium),
         (.nakedQuad, .hard),
         (.hiddenQuad, .hard),
+        (.bug, .hard),
         (.xWing, .hard),
+        (.uniqueRectangleType1, .hard),
         (.swordfish, .hard),
         (.xyWing, .hard),
         (.xyzWing, .hard),
-        (.skyscraper, .hard),
-        (.twoStringKite, .hard),
-        (.crane, .hard),
-        (.emptyRectangle, .hard),
+        (.skyscraper, .expert),
+        (.twoStringKite, .expert),
+        (.crane, .expert),
+        (.emptyRectangle, .expert),
         (.wWing, .expert),
-        (.uniqueRectangleType1, .expert),
-        (.uniqueRectangleType2, .expert),
-        (.uniqueRectangleType4, .expert),
-        (.uniqueRectangleType5, .expert),
-        (.uniqueRectangleType3, .expert),
-        (.bug, .expert),
-        (.jellyfish, .expert),
-        (.finnedXWing, .expert),
-        (.finnedSwordfish, .expert),
-        (.fourYWing, .expert),
-        (.finnedJellyfish, .professional),
-        (.fiveYWing, .professional),
-        (.sixYWing, .professional),
-        (.sevenYWing, .professional),
+        (.uniqueRectangleType2, .professional),
+        (.uniqueRectangleType4, .professional),
+        (.uniqueRectangleType5, .professional),
+        (.uniqueRectangleType3, .professional),
+        (.jellyfish, .professional),
+        (.finnedXWing, .professional),
+        (.fourYWing, .professional),
+        (.finnedSwordfish, .grandmaster),
+        (.finnedJellyfish, .grandmaster),
+        (.fiveYWing, .grandmaster),
+        (.sixYWing, .grandmaster),
+        (.sevenYWing, .grandmaster),
     ]
 
     @Test("Classic points are HoDoKu's step scores, and levels rise with the solve order")
@@ -104,11 +106,16 @@ struct TechniqueTests {
             let known = ClassicTechniques.upTo(level).map(\.info)
             #expect(known == Array(ClassicTechniques.all.map(\.info).prefix(known.count)), "\(level)")
         }
+        // Every rated level has techniques of its own, and Grandmaster's are the last
+        for level in PuzzleDifficulty.Level.allCases where level != .custom {
+            #expect(levels.contains(level), "\(level)")
+        }
+        #expect(ClassicTechniques.upTo(.grandmaster).count == ClassicTechniques.all.count)
         #expect(TechniqueInfo.validation.scorePoints == 0)
         #expect(TechniqueInfo.validation.level == .easy)
         // Guessing is costed like the hardest techniques, not HoDoKu's 20000-point give-up
         #expect(TechniqueInfo.unknown.scorePoints == 300)
-        #expect(TechniqueInfo.unknown.level == .professional)
+        #expect(TechniqueInfo.unknown.level == .grandmaster)
         #expect(TechniqueInfo.unknown.isSingle == false)
     }
 
