@@ -20,6 +20,9 @@ extension PuzzleDifficulty.Level {
             return 2...9
         case .professional:
             return 2...9
+        // Master's range: nothing has been tuned for the level above it
+        case .grandmaster:
+            return 2...9
         case .custom:
             return 4...9
         }
@@ -40,6 +43,7 @@ extension PuzzleDifficulty.Level: CustomDebugStringConvertible {
         case .hard: return "Advanced"
         case .expert: return "Expert"
         case .professional: return "Master"
+        case .grandmaster: return "Grandmaster"
         case .custom: return "Custom"
         }
     }

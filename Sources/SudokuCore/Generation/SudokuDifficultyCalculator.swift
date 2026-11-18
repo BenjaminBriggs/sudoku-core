@@ -286,6 +286,7 @@ public enum SudokuDifficultyCalculator {
                 case .hard: return .xWing
                 case .expert: return .finnedSwordfish
                 case .professional: return .unknown
+                case .grandmaster: return .unknown
                 case .custom: return .hiddenSingle
                 }
             }()

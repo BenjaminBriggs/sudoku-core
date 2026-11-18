@@ -125,11 +125,43 @@ struct TechniqueTests {
         #expect(decoded.scorePoints == 20)
     }
 
-    @Test("Levels order Beginner to Master, then Custom")
+    @Test("Levels order Beginner to Grandmaster, then Custom")
     func levelOrder() {
         let levels = PuzzleDifficulty.Level.allCases
-        #expect(levels == [.easy, .medium, .hard, .expert, .professional, .custom])
+        #expect(levels == [.easy, .medium, .hard, .expert, .professional, .grandmaster, .custom])
         #expect(zip(levels, levels.dropFirst()).allSatisfy { $0 < $1 })
         #expect(max(PuzzleDifficulty.Level.easy, .hard) == .hard)
+        // Grandmaster is the top of the levels a rating gives; Custom is not a rating
+        let rated = levels.filter { $0 != .custom }
+        #expect(rated.count == 6)
+        #expect(rated.max() == .grandmaster)
+        #expect(PuzzleDifficulty.Level.professional < .grandmaster)
+    }
+
+    /// Published and saved puzzles store these strings, so they never change, and Grandmaster,
+    /// added above Master, didn't rename Master's `professional`.
+    @Test("Level raw values and names are pinned")
+    func levelRawValues() throws {
+        let levels: [(PuzzleDifficulty.Level, String, String)] = [
+            (.easy, "easy", "Beginner"),
+            (.medium, "medium", "Intermediate"),
+            (.hard, "hard", "Advanced"),
+            (.expert, "expert", "Expert"),
+            (.professional, "professional", "Master"),
+            (.grandmaster, "grandmaster", "Grandmaster"),
+            (.custom, "custom", "Custom"),
+        ]
+        #expect(levels.map(\.0) == PuzzleDifficulty.Level.allCases)
+        for (level, rawValue, name) in levels {
+            #expect(level.rawValue == rawValue)
+            #expect(level.debugDescription == name)
+            #expect(try JSONEncoder().encode(level) == Data("\"\(rawValue)\"".utf8))
+        }
+        // The five levels stored before Grandmaster decode as they always have
+        let stored = Data(#"["easy","medium","hard","expert","professional"]"#.utf8)
+        let decoded = try JSONDecoder().decode([PuzzleDifficulty.Level].self, from: stored)
+        #expect(decoded == [.easy, .medium, .hard, .expert, .professional])
+        let puzzle = Data(#"{"level":"professional","hardestTechnique":"fiveYWing","score":900}"#.utf8)
+        #expect(try JSONDecoder().decode(PuzzleDifficulty.self, from: puzzle).level == .professional)
     }
 }

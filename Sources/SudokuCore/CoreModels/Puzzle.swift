@@ -106,6 +106,7 @@ public struct PuzzlePresentation: Codable, Hashable, Sendable {
 /// - **Expert** (`.expert`): W-Wing, unique rectangles, BUG+1, Jellyfish, finned X-Wing and
 ///   Swordfish, 4-Y-Wing
 /// - **Master** (`.professional`): finned jellyfish, 5- to 7-Y-Wings, or the solver had to guess
+/// - **Grandmaster** (`.grandmaster`): above Master; no technique gives it yet
 /// - **Custom**: a puzzle the player made, not rated
 ///
 /// # Score, difficulty and tedium
@@ -127,7 +128,7 @@ public struct PuzzlePresentation: Codable, Hashable, Sendable {
 /// This base rating is separate from performance scoring, which evaluates how well
 /// a player completed the puzzle (time, hints used, errors made).
 public struct PuzzleDifficulty: Sendable, Codable, Hashable {
-    /// Difficulty category (easy, medium, hard, expert, professional, custom)
+    /// Difficulty category (easy, medium, hard, expert, professional, grandmaster, custom)
     public let level: Level
 
     /// Most advanced technique required to solve the puzzle
@@ -171,18 +172,23 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
         self.estimatedTimeSeconds = estimatedTimeSeconds
     }
 
+    /// Beginner to Grandmaster, then Custom, in that order. Players see the names
+    /// ``debugDescription`` gives. The raw values are stored in published and saved puzzles, so
+    /// they keep the names they were first given: `.professional` is Master.
     public enum Level: String, Codable, Hashable, CaseIterable, Sendable {
         case easy
         case medium
         case hard
         case expert
         case professional
+        /// The top level, above Master.
+        case grandmaster
         case custom
     }
 }
 
 extension PuzzleDifficulty.Level: Comparable {
-    /// Beginner to Master, then Custom.
+    /// Beginner to Grandmaster, then Custom.
     public static func < (lhs: Self, rhs: Self) -> Bool {
         let order = Self.allCases
         return order.firstIndex(of: lhs)! < order.firstIndex(of: rhs)!

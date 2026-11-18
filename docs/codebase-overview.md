@@ -32,7 +32,7 @@ Dependencies: `swift-collections` (1.1+), `swift-numerics` (1.0+), `swift-algori
 
 - **`Puzzle`** (struct) — immutable puzzle definition: `id`, `solution: [[Int]]`, `startingState: [[Int]]`, `difficulty: PuzzleDifficulty`
 - **`Puzzle.Index`** (struct) — row/column position; `allIndices`, `houseNumber`, `houseIndices`; extensions for orientation and neighbours
-- **`PuzzleDifficulty`** (struct) — `level: Level` (easy/medium/hard/expert/professional/custom) plus quantitative fields: `hardestTechnique`, `score`, `seRating`, `hodokuRating`, `estimatedTimeSeconds`
+- **`PuzzleDifficulty`** (struct) — `level: Level` (easy/medium/hard/expert/professional/grandmaster/custom) plus quantitative fields: `hardestTechnique`, `score`, `seRating`, `hodokuRating`, `estimatedTimeSeconds`
 - **`SudokuUnit`** (enum) — `.row(Int)` / `.column(Int)` / `.house(Int)` with unit-position helpers
 - **`Board.UndoStep`** (struct) — snapshot of cells, changed indices, validity flags, timestamp
 
