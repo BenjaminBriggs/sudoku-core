@@ -18,7 +18,7 @@ import Foundation
 ///
 /// The level is the hardest step's ``TechniqueInfo/level``, nothing else. Unlike HoDoKu, a long
 /// path never promotes a puzzle: fifty singles are a tedious Beginner puzzle, and one W-Wing
-/// after twenty singles is an Advanced one. Guessing is Master.
+/// after twenty singles is an Expert one. Guessing is Grandmaster.
 ///
 /// ## Additional Ratings
 /// The calculator also computes:
@@ -209,7 +209,9 @@ public enum SudokuDifficultyCalculator {
 
         /// The most advanced technique used (ignores `.unknown` fallback marker): the highest
         /// level, then the latest in solve order, so it is the technique that sets the level.
-        /// Solve order alone doesn't do: Finned Jellyfish is Master but comes before XY-Wing.
+        /// The classic levels rise with the solve order; the level comes first for techniques
+        /// ranked out of step with their level, such as the killer techniques, Beginner but
+        /// ranked among Intermediate ones.
         public var hardestTechnique: TechniqueInfo? {
             let filtered = techniquesUsed.filter { $0 != .unknown }
             return filtered.max(by: Self.isEasier)
@@ -221,7 +223,7 @@ public enum SudokuDifficultyCalculator {
 
         /// The solve path stalls and the solver has to guess (`.unknown` closes the techniques).
         ///
-        /// The score then only counts the steps before the stall, but the level is Master:
+        /// The score then only counts the steps before the stall, but the level is Grandmaster:
         /// guessing is HoDoKu's give-up, beyond every rated technique.
         public var needsGuessing: Bool {
             techniquesUsed.contains(.unknown)
@@ -277,13 +279,15 @@ public enum SudokuDifficultyCalculator {
         }
 
         public var puzzleDifficulty: PuzzleDifficulty {
+            // For a result that names no technique: one of the level's own, or guessing at the top
             let fallback: TechniqueInfo = {
                 switch self.level {
                 case .easy: return .hiddenSingle
                 case .medium: return .lockedCandidatesPointing
                 case .hard: return .xWing
-                case .expert: return .finnedSwordfish
-                case .professional: return .unknown
+                case .expert: return .skyscraper
+                case .professional: return .jellyfish
+                case .grandmaster: return .unknown
                 case .custom: return .hiddenSingle
                 }
             }()

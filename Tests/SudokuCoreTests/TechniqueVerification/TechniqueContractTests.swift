@@ -45,8 +45,23 @@ struct TechniqueNameTests {
     @Test("The classic set is in solve order and matches the classic infos")
     func classicOrder() {
         let infos = ClassicTechniques.all.map(\.info)
+        #expect(infos == [.validation] + TechniqueTests.solveOrder.map(\.info))
         #expect(infos == TechniqueInfo.allClassic.filter { $0 != .unknown })
-        #expect(zip(infos, infos.dropFirst()).allSatisfy { $0.difficulty <= $1.difficulty })
+        // Ranks rise with the order, so firstHint keeps it when it sorts a caller's list. Only the
+        // two halves of locked candidates, pairs, triples and quads share a rank, and the stable
+        // sort keeps each in order.
+        for (a, b) in zip(infos, infos.dropFirst()) {
+            #expect(a.difficulty <= b.difficulty, "\(a.id) is ranked after \(b.id)")
+        }
+        let ties = zip(infos, infos.dropFirst()).filter { $0.difficulty == $1.difficulty }.map { [$0.id, $1.id] }
+        #expect(ties == [
+            [TechniqueInfo.lockedCandidatesPointing.id, TechniqueInfo.lockedCandidatesClaiming.id],
+            [TechniqueInfo.nakedPair.id, TechniqueInfo.hiddenPair.id],
+            [TechniqueInfo.nakedTriple.id, TechniqueInfo.hiddenTriple.id],
+            [TechniqueInfo.nakedQuad.id, TechniqueInfo.hiddenQuad.id],
+        ])
+        #expect(infos.sorted { $0.difficulty < $1.difficulty } == infos)
+        #expect(infos.allSatisfy { $0.difficulty < TechniqueInfo.unknown.difficulty })
     }
 }
 
@@ -143,7 +158,8 @@ struct RatingSnapshotTests {
 struct GeneratorContractTests {
     /// Per commit: the quick levels, with and without symmetry. The soak adds the hard levels.
     static let cases: [(PuzzleDifficulty.Level, Symmetry)] = {
-        let levels: [PuzzleDifficulty.Level] = CorpusPuzzle.isSoak ? [.easy, .medium, .hard, .expert, .professional] : [.easy, .medium, .hard]
+        let levels: [PuzzleDifficulty.Level] = CorpusPuzzle.isSoak
+            ? [.easy, .medium, .hard, .expert, .professional, .grandmaster] : [.easy, .medium, .hard]
         let symmetries: [Symmetry] = CorpusPuzzle.isSoak ? [.none, .rotational180, .rotational90, .diagonal] : [.none, .rotational180]
         return levels.flatMap { level in symmetries.map { (level, $0) } }
     }()

@@ -102,9 +102,13 @@ public struct PuzzlePresentation: Codable, Hashable, Sendable {
 /// The level is the hardest step's ``TechniqueInfo/level``, and nothing else:
 /// - **Beginner** (`.easy`): singles only
 /// - **Intermediate** (`.medium`): locked candidates, pairs, triples
-/// - **Advanced** (`.hard`): quads, fish, W-Wing, single-digit patterns, unique rectangles
-/// - **Expert** (`.expert`): XY-Wing, XYZ-Wing, BUG+1, finned swordfish, 4-Y-Wing
-/// - **Master** (`.professional`): finned jellyfish, 5- to 7-Y-Wings, or the solver had to guess
+/// - **Advanced** (`.hard`): quads, BUG+1, X-Wing, unique rectangle type 1, Swordfish, XY-Wing,
+///   XYZ-Wing
+/// - **Expert** (`.expert`): single-digit patterns, W-Wing
+/// - **Master** (`.professional`): unique rectangle types 2 to 5, Jellyfish, finned X-Wing,
+///   4-Y-Wing
+/// - **Grandmaster** (`.grandmaster`): finned Swordfish and Jellyfish, 5- to 7-Y-Wings, or the
+///   solver had to guess
 /// - **Custom**: a puzzle the player made, not rated
 ///
 /// # Score, difficulty and tedium
@@ -126,7 +130,7 @@ public struct PuzzlePresentation: Codable, Hashable, Sendable {
 /// This base rating is separate from performance scoring, which evaluates how well
 /// a player completed the puzzle (time, hints used, errors made).
 public struct PuzzleDifficulty: Sendable, Codable, Hashable {
-    /// Difficulty category (easy, medium, hard, expert, professional, custom)
+    /// Difficulty category (easy, medium, hard, expert, professional, grandmaster, custom)
     public let level: Level
 
     /// Most advanced technique required to solve the puzzle
@@ -170,18 +174,23 @@ public struct PuzzleDifficulty: Sendable, Codable, Hashable {
         self.estimatedTimeSeconds = estimatedTimeSeconds
     }
 
+    /// Beginner to Grandmaster, then Custom, in that order. Players see the names
+    /// ``debugDescription`` gives. The raw values are stored in published and saved puzzles, so
+    /// they keep the names they were first given: `.professional` is Master.
     public enum Level: String, Codable, Hashable, CaseIterable, Sendable {
         case easy
         case medium
         case hard
         case expert
         case professional
+        /// The top level, above Master.
+        case grandmaster
         case custom
     }
 }
 
 extension PuzzleDifficulty.Level: Comparable {
-    /// Beginner to Master, then Custom.
+    /// Beginner to Grandmaster, then Custom.
     public static func < (lhs: Self, rhs: Self) -> Bool {
         let order = Self.allCases
         return order.firstIndex(of: lhs)! < order.firstIndex(of: rhs)!

@@ -16,10 +16,12 @@ struct SteeredGeneratorTests {
         return nil
     }
 
-    @Test("Steered puzzles rate at the level asked for", arguments: [PuzzleDifficulty.Level.easy, .medium, .hard])
+    @Test("Steered puzzles rate at the level asked for",
+          arguments: [PuzzleDifficulty.Level.easy, .medium, .hard, .expert, .professional, .grandmaster])
     func reachesLevel(_ level: PuzzleDifficulty.Level) throws {
-        // Beginner and Intermediate land almost every time; Advanced about a third of
-        // solutions, so allow enough solutions that a miss is a real failure.
+        // Beginner and Intermediate land almost every time and the levels above far less often,
+        // so allow enough solutions that a miss is a real failure. This seed takes 15 for
+        // Advanced, 13 for Expert and 4 each for Master and Grandmaster.
         var generator = SearchRandom(seed: 1)
         let steered = try #require(
             Self.firstFound(tries: 20) { SudokuGenerator.createPuzzle(level: level, using: &generator) }
@@ -223,7 +225,10 @@ struct PuzzleCreatorLevelTests {
     /// so `.easy` came back Medium or harder.
     @Test("createPuzzleWithDifficulty returns the calculator's level", arguments: [PuzzleDifficulty.Level.easy, .medium, .hard])
     func returnsRequestedLevel(_ level: PuzzleDifficulty.Level) async throws {
-        let puzzle = try await PuzzleCreator.createPuzzleWithDifficulty(level, maxAttempts: 25)
+        // Unseeded, so a miss is a matter of chance. One try finds Advanced about one time in six
+        // since the single-digit patterns went up to Expert (one in four before); 40 tries keep a
+        // miss under one run in a thousand, as 25 did.
+        let puzzle = try await PuzzleCreator.createPuzzleWithDifficulty(level, maxAttempts: 40)
         let rerated = try SudokuDifficultyCalculator.calculateDifficulty(for: puzzle.startingState)
         #expect(puzzle.difficulty.level == level)
         #expect(rerated.level == level)
@@ -268,13 +273,28 @@ struct DifficultyMeasurementTests {
 
     @Test("The hardest technique is the one that sets the level, though later ones come after it in solve order")
     func hardestSetsLevel() {
-        // Finned Jellyfish is Master; XY-Wing and BUG+1 are Expert but later in solve order
+        // Finned Jellyfish is Grandmaster; XY-Wing and BUG+1, the steps after it, are Advanced
         let rated = result([.finnedJellyfish, .xyWing, .finnedJellyfish, .bug, .nakedSingle])
         #expect(rated.hardestTechnique == .finnedJellyfish)
         #expect(rated.hardestTechniqueCount == 2)
         #expect(rated.hardestTechniqueAfterLastHardestStep == .bug)
+        // The classic levels rise with the solve order, so take a technique ranked after every
+        // classic one but at a lower level, as the killer techniques are ranked out of step
+        let late = TechniqueInfo(id: "test.late", difficulty: 200, level: .hard)
+        #expect(result([.finnedJellyfish, late]).hardestTechnique == .finnedJellyfish)
         // Within a level, solve order decides
         #expect(result([.xyzWing, .xyWing]).hardestTechnique == .xyzWing)
     }
 
+    @Test("A rating that names no technique stores one of its level's own",
+          arguments: PuzzleDifficulty.Level.allCases.filter { $0 != .custom })
+    func fallbackTechnique(_ level: PuzzleDifficulty.Level) throws {
+        let rated = SudokuDifficultyCalculator.DifficultyResult(
+            level: level, score: 0, techniquesUsed: [], iterationCount: 0, wasSolved: true)
+        let id = rated.puzzleDifficulty.hardestTechnique
+        let stored = try #require(TechniqueInfo.allClassic.first { $0.id == id })
+        #expect(stored.level == level)
+        // Guessing for the top level, where a stalled solve goes
+        #expect((stored == .unknown) == (level == .grandmaster))
+    }
 }

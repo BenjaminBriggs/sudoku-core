@@ -18,7 +18,7 @@ enum GeneratedCorpus {
 
     static let puzzles: [CorpusPuzzle] = {
         guard CorpusPuzzle.isSoak, perCase > 0 else { return [] }
-        let levels: [PuzzleDifficulty.Level] = [.easy, .medium, .hard, .expert, .professional]
+        let levels: [PuzzleDifficulty.Level] = [.easy, .medium, .hard, .expert, .professional, .grandmaster]
         let symmetries: [Symmetry] = [.none, .rotational180, .diagonal]
         enum Kind { case steered(PuzzleDifficulty.Level, Symmetry), blind(Symmetry) }
         let kinds = levels.flatMap { level in symmetries.map { Kind.steered(level, $0) } } + symmetries.map { Kind.blind($0) }

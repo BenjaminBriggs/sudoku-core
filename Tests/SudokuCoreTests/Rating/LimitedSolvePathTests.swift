@@ -14,7 +14,11 @@ struct LimitedSolvePathTests {
         #expect(easy.allSatisfy { $0.info.level <= .easy })
         #expect(easy.contains { $0.info == .hiddenSingle })
         #expect(easy.contains { $0.info == .lockedCandidatesPointing } == false)
-        #expect(ClassicTechniques.upTo(.professional).count == ClassicTechniques.all.count)
+        // Master stops short of Grandmaster's techniques, which close the solve order
+        let master = ClassicTechniques.upTo(.professional)
+        #expect(master.contains { $0.info == .fourYWing })
+        #expect(master.contains { $0.info == .finnedSwordfish } == false)
+        #expect(ClassicTechniques.upTo(.grandmaster).count == ClassicTechniques.all.count)
     }
 
     @Test("A solver short of a technique stalls where it's needed")

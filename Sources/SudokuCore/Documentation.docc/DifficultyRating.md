@@ -21,18 +21,19 @@ print("\(info.level): difficulty \(info.difficulty), tedium \(info.tedium), scor
 
 #### Difficulty Levels
 
-Each technique carries its ``TechniqueInfo/level``; the puzzle takes the highest. The levels are HoDoKu's for each step except at the top, where HoDoKu's hard and unfair are split three ways so that Master has techniques of its own: XY-Wing, XYZ-Wing and BUG+1 are hard in HoDoKu and Expert here, and finned jellyfish and the 5- to 7-Y-Wings unfair there and Master here.
+Each technique carries its ``TechniqueInfo/level``; the puzzle takes the highest. The levels follow what players are taught, and rise with the order the hint finder tries the techniques in (see <doc:HintSystem>). Each level above Intermediate adds a few ideas. Advanced is what courses teach after the basics: the quads, X-Wing and Swordfish, XY-Wing and XYZ-Wing, and a first use of uniqueness in BUG+1 and unique rectangle type 1. Expert is the single-digit patterns and W-Wing; Master the harder unique rectangles, Jellyfish, finned X-Wing and 4-Y-Wing; Grandmaster the techniques the references keep for their top tiers. HoDoKu's levels are coarser: it rates everything from the quads to finned X-Wing hard, and finned Swordfish and Jellyfish and the Y-Wings unfair.
 
 | Level | Hardest technique |
 |-------|-------------------|
 | ``PuzzleDifficulty/Level/easy`` (Beginner) | Naked and hidden singles |
 | ``PuzzleDifficulty/Level/medium`` (Intermediate) | Locked candidates, pairs, triples |
-| ``PuzzleDifficulty/Level/hard`` (Advanced) | Quads, fish, finned X-Wing, W-Wing, skyscraper, two-string kite, crane, empty rectangle, unique rectangles |
-| ``PuzzleDifficulty/Level/expert`` (Expert) | XY-Wing, XYZ-Wing, BUG+1, finned swordfish, 4-Y-Wing |
-| ``PuzzleDifficulty/Level/professional`` (Master) | Finned jellyfish, 5- to 7-Y-Wings, or the solver had to guess |
+| ``PuzzleDifficulty/Level/hard`` (Advanced) | Quads, BUG+1, X-Wing, unique rectangle type 1, Swordfish, XY-Wing, XYZ-Wing |
+| ``PuzzleDifficulty/Level/expert`` (Expert) | Skyscraper, two-string kite, crane, empty rectangle, W-Wing |
+| ``PuzzleDifficulty/Level/professional`` (Master) | Unique rectangle types 2 to 5, Jellyfish, finned X-Wing, 4-Y-Wing |
+| ``PuzzleDifficulty/Level/grandmaster`` (Grandmaster) | Finned Swordfish, finned Jellyfish, 5- to 7-Y-Wings, or the solver had to guess |
 | ``PuzzleDifficulty/Level/custom`` | A puzzle the player made, not rated |
 
-This is where SudokuCore departs from HoDoKu, which also promotes a puzzle whose cumulative score passes a band. Here a long path of singles is a tedious Beginner puzzle, and one W-Wing after twenty singles is an Advanced one: no Beginner puzzle has a W-Wing, and the score ranks the player's effort, not the puzzle's level. Within a level, `difficulty` orders puzzles (one W-Wing is 150, a W-Wing and three pointings 300) and `tedium` says how long the singles will take. ``PuzzleDifficulty/Level`` is `Comparable` in this order.
+This is where SudokuCore departs from HoDoKu, which also promotes a puzzle whose cumulative score passes a band. Here a long path of singles is a tedious Beginner puzzle, and one W-Wing after twenty singles is an Expert one: no Beginner puzzle has a W-Wing, and the score ranks the player's effort, not the puzzle's level. Within a level, `difficulty` orders puzzles (one W-Wing is 150, a W-Wing and three pointings 300) and `tedium` says how long the singles will take. ``PuzzleDifficulty/Level`` is `Comparable` in this order.
 
 #### Point Values
 
@@ -46,7 +47,7 @@ Each step adds its technique's ``TechniqueInfo/scorePoints``, HoDoKu 2.6's defau
 - **Swordfish**: 150 points
 - **XY-Wing**: 160 points
 
-Every classic ``TechniqueInfo`` constant carries its points, taken from ``RatingTables/HoDoKu/steps``. A stall, where the solver has to guess, is costed at 300 rather than HoDoKu's 20000-point give-up; the level is Master either way.
+Every classic ``TechniqueInfo`` constant carries its points, taken from ``RatingTables/HoDoKu/steps``. A stall, where the solver has to guess, is costed at 300 rather than HoDoKu's 20000-point give-up; the level is Grandmaster either way.
 
 ### HoDoKu Rating (Estimated)
 
@@ -180,7 +181,13 @@ case .nakedPair, .hiddenPair, .nakedTriple:
 case .xWing, .swordfish:
     print("Advanced puzzle - requires fish patterns")
 case .xyWing, .xyzWing:
-    print("Expert puzzle - requires wing patterns")
+    print("Advanced puzzle - requires wing patterns")
+case .skyscraper, .wWing:
+    print("Expert puzzle")
+case .jellyfish, .finnedXWing:
+    print("Master puzzle")
+case .finnedSwordfish, .finnedJellyfish:
+    print("Grandmaster puzzle")
 default:
     print("Complex puzzle")
 }
