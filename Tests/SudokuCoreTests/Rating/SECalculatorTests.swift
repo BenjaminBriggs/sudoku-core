@@ -144,7 +144,9 @@ struct SECalculatorTests {
             "Expected \(puzzle.hardestTechnique), got \(result.hardestTechniqueName)")
     }
 
-    @Test("Very Hard puzzle (XYZ-Wing) - SE ~5.2")
+    // The Two-String Kite (SE 4.0) took the step of a sashimi Finned X-Wing (4.2) when the
+    // finned fish moved behind the single-digit patterns; RatedPuzzles has the rest.
+    @Test("Very Hard puzzle (Two-String Kite) - SE ~4.0")
     func testVeryHardXYZWingRating() {
         let puzzle = RatedPuzzles.veryHardXYZWing
         let result = SECalculator.compute(for: puzzle.grid)

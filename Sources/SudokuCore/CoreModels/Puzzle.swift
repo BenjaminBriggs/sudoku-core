@@ -102,8 +102,9 @@ public struct PuzzlePresentation: Codable, Hashable, Sendable {
 /// The level is the hardest step's ``TechniqueInfo/level``, and nothing else:
 /// - **Beginner** (`.easy`): singles only
 /// - **Intermediate** (`.medium`): locked candidates, pairs, triples
-/// - **Advanced** (`.hard`): quads, fish, W-Wing, single-digit patterns, unique rectangles
-/// - **Expert** (`.expert`): XY-Wing, XYZ-Wing, BUG+1, finned swordfish, 4-Y-Wing
+/// - **Advanced** (`.hard`): quads, X-Wing, Swordfish, XY-Wing, XYZ-Wing, single-digit patterns
+/// - **Expert** (`.expert`): W-Wing, unique rectangles, BUG+1, Jellyfish, finned X-Wing and
+///   Swordfish, 4-Y-Wing
 /// - **Master** (`.professional`): finned jellyfish, 5- to 7-Y-Wings, or the solver had to guess
 /// - **Custom**: a puzzle the player made, not rated
 ///

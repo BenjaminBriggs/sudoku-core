@@ -58,7 +58,9 @@ struct ScoreCalculatorTests {
         #expect(result.score == 20 * 4 + 150)
         #expect(result.difficulty == 150)
         #expect(result.tedium == 80)
-        #expect(result.level == .hard)
+        // Expert: W-Wing moved up from Advanced when the levels came to follow what players are
+        // taught, since players mostly meet it in solver references
+        #expect(result.level == .expert)
     }
 
     @Test("Difficulty adds the steps beyond singles")
@@ -68,20 +70,26 @@ struct ScoreCalculatorTests {
         #expect(result.difficulty == 300, "a W-Wing and three pointings")
         #expect(result.tedium == 18)
         #expect(result.score == 318)
-        #expect(result.level == .hard)
+        // Expert, for the W-Wing, as above
+        #expect(result.level == .expert)
     }
 
+    // The levels follow what players are taught: XY- and XYZ-Wing moved down from Expert to
+    // Advanced, and W-Wing, the Unique Rectangles, Jellyfish and Finned X-Wing up from Advanced
+    // to Expert. TechniqueTests.solveOrder pins every technique's level.
     @Test("The level follows the hardest step, not the total", arguments: [
         (TechniqueInfo.hiddenSingle, PuzzleDifficulty.Level.easy),
         (.lockedCandidatesPointing, .medium),
         (.nakedTriple, .medium),
         (.nakedQuad, .hard),
         (.xWing, .hard),
-        (.wWing, .hard),
-        (.uniqueRectangleType1, .hard),
+        (.xyWing, .hard),
+        (.xyzWing, .hard),
         (.crane, .hard),
-        (.xyWing, .expert),
-        (.xyzWing, .expert),
+        (.wWing, .expert),
+        (.uniqueRectangleType1, .expert),
+        (.jellyfish, .expert),
+        (.finnedXWing, .expert),
         (.bug, .expert),
         (.finnedSwordfish, .expert),
         (.fourYWing, .expert),

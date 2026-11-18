@@ -4,7 +4,7 @@
     "id" : "002900400000210000931000002003090006700300190096781345020000964340600801000005207",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 500,
+    "score" : 530,
     "seRating" : 5.2
   },
   {
@@ -46,7 +46,7 @@
     "id" : "870005000000000400503000167280900730059000000307800010000500304020340980400008001",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 2126,
+    "score" : 2116,
     "seRating" : 5.6
   },
   {
@@ -54,7 +54,7 @@
     "id" : "730004905005360010006590000000020009000140320020008000463800500008070004002450000",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 1156,
+    "score" : 1146,
     "seRating" : 5.8
   },
   {
@@ -118,7 +118,7 @@
     "hodokuLevel" : "hard",
     "hodokuRating" : 458,
     "id" : "003708000002005003680040000960000071010004900007000068470251000030080050000030006",
-    "level" : "hard",
+    "level" : "expert",
     "needsGuessing" : false,
     "score" : 458,
     "seRating" : 4.4
@@ -190,7 +190,7 @@
     "id" : "000020000810957000060000000001060509000890301003071060590310020200000015106080000",
     "level" : "expert",
     "needsGuessing" : false,
-    "score" : 1724,
+    "score" : 1504,
     "seRating" : 5.4
   },
   {
@@ -200,7 +200,7 @@
     "id" : "000005030000600040051400072000209000080040000000500209010000004800002000209060503",
     "level" : "expert",
     "needsGuessing" : false,
-    "score" : 1294,
+    "score" : 1454,
     "seRating" : 5.4
   },
   {
@@ -210,7 +210,7 @@
     "id" : "009504000504600193812003540007006030001000007060300002006800009050900200000000800",
     "level" : "professional",
     "needsGuessing" : false,
-    "score" : 1574,
+    "score" : 1334,
     "seRating" : 5.6
   },
   {
@@ -220,7 +220,7 @@
     "id" : "010039700005000000090800010000000800000507160870400009100026403030001000029340000",
     "level" : "expert",
     "needsGuessing" : false,
-    "score" : 1188,
+    "score" : 1138,
     "seRating" : 5.6
   },
   {
@@ -230,7 +230,7 @@
     "id" : "015600000000003508000000090008000300030410000006005010300041705000260040090057080",
     "level" : "expert",
     "needsGuessing" : false,
-    "score" : 1276,
+    "score" : 1306,
     "seRating" : 5.4
   },
   {
@@ -240,7 +240,7 @@
     "id" : "000100020010042030900830001000000700067300000009680005000078000086001047100400900",
     "level" : "professional",
     "needsGuessing" : false,
-    "score" : 2562,
+    "score" : 2612,
     "seRating" : 5.8
   },
   {
@@ -248,18 +248,18 @@
     "id" : "026070000010026803800090060100009048080012090049000000001350004400201000007008001",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 926,
+    "score" : 656,
     "seRating" : 5.2
   },
   {
-    "hardestTechnique" : "xyWing",
+    "hardestTechnique" : "uniqueRectangleType4",
     "hodokuLevel" : "hard",
     "hodokuRating" : 842,
     "id" : "940001000600000000002800054000307045107000930004000200000600000406032090700005082",
     "level" : "expert",
     "needsGuessing" : false,
-    "score" : 1042,
-    "seRating" : 4.8
+    "score" : 842,
+    "seRating" : 4.5
   },
   {
     "hardestTechnique" : "fiveYWing",
@@ -288,11 +288,11 @@
     "seRating" : 5.6
   },
   {
-    "hardestTechnique" : "xyzWing",
+    "hardestTechnique" : "uniqueRectangleType4",
     "id" : "000000040060000730001027809009370020003000904600004000800000310376210000010400697",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 1196,
+    "score" : 1216,
     "seRating" : 5.2
   },
   {
@@ -302,7 +302,7 @@
     "id" : "200350800030009004005600000000082370070000408800030016000000702001090000080060500",
     "level" : "expert",
     "needsGuessing" : false,
-    "score" : 1276,
+    "score" : 1296,
     "seRating" : 5.4
   },
   {
@@ -320,27 +320,27 @@
     "id" : "200800604050002000910000007100600005000407060007100800000004391601000700002001000",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 780,
+    "score" : 730,
     "seRating" : 4.8
   },
   {
-    "hardestTechnique" : "wWing",
+    "hardestTechnique" : "xyWing",
     "hodokuLevel" : "hard",
     "hodokuRating" : 1202,
     "id" : "000786092000100060007000000090000004304200970000001800003090007080000009926010405",
     "level" : "hard",
     "needsGuessing" : false,
-    "score" : 1202,
-    "seRating" : 4.4
+    "score" : 992,
+    "seRating" : 4.5
   },
   {
-    "hardestTechnique" : "xyzWing",
+    "hardestTechnique" : "skyscraper",
     "hodokuLevel" : "hard",
     "hodokuRating" : 1144,
     "id" : "000018070830000006009500000004030060500400200020000007005000040700205001306070000",
-    "level" : "expert",
+    "level" : "hard",
     "needsGuessing" : false,
-    "score" : 1144,
+    "score" : 994,
     "seRating" : 5.2
   },
   {
@@ -348,9 +348,9 @@
     "hodokuLevel" : "hard",
     "hodokuRating" : 938,
     "id" : "020603000300049080004000160007500400150004008090800051709006000800000094040050000",
-    "level" : "expert",
+    "level" : "hard",
     "needsGuessing" : false,
-    "score" : 938,
+    "score" : 788,
     "seRating" : 4.5
   },
   {
@@ -358,7 +358,7 @@
     "hodokuLevel" : "hard",
     "hodokuRating" : 900,
     "id" : "020400709400100000700000806200680000007000082000275004040000005012039000600000000",
-    "level" : "hard",
+    "level" : "expert",
     "needsGuessing" : false,
     "score" : 890,
     "seRating" : 4.4
@@ -368,7 +368,7 @@
     "hodokuLevel" : "hard",
     "hodokuRating" : 782,
     "id" : "380000075000000008006070100020005300509030000007196050005000020070900063000021007",
-    "level" : "hard",
+    "level" : "expert",
     "needsGuessing" : false,
     "score" : 772,
     "seRating" : 4.4
@@ -380,23 +380,23 @@
     "id" : "005006070000070020167008090400000010090100400000005702000000180079810005318600000",
     "level" : "professional",
     "needsGuessing" : false,
-    "score" : 1878,
+    "score" : 2058,
     "seRating" : 5.6
   },
   {
-    "hardestTechnique" : "finnedXWing",
+    "hardestTechnique" : "twoStringKite",
     "id" : "000005900001007063370000000000030001500000400020080095000000010200068000008200300",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 504,
-    "seRating" : 4.2
+    "score" : 524,
+    "seRating" : 4
   },
   {
     "hardestTechnique" : "fiveYWing",
     "id" : "000000040000300072090014800830001920060000080001200500080003004300002000724105008",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 1342,
+    "score" : 1332,
     "seRating" : 5.6
   },
   {
@@ -408,11 +408,11 @@
     "seRating" : 2.6
   },
   {
-    "hardestTechnique" : "xyzWing",
+    "hardestTechnique" : "wWing",
     "id" : "000000500060590012070001036002050001037000080016780005004009000000000103020000007",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 1306,
+    "score" : 1176,
     "seRating" : 5.2
   },
   {
@@ -428,7 +428,7 @@
     "id" : "010007000000010000780000605930005060004200000005003040008000409000320807050800006",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 1230,
+    "score" : 1270,
     "seRating" : 5.6
   },
   {
@@ -444,7 +444,7 @@
     "id" : "080140300063050000901006000250400600000800093800000025008060000005000070000000240",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 1332,
+    "score" : 1482,
     "seRating" : 5.4
   },
   {
@@ -462,7 +462,7 @@
     "id" : "006190030001000002005002607580200000600900005009700020000086000050020409004500001",
     "level" : "expert",
     "needsGuessing" : false,
-    "score" : 1292,
+    "score" : 1282,
     "seRating" : 5.4
   },
   {
@@ -470,7 +470,7 @@
     "id" : "005009006028006000001070085000000000200045609000963700850400067140002000900000100",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 1772,
+    "score" : 1722,
     "seRating" : 5.6
   },
   {
@@ -486,7 +486,7 @@
     "id" : "010080000390402080000031004039100000600000003084000060040008000000609030007005108",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 718,
+    "score" : 708,
     "seRating" : 4.8
   },
   {
@@ -522,27 +522,27 @@
     "id" : "500004080007008450806030021100000006009000300030400015000900000008043500970006000",
     "level" : "professional",
     "needsGuessing" : true,
-    "score" : 1186,
+    "score" : 1206,
     "seRating" : 6
   },
   {
-    "hardestTechnique" : "xyWing",
+    "hardestTechnique" : "skyscraper",
     "hodokuLevel" : "unfair",
     "hodokuRating" : 1712,
     "id" : "000000500200060490100005007860090030030000000049302000920100005000800042400027080",
-    "level" : "expert",
+    "level" : "hard",
     "needsGuessing" : false,
-    "score" : 1712,
-    "seRating" : 4.5
+    "score" : 1602,
+    "seRating" : 5.2
   },
   {
-    "hardestTechnique" : "xyWing",
+    "hardestTechnique" : "finnedSwordfish",
     "hodokuLevel" : "unfair",
     "hodokuRating" : 1690,
     "id" : "790100400000006000010040200000090008000403001030010074006700809400031000000900100",
     "level" : "expert",
     "needsGuessing" : false,
-    "score" : 1820,
+    "score" : 2010,
     "seRating" : 4.8
   }
 ]

@@ -110,7 +110,7 @@ SudokuCore rates a puzzle by solving it the way a person would:
 
 ### Level, Difficulty and Tedium
 
-The level is the hardest technique's: singles are Beginner; locked candidates, pairs and triples Intermediate; quads, fish, W-Wing, single-digit patterns and unique rectangles Advanced; XY- and XYZ-Wings, BUG+1, finned swordfish and 4-Y-Wings Expert; finned jellyfish, 5- to 7-Y-Wings and any puzzle the solver has to guess at Master. A long path never promotes a puzzle. The score sums HoDoKu's points over every step, split into difficulty (steps beyond singles) and tedium (singles).
+The level is the hardest technique's: singles are Beginner; locked candidates, pairs and triples Intermediate; quads, X-Wing, Swordfish, XY- and XYZ-Wings and single-digit patterns Advanced; W-Wing, unique rectangles, BUG+1, Jellyfish, finned X-Wing and swordfish and 4-Y-Wings Expert; finned jellyfish, 5- to 7-Y-Wings and any puzzle the solver has to guess at Master. A long path never promotes a puzzle. The score sums HoDoKu's points over every step, split into difficulty (steps beyond singles) and tedium (singles).
 
 ### HoDoKu Rating
 

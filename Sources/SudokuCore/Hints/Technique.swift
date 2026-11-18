@@ -41,7 +41,8 @@ extension TechniqueID: Codable {
 /// Rating metadata is nil for variant techniques — the package does not rate variant puzzles.
 public struct TechniqueInfo: Codable, Hashable, Sendable, Identifiable {
     public let id: TechniqueID
-    /// Solve-order rank (lower = easier). Matches the legacy enum's difficulty scale.
+    /// Solve-order rank (lower = tried first). ``HintFinder/firstHint(in:using:)`` sorts a list
+    /// that isn't in this order by it, so the classic ranks rise with ``ClassicTechniques/all``.
     public let difficulty: Int
     /// Sudoku Explainer identifier, nil for unrated techniques.
     public let seId: String?
@@ -57,11 +58,19 @@ public struct TechniqueInfo: Codable, Hashable, Sendable, Identifiable {
     public let scorePoints: Double?
     /// The level a step of this technique gives a puzzle. A puzzle's level is its hardest
     /// step's, whatever the rest of the path: a short solve through a W-Wing is never Beginner,
-    /// and a long path of singles never rises above it. Classic techniques take HoDoKu's level
-    /// for the step, except at the top, where Master gets techniques of its own: XY-Wing,
-    /// XYZ-Wing and BUG+1 (HoDoKu's hard) are Expert with Finned Swordfish and 4-Y-Wing, and
-    /// Finned Jellyfish and the 5- to 7-Y-Wings (HoDoKu's unfair) are Master, as is guessing.
-    /// `.easy` for techniques that don't say.
+    /// and a long path of singles never rises above it. `.easy` for techniques that don't say.
+    ///
+    /// The classic levels follow what players are taught, and rise with the solve order:
+    /// - Beginner: singles.
+    /// - Intermediate: locked candidates, pairs and triples.
+    /// - Advanced: quads and what is taught next, X-Wing, Swordfish, XY-Wing and XYZ-Wing, then
+    ///   the four single-digit patterns (Skyscraper, Two-String Kite, Crane, Empty Rectangle),
+    ///   the hardest step of most Advanced puzzles.
+    /// - Expert: techniques found mostly in solver references: W-Wing, the Unique Rectangles,
+    ///   BUG+1, Jellyfish, Finned X-Wing and Finned Swordfish, and 4-Y-Wing.
+    /// - Master: Finned Jellyfish, the 5- to 7-Y-Wings, and guessing.
+    ///
+    /// HoDoKu's own levels, which ``HoDoKuCalculator`` uses, are in ``RatingTables/HoDoKu/steps``.
     public let level: PuzzleDifficulty.Level
     /// A naked or hidden single: a placement, the step every blank costs. Singles make up a
     /// puzzle's ``PuzzleDifficulty/tedium``; every other technique makes up its
@@ -110,7 +119,7 @@ public struct TechniqueInfo: Codable, Hashable, Sendable, Identifiable {
 
 extension TechniqueInfo {
     /// Classic constant builder keeping seId == hodokuId, as the legacy enum did. The points
-    /// are HoDoKu's step scores; the level is HoDoKu's for the step except where ``level`` says.
+    /// are HoDoKu's step scores; the level is SudokuCore's own, as ``level`` sets out.
     private static func classic(
         _ id: TechniqueID, _ difficulty: Int, _ seId: String,
         _ seStepValue: Double, _ scorePoints: Double, _ level: PuzzleDifficulty.Level,
@@ -136,32 +145,32 @@ extension TechniqueInfo {
     public static let nakedQuad = classic("nakedQuad", 70, "Naked Quad", 3.2, 120, .hard)
     public static let hiddenQuad = classic("hiddenQuad", 70, "Hidden Quad", 3.4, 150, .hard)
     public static let xWing = classic("xWing", 80, "X-Wing", 3.8, 140, .hard)
-    public static let finnedXWing = classic("finnedXWing", 85, "Finned X-Wing", 4.2, 130, .hard)
-    public static let swordfish = classic("swordfish", 90, "Swordfish", 4.4, 150, .hard)
-    public static let skyscraper = classic("skyscraper", 90, "Skyscraper", 4.0, 130, .hard)
+    public static let finnedXWing = classic("finnedXWing", 104, "Finned X-Wing", 4.2, 130, .expert)
+    public static let swordfish = classic("swordfish", 84, "Swordfish", 4.4, 150, .hard)
+    public static let skyscraper = classic("skyscraper", 89, "Skyscraper", 4.0, 130, .hard)
     public static let twoStringKite = classic("twoStringKite", 90, "Two-String Kite", 4.0, 150, .hard)
     public static let emptyRectangle = classic("emptyRectangle", 92, "Empty Rectangle", 4.0, 120, .hard)
     public static let finnedSwordfish = classic(
-        "finnedSwordfish", 95, "Finned Swordfish", 4.8, 200, .expert)
-    public static let wWing = classic("wWing", 95, "W-Wing", 4.4, 150, .hard)
-    public static let jellyfish = classic("jellyfish", 100, "Jellyfish", 4.8, 160, .hard)
+        "finnedSwordfish", 105, "Finned Swordfish", 4.8, 200, .expert)
+    public static let wWing = classic("wWing", 95, "W-Wing", 4.4, 150, .expert)
+    public static let jellyfish = classic("jellyfish", 103, "Jellyfish", 4.8, 160, .expert)
     public static let finnedJellyfish = classic(
-        "finnedJellyfish", 105, "Finned Jellyfish", 5.1, 250, .professional)
-    public static let xyWing = classic("xyWing", 110, "XY-Wing", 4.5, 160, .expert)
-    public static let xyzWing = classic("xyzWing", 120, "XYZ-Wing", 5.2, 180, .expert)
+        "finnedJellyfish", 107, "Finned Jellyfish", 5.1, 250, .professional)
+    public static let xyWing = classic("xyWing", 86, "XY-Wing", 4.5, 160, .hard)
+    public static let xyzWing = classic("xyzWing", 88, "XYZ-Wing", 5.2, 180, .hard)
     public static let crane = classic("crane", 91, "Crane", 4.0, 120, .hard)
     public static let uniqueRectangleType1 = classic(
-        "uniqueRectangleType1", 96, "Unique Rectangle Type 1", 4.5, 100, .hard)
+        "uniqueRectangleType1", 96, "Unique Rectangle Type 1", 4.5, 100, .expert)
     public static let uniqueRectangleType2 = classic(
-        "uniqueRectangleType2", 97, "Unique Rectangle Type 2", 4.5, 100, .hard)
+        "uniqueRectangleType2", 97, "Unique Rectangle Type 2", 4.5, 100, .expert)
     public static let uniqueRectangleType3 = classic(
-        "uniqueRectangleType3", 101, "Unique Rectangle Type 3", 4.6, 100, .hard)
+        "uniqueRectangleType3", 101, "Unique Rectangle Type 3", 4.6, 100, .expert)
     public static let uniqueRectangleType4 = classic(
-        "uniqueRectangleType4", 98, "Unique Rectangle Type 4", 4.5, 100, .hard)
+        "uniqueRectangleType4", 98, "Unique Rectangle Type 4", 4.5, 100, .expert)
     public static let uniqueRectangleType5 = classic(
-        "uniqueRectangleType5", 99, "Unique Rectangle Type 5", 4.6, 100, .hard)
-    public static let bug = classic("bug", 115, "BUG+1", 5.6, 100, .expert)
-    public static let fourYWing = classic("fourYWing", 125, "4-Y-Wing", 5.4, 260, .expert)
+        "uniqueRectangleType5", 99, "Unique Rectangle Type 5", 4.6, 100, .expert)
+    public static let bug = classic("bug", 102, "BUG+1", 5.6, 100, .expert)
+    public static let fourYWing = classic("fourYWing", 106, "4-Y-Wing", 5.4, 260, .expert)
     public static let fiveYWing = classic("fiveYWing", 130, "5-Y-Wing", 5.6, 260, .professional)
     public static let sixYWing = classic("sixYWing", 135, "6-Y-Wing", 5.8, 260, .professional)
     public static let sevenYWing = classic("sevenYWing", 140, "7-Y-Wing", 6.0, 260, .professional)
@@ -169,22 +178,21 @@ extension TechniqueInfo {
     /// hardest techniques.
     public static let unknown = classic("unknown", 9999, "Unknown", 8.0, 300, .professional)
 
-    /// All classic technique infos, one per legacy enum case (35 total), in the exact
-    /// order the legacy `orderedCases` produced: stable sort by difficulty over enum
-    /// declaration order. Ties resolve by declaration order — that is why swordfish
-    /// (difficulty 90, declared before skyscraper/twoStringKite) precedes them and
-    /// finnedSwordfish precedes wWing (95).
+    /// All classic technique infos, one per legacy enum case (35 total), in solve order:
+    /// ``ClassicTechniques/all``'s order, then ``unknown``. Their ``difficulty`` rises with it.
+    /// The only ties are each pair of locked candidates, pairs, triples and quads, which keep
+    /// this order under the stable sort ``HintFinder/firstHint(in:using:)`` makes.
     public static let allClassic: [TechniqueInfo] = [
         .validation, .nakedSingle, .hiddenSingle,
         .lockedCandidatesPointing, .lockedCandidatesClaiming,
-        .nakedPair, .hiddenPair, .nakedTriple, .hiddenTriple, .nakedQuad, .hiddenQuad,
-        .xWing, .finnedXWing,
-        .swordfish, .skyscraper, .twoStringKite, .crane, .emptyRectangle,
-        .finnedSwordfish, .wWing,
+        .nakedPair, .hiddenPair, .nakedTriple, .hiddenTriple,
+        .nakedQuad, .hiddenQuad, .xWing, .swordfish, .xyWing, .xyzWing,
+        .skyscraper, .twoStringKite, .crane, .emptyRectangle,
+        .wWing,
         .uniqueRectangleType1, .uniqueRectangleType2, .uniqueRectangleType4,
-        .uniqueRectangleType5, .jellyfish, .uniqueRectangleType3, .finnedJellyfish,
-        .xyWing, .bug, .xyzWing,
-        .fourYWing, .fiveYWing, .sixYWing, .sevenYWing, .unknown,
+        .uniqueRectangleType5, .uniqueRectangleType3, .bug,
+        .jellyfish, .finnedXWing, .finnedSwordfish, .fourYWing,
+        .finnedJellyfish, .fiveYWing, .sixYWing, .sevenYWing, .unknown,
     ]
 }
 

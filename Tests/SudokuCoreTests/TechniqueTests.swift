@@ -48,36 +48,61 @@ struct TechniqueTests {
         #expect(TechniqueInfo.allClassic.count == 35)
     }
 
-    /// Where the levels leave HoDoKu's: its hard and unfair are split three ways at the top, so
-    /// Master has techniques of its own and not only guessing.
-    static let ownLevels: [TechniqueID: PuzzleDifficulty.Level] = [
-        TechniqueInfo.xyWing.id: .expert,
-        TechniqueInfo.xyzWing.id: .expert,
-        TechniqueInfo.bug.id: .expert,
-        TechniqueInfo.finnedJellyfish.id: .professional,
-        TechniqueInfo.fiveYWing.id: .professional,
-        TechniqueInfo.sixYWing.id: .professional,
-        TechniqueInfo.sevenYWing.id: .professional,
+    /// Every classic technique in solve order, with the level it gives a puzzle. The levels
+    /// follow what players are taught: X-Wing, Swordfish, XY-Wing and XYZ-Wing are Advanced with
+    /// the four single-digit patterns, and the techniques players mostly meet in solver
+    /// references are Expert. Changing a row changes ratings: update the snapshots on purpose.
+    static let solveOrder: [(info: TechniqueInfo, level: PuzzleDifficulty.Level)] = [
+        (.nakedSingle, .easy),
+        (.hiddenSingle, .easy),
+        (.lockedCandidatesPointing, .medium),
+        (.lockedCandidatesClaiming, .medium),
+        (.nakedPair, .medium),
+        (.hiddenPair, .medium),
+        (.nakedTriple, .medium),
+        (.hiddenTriple, .medium),
+        (.nakedQuad, .hard),
+        (.hiddenQuad, .hard),
+        (.xWing, .hard),
+        (.swordfish, .hard),
+        (.xyWing, .hard),
+        (.xyzWing, .hard),
+        (.skyscraper, .hard),
+        (.twoStringKite, .hard),
+        (.crane, .hard),
+        (.emptyRectangle, .hard),
+        (.wWing, .expert),
+        (.uniqueRectangleType1, .expert),
+        (.uniqueRectangleType2, .expert),
+        (.uniqueRectangleType4, .expert),
+        (.uniqueRectangleType5, .expert),
+        (.uniqueRectangleType3, .expert),
+        (.bug, .expert),
+        (.jellyfish, .expert),
+        (.finnedXWing, .expert),
+        (.finnedSwordfish, .expert),
+        (.fourYWing, .expert),
+        (.finnedJellyfish, .professional),
+        (.fiveYWing, .professional),
+        (.sixYWing, .professional),
+        (.sevenYWing, .professional),
     ]
 
-    @Test("Classic points are HoDoKu's step scores, and levels HoDoKu's but at the top")
-    func classicPointsAreHoDoKus() {
-        for info in TechniqueInfo.allClassic where info != .validation && info != .unknown {
+    @Test("Classic points are HoDoKu's step scores, and levels rise with the solve order")
+    func classicPointsAndLevels() {
+        #expect(TechniqueInfo.allClassic == [.validation] + Self.solveOrder.map(\.info) + [.unknown])
+        for (info, level) in Self.solveOrder {
             let step = RatingTables.HoDoKu.steps[info.id]
             #expect(info.scorePoints == step.map { Double($0.points) }, "\(info.id)")
-            let hodoku: PuzzleDifficulty.Level? = switch step?.level {
-            case .easy: .easy
-            case .medium: .medium
-            case .hard: .hard
-            case .unfair: .expert
-            case .extreme: .professional
-            case nil: nil
-            }
-            if let own = Self.ownLevels[info.id] {
-                #expect(own != hodoku, "\(info.id) is at HoDoKu's level")
-            }
-            #expect(info.level == Self.ownLevels[info.id] ?? hodoku, "\(info.id)")
+            #expect(info.level == level, "\(info.id)")
             #expect(info.isSingle == (info == .nakedSingle || info == .hiddenSingle), "\(info.id)")
+        }
+        // Levels rise with the solve order, so what a solver at a level knows is the start of it
+        let levels = Self.solveOrder.map(\.level)
+        #expect(zip(levels, levels.dropFirst()).allSatisfy { $0 <= $1 })
+        for level in PuzzleDifficulty.Level.allCases {
+            let known = ClassicTechniques.upTo(level).map(\.info)
+            #expect(known == Array(ClassicTechniques.all.map(\.info).prefix(known.count)), "\(level)")
         }
         #expect(TechniqueInfo.validation.scorePoints == 0)
         #expect(TechniqueInfo.validation.level == .easy)

@@ -21,18 +21,18 @@ print("\(info.level): difficulty \(info.difficulty), tedium \(info.tedium), scor
 
 #### Difficulty Levels
 
-Each technique carries its ``TechniqueInfo/level``; the puzzle takes the highest. The levels are HoDoKu's for each step except at the top, where HoDoKu's hard and unfair are split three ways so that Master has techniques of its own: XY-Wing, XYZ-Wing and BUG+1 are hard in HoDoKu and Expert here, and finned jellyfish and the 5- to 7-Y-Wings unfair there and Master here.
+Each technique carries its ``TechniqueInfo/level``; the puzzle takes the highest. The levels follow what players are taught, and rise with the order the hint finder tries the techniques in (see <doc:HintSystem>). Advanced is the quads and what players learn after the basics, X-Wing, Swordfish, XY-Wing and XYZ-Wing, together with the four single-digit patterns, which are the hardest step of most Advanced puzzles. Expert is the techniques players mostly meet in solver references. HoDoKu's levels differ: it rates W-Wing, the unique rectangles, BUG+1, Jellyfish and finned X-Wing hard, alongside X-Wing.
 
 | Level | Hardest technique |
 |-------|-------------------|
 | ``PuzzleDifficulty/Level/easy`` (Beginner) | Naked and hidden singles |
 | ``PuzzleDifficulty/Level/medium`` (Intermediate) | Locked candidates, pairs, triples |
-| ``PuzzleDifficulty/Level/hard`` (Advanced) | Quads, fish, finned X-Wing, W-Wing, skyscraper, two-string kite, crane, empty rectangle, unique rectangles |
-| ``PuzzleDifficulty/Level/expert`` (Expert) | XY-Wing, XYZ-Wing, BUG+1, finned swordfish, 4-Y-Wing |
+| ``PuzzleDifficulty/Level/hard`` (Advanced) | Quads, X-Wing, Swordfish, XY-Wing, XYZ-Wing, skyscraper, two-string kite, crane, empty rectangle |
+| ``PuzzleDifficulty/Level/expert`` (Expert) | W-Wing, unique rectangles, BUG+1, Jellyfish, finned X-Wing, finned swordfish, 4-Y-Wing |
 | ``PuzzleDifficulty/Level/professional`` (Master) | Finned jellyfish, 5- to 7-Y-Wings, or the solver had to guess |
 | ``PuzzleDifficulty/Level/custom`` | A puzzle the player made, not rated |
 
-This is where SudokuCore departs from HoDoKu, which also promotes a puzzle whose cumulative score passes a band. Here a long path of singles is a tedious Beginner puzzle, and one W-Wing after twenty singles is an Advanced one: no Beginner puzzle has a W-Wing, and the score ranks the player's effort, not the puzzle's level. Within a level, `difficulty` orders puzzles (one W-Wing is 150, a W-Wing and three pointings 300) and `tedium` says how long the singles will take. ``PuzzleDifficulty/Level`` is `Comparable` in this order.
+This is where SudokuCore departs from HoDoKu, which also promotes a puzzle whose cumulative score passes a band. Here a long path of singles is a tedious Beginner puzzle, and one W-Wing after twenty singles is an Expert one: no Beginner puzzle has a W-Wing, and the score ranks the player's effort, not the puzzle's level. Within a level, `difficulty` orders puzzles (one W-Wing is 150, a W-Wing and three pointings 300) and `tedium` says how long the singles will take. ``PuzzleDifficulty/Level`` is `Comparable` in this order.
 
 #### Point Values
 
@@ -180,7 +180,9 @@ case .nakedPair, .hiddenPair, .nakedTriple:
 case .xWing, .swordfish:
     print("Advanced puzzle - requires fish patterns")
 case .xyWing, .xyzWing:
-    print("Expert puzzle - requires wing patterns")
+    print("Advanced puzzle - requires wing patterns")
+case .wWing, .finnedXWing, .finnedSwordfish:
+    print("Expert puzzle")
 default:
     print("Complex puzzle")
 }
