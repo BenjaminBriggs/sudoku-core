@@ -211,42 +211,58 @@ public struct NYWingTechnique: HintTechnique {
     }
 }
 
-/// The built-in classic technique set, in solve order (easiest first).
+/// The built-in classic technique set, in solve order (easiest first). Each technique's
+/// ``TechniqueInfo/level`` is at least the one before's, and its ``TechniqueInfo/difficulty``
+/// rises with the order, so ``HintFinder/firstHint(in:using:)`` keeps this order when it sorts
+/// these in with a caller's own techniques.
 /// Replaces the legacy `HintTechnique.orderedCases`. Does not include an
 /// "unknown" entry — the legacy `.unknown` case never produced hints.
 public enum ClassicTechniques {
     public static let all: [any HintTechnique] = [
         ValidationTechnique(),
+        // Beginner
         NakedSingleTechnique(),
         HiddenSingleTechnique(),
+        // Intermediate
         LockedCandidatesTechnique(kind: .pointing),
         LockedCandidatesTechnique(kind: .claiming),
         NakedSubsetTechnique(size: 2),
         HiddenSubsetTechnique(size: 2),
         NakedSubsetTechnique(size: 3),
         HiddenSubsetTechnique(size: 3),
+        // Advanced: what courses teach after the basics. BUG+1 before X-Wing and Unique Rectangle
+        // Type 1 straight after it, where SudokuWiki tries them, so the first use of uniqueness
+        // comes with the first fish. Then Swordfish, XY-Wing and XYZ-Wing, in the order players
+        // are taught them. Type 1 before the wings also keeps it findable: an XY-Wing can cross
+        // off one digit of a rectangle's corner, and the finder needs both digits in all four.
         NakedSubsetTechnique(size: 4),
         HiddenSubsetTechnique(size: 4),
+        BUGTechnique(),
         FishTechnique(size: 2, finned: false),
-        FishTechnique(size: 2, finned: true),
+        UniqueRectangleTechnique(type: 1),
         FishTechnique(size: 3, finned: false),
+        XYWingTechnique(),
+        XYZWingTechnique(),
+        // Expert: the four single-digit patterns, then W-Wing.
         SkyscraperTechnique(),
         TwoStringKiteTechnique(),
         CraneTechnique(),
         EmptyRectangleTechnique(),
-        FishTechnique(size: 3, finned: true),
         WWingTechnique(),
-        UniqueRectangleTechnique(type: 1),
+        // Master: the harder Unique Rectangles, Jellyfish, Finned X-Wing and 4-Y-Wing. The
+        // finned fish come late, where HoDoKu, Sudoku Explainer and SudokuWiki try them: tried
+        // earlier, a finned fish takes the step from a simpler pattern that crosses off the same
+        // notes, and almost every Skyscraper is also a sashimi Finned X-Wing.
         UniqueRectangleTechnique(type: 2),
         UniqueRectangleTechnique(type: 4),
         UniqueRectangleTechnique(type: 5),
-        FishTechnique(size: 4, finned: false),
         UniqueRectangleTechnique(type: 3),
-        FishTechnique(size: 4, finned: true),
-        XYWingTechnique(),
-        BUGTechnique(),
-        XYZWingTechnique(),
+        FishTechnique(size: 4, finned: false),
+        FishTechnique(size: 2, finned: true),
         NYWingTechnique(size: 4),
+        // Grandmaster: what the references keep for their top tiers.
+        FishTechnique(size: 3, finned: true),
+        FishTechnique(size: 4, finned: true),
         NYWingTechnique(size: 5),
         NYWingTechnique(size: 6),
         NYWingTechnique(size: 7),
@@ -258,6 +274,7 @@ public enum ClassicTechniques {
     }
 
     /// The techniques at `level` or easier, in solve order: what a solver at that level knows.
+    /// Levels rise with the solve order, so this is the start of ``all``.
     public static func upTo(_ level: PuzzleDifficulty.Level) -> [any HintTechnique] {
         all.filter { $0.info.level <= level }
     }

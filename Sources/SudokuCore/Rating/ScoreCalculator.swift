@@ -16,7 +16,7 @@ import Foundation
 ///
 /// The level is the hardest step's ``TechniqueInfo/level``, nothing else. Unlike HoDoKu, a
 /// long path never promotes a puzzle: fifty singles are a tedious Beginner puzzle, and one
-/// W-Wing after twenty singles is an Advanced one. Guessing is Master.
+/// W-Wing after twenty singles is an Expert one. Guessing is Grandmaster.
 ///
 /// ``HoDoKuCalculator`` estimates HoDoKu's own rating, with its score bands, for comparison.
 public enum ScoreCalculator {

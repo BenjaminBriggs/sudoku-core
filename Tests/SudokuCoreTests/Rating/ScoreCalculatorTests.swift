@@ -58,7 +58,9 @@ struct ScoreCalculatorTests {
         #expect(result.score == 20 * 4 + 150)
         #expect(result.difficulty == 150)
         #expect(result.tedium == 80)
-        #expect(result.level == .hard)
+        // Expert: W-Wing moved up from Advanced when the levels came to follow what players are
+        // taught, since players mostly meet it in solver references
+        #expect(result.level == .expert)
     }
 
     @Test("Difficulty adds the steps beyond singles")
@@ -68,27 +70,37 @@ struct ScoreCalculatorTests {
         #expect(result.difficulty == 300, "a W-Wing and three pointings")
         #expect(result.tedium == 18)
         #expect(result.score == 318)
-        #expect(result.level == .hard)
+        // Expert, for the W-Wing, as above
+        #expect(result.level == .expert)
     }
 
+    // Six levels, each above Intermediate adding a few ideas: BUG+1 and Unique Rectangle Type 1
+    // moved down to Advanced, the single-digit patterns up to Expert, the harder rectangles,
+    // Jellyfish, Finned X-Wing and 4-Y-Wing up to Master, and Finned Swordfish up to Grandmaster,
+    // which also takes what was Master: Finned Jellyfish, the 5- to 7-Y-Wings and guessing.
+    // TechniqueTests.solveOrder pins every technique's level.
     @Test("The level follows the hardest step, not the total", arguments: [
         (TechniqueInfo.hiddenSingle, PuzzleDifficulty.Level.easy),
         (.lockedCandidatesPointing, .medium),
         (.nakedTriple, .medium),
         (.nakedQuad, .hard),
+        (.bug, .hard),
         (.xWing, .hard),
-        (.wWing, .hard),
         (.uniqueRectangleType1, .hard),
-        (.crane, .hard),
-        (.xyWing, .expert),
-        (.xyzWing, .expert),
-        (.bug, .expert),
-        (.finnedSwordfish, .expert),
-        (.fourYWing, .expert),
-        (.finnedJellyfish, .professional),
-        (.fiveYWing, .professional),
-        (.sevenYWing, .professional),
-        (.unknown, .professional),
+        (.xyWing, .hard),
+        (.xyzWing, .hard),
+        (.skyscraper, .expert),
+        (.crane, .expert),
+        (.wWing, .expert),
+        (.uniqueRectangleType2, .professional),
+        (.jellyfish, .professional),
+        (.finnedXWing, .professional),
+        (.fourYWing, .professional),
+        (.finnedSwordfish, .grandmaster),
+        (.finnedJellyfish, .grandmaster),
+        (.fiveYWing, .grandmaster),
+        (.sevenYWing, .grandmaster),
+        (.unknown, .grandmaster),
     ])
     func levelFollowsHardestStep(_ technique: TechniqueInfo, _ level: PuzzleDifficulty.Level) {
         // A hundred hidden singles would pass every HoDoKu band; the level still reads the hardest step
@@ -140,7 +152,7 @@ struct ScoreCalculatorTests {
             #expect(result.tedium == difficulty.tedium, "\(puzzle.name)")
             // The calculator's level also reads the guessing marker it appends after a stall
             if difficulty.needsGuessing {
-                #expect(difficulty.level == .professional, "\(puzzle.name)")
+                #expect(difficulty.level == .grandmaster, "\(puzzle.name)")
             } else {
                 #expect(result.level == difficulty.level, "\(puzzle.name)")
             }

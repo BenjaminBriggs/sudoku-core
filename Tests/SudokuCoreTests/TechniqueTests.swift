@@ -48,42 +48,74 @@ struct TechniqueTests {
         #expect(TechniqueInfo.allClassic.count == 35)
     }
 
-    /// Where the levels leave HoDoKu's: its hard and unfair are split three ways at the top, so
-    /// Master has techniques of its own and not only guessing.
-    static let ownLevels: [TechniqueID: PuzzleDifficulty.Level] = [
-        TechniqueInfo.xyWing.id: .expert,
-        TechniqueInfo.xyzWing.id: .expert,
-        TechniqueInfo.bug.id: .expert,
-        TechniqueInfo.finnedJellyfish.id: .professional,
-        TechniqueInfo.fiveYWing.id: .professional,
-        TechniqueInfo.sixYWing.id: .professional,
-        TechniqueInfo.sevenYWing.id: .professional,
+    /// Every classic technique in solve order, with the level it gives a puzzle. The levels
+    /// follow what players are taught, each above Intermediate adding a few ideas: Advanced is
+    /// what courses teach after the basics, with BUG+1 and Unique Rectangle Type 1 tried where
+    /// SudokuWiki tries them; Expert the single-digit patterns and W-Wing; Master the harder
+    /// rectangles, Jellyfish, Finned X-Wing and 4-Y-Wing; Grandmaster what the references keep
+    /// for their top tiers. Changing a row changes ratings: update the snapshots on purpose.
+    static let solveOrder: [(info: TechniqueInfo, level: PuzzleDifficulty.Level)] = [
+        (.nakedSingle, .easy),
+        (.hiddenSingle, .easy),
+        (.lockedCandidatesPointing, .medium),
+        (.lockedCandidatesClaiming, .medium),
+        (.nakedPair, .medium),
+        (.hiddenPair, .medium),
+        (.nakedTriple, .medium),
+        (.hiddenTriple, .medium),
+        (.nakedQuad, .hard),
+        (.hiddenQuad, .hard),
+        (.bug, .hard),
+        (.xWing, .hard),
+        (.uniqueRectangleType1, .hard),
+        (.swordfish, .hard),
+        (.xyWing, .hard),
+        (.xyzWing, .hard),
+        (.skyscraper, .expert),
+        (.twoStringKite, .expert),
+        (.crane, .expert),
+        (.emptyRectangle, .expert),
+        (.wWing, .expert),
+        (.uniqueRectangleType2, .professional),
+        (.uniqueRectangleType4, .professional),
+        (.uniqueRectangleType5, .professional),
+        (.uniqueRectangleType3, .professional),
+        (.jellyfish, .professional),
+        (.finnedXWing, .professional),
+        (.fourYWing, .professional),
+        (.finnedSwordfish, .grandmaster),
+        (.finnedJellyfish, .grandmaster),
+        (.fiveYWing, .grandmaster),
+        (.sixYWing, .grandmaster),
+        (.sevenYWing, .grandmaster),
     ]
 
-    @Test("Classic points are HoDoKu's step scores, and levels HoDoKu's but at the top")
-    func classicPointsAreHoDoKus() {
-        for info in TechniqueInfo.allClassic where info != .validation && info != .unknown {
+    @Test("Classic points are HoDoKu's step scores, and levels rise with the solve order")
+    func classicPointsAndLevels() {
+        #expect(TechniqueInfo.allClassic == [.validation] + Self.solveOrder.map(\.info) + [.unknown])
+        for (info, level) in Self.solveOrder {
             let step = RatingTables.HoDoKu.steps[info.id]
             #expect(info.scorePoints == step.map { Double($0.points) }, "\(info.id)")
-            let hodoku: PuzzleDifficulty.Level? = switch step?.level {
-            case .easy: .easy
-            case .medium: .medium
-            case .hard: .hard
-            case .unfair: .expert
-            case .extreme: .professional
-            case nil: nil
-            }
-            if let own = Self.ownLevels[info.id] {
-                #expect(own != hodoku, "\(info.id) is at HoDoKu's level")
-            }
-            #expect(info.level == Self.ownLevels[info.id] ?? hodoku, "\(info.id)")
+            #expect(info.level == level, "\(info.id)")
             #expect(info.isSingle == (info == .nakedSingle || info == .hiddenSingle), "\(info.id)")
         }
+        // Levels rise with the solve order, so what a solver at a level knows is the start of it
+        let levels = Self.solveOrder.map(\.level)
+        #expect(zip(levels, levels.dropFirst()).allSatisfy { $0 <= $1 })
+        for level in PuzzleDifficulty.Level.allCases {
+            let known = ClassicTechniques.upTo(level).map(\.info)
+            #expect(known == Array(ClassicTechniques.all.map(\.info).prefix(known.count)), "\(level)")
+        }
+        // Every rated level has techniques of its own, and Grandmaster's are the last
+        for level in PuzzleDifficulty.Level.allCases where level != .custom {
+            #expect(levels.contains(level), "\(level)")
+        }
+        #expect(ClassicTechniques.upTo(.grandmaster).count == ClassicTechniques.all.count)
         #expect(TechniqueInfo.validation.scorePoints == 0)
         #expect(TechniqueInfo.validation.level == .easy)
         // Guessing is costed like the hardest techniques, not HoDoKu's 20000-point give-up
         #expect(TechniqueInfo.unknown.scorePoints == 300)
-        #expect(TechniqueInfo.unknown.level == .professional)
+        #expect(TechniqueInfo.unknown.level == .grandmaster)
         #expect(TechniqueInfo.unknown.isSingle == false)
     }
 
@@ -100,11 +132,43 @@ struct TechniqueTests {
         #expect(decoded.scorePoints == 20)
     }
 
-    @Test("Levels order Beginner to Master, then Custom")
+    @Test("Levels order Beginner to Grandmaster, then Custom")
     func levelOrder() {
         let levels = PuzzleDifficulty.Level.allCases
-        #expect(levels == [.easy, .medium, .hard, .expert, .professional, .custom])
+        #expect(levels == [.easy, .medium, .hard, .expert, .professional, .grandmaster, .custom])
         #expect(zip(levels, levels.dropFirst()).allSatisfy { $0 < $1 })
         #expect(max(PuzzleDifficulty.Level.easy, .hard) == .hard)
+        // Grandmaster is the top of the levels a rating gives; Custom is not a rating
+        let rated = levels.filter { $0 != .custom }
+        #expect(rated.count == 6)
+        #expect(rated.max() == .grandmaster)
+        #expect(PuzzleDifficulty.Level.professional < .grandmaster)
+    }
+
+    /// Published and saved puzzles store these strings, so they never change, and Grandmaster,
+    /// added above Master, didn't rename Master's `professional`.
+    @Test("Level raw values and names are pinned")
+    func levelRawValues() throws {
+        let levels: [(PuzzleDifficulty.Level, String, String)] = [
+            (.easy, "easy", "Beginner"),
+            (.medium, "medium", "Intermediate"),
+            (.hard, "hard", "Advanced"),
+            (.expert, "expert", "Expert"),
+            (.professional, "professional", "Master"),
+            (.grandmaster, "grandmaster", "Grandmaster"),
+            (.custom, "custom", "Custom"),
+        ]
+        #expect(levels.map(\.0) == PuzzleDifficulty.Level.allCases)
+        for (level, rawValue, name) in levels {
+            #expect(level.rawValue == rawValue)
+            #expect(level.debugDescription == name)
+            #expect(try JSONEncoder().encode(level) == Data("\"\(rawValue)\"".utf8))
+        }
+        // The five levels stored before Grandmaster decode as they always have
+        let stored = Data(#"["easy","medium","hard","expert","professional"]"#.utf8)
+        let decoded = try JSONDecoder().decode([PuzzleDifficulty.Level].self, from: stored)
+        #expect(decoded == [.easy, .medium, .hard, .expert, .professional])
+        let puzzle = Data(#"{"level":"professional","hardestTechnique":"fiveYWing","score":900}"#.utf8)
+        #expect(try JSONDecoder().decode(PuzzleDifficulty.self, from: puzzle).level == .professional)
     }
 }

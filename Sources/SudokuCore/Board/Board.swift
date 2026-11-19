@@ -49,7 +49,8 @@ import Observation
 public final class Board {
     // MARK: - Puzzle Configuration
 
-    /// The difficulty level of this puzzle (easy, medium, hard, expert, professional, or custom).
+    /// The difficulty level of this puzzle (easy, medium, hard, expert, professional, grandmaster,
+    /// or custom).
     public let difficulty: PuzzleDifficulty.Level
 
     /// The HoDoKu difficulty score representing the puzzle's intrinsic difficulty.

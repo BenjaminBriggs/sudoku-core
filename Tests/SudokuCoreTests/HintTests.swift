@@ -544,7 +544,7 @@ struct HintTests {
                         digit == solution[row][col],
                         "\(technique.rawValue) solves (\(row),\(col)) as \(digit) but solution is \(solution[row][col])"
                     )
-                case .pencilIn, .clear:
+                case .ruleIn, .pencilIn, .clear:
                     break
                 }
             }
@@ -734,7 +734,7 @@ struct HintTests {
                 newPencilMarks[action.position.row][action.position.column] = []
             case .ruleOut(let value):
                 newPencilMarks[action.position.row][action.position.column].remove(value)
-            case .pencilIn(let value):
+            case .ruleIn(let value), .pencilIn(let value):
                 newPencilMarks[action.position.row][action.position.column].insert(value)
             case .clear:
                 newPencilMarks[action.position.row][action.position.column] = []

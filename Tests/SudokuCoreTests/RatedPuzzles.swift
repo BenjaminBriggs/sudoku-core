@@ -146,15 +146,17 @@ enum RatedPuzzles {
         scoreTolerance: 200
     )
 
-    /// Very Hard: Requires fish patterns
-    /// Actual: SE 4.2, score 158 (few steps, so a low cumulative score despite the fish); the
-    /// hint finder stalls after the finned X-Wing, so the calculator rates it Master
+    /// Very Hard: Requires a single-digit pattern
+    /// Actual: SE 4.0, score 178 (few steps, so a low cumulative score despite the kite); the
+    /// hint finder stalls after the Two-String Kite, so the calculator rates it Grandmaster. The kite
+    /// crosses off the note a sashimi Finned X-Wing used to (SE 4.2, score 158), and is tried
+    /// before the finned fish since the solve order follows what players are taught.
     static let veryHardXYZWing = RatedPuzzle(
-        name: "Very Hard - Finned X-Wing",
+        name: "Very Hard - Two-String Kite",
         string: "000700000100000000000036009007500800000000000006003900900620000000000003000009000",
-        expectedSE: 4.2,
-        expectedScore: 158,
-        hardestTechnique: "Finned X-Wing",
+        expectedSE: 4.0,
+        expectedScore: 178,
+        hardestTechnique: "Two-String Kite",
         seRatingTolerance: 0.8,
         scoreTolerance: 50
     )
@@ -185,11 +187,13 @@ enum RatedPuzzles {
     ]
 
     /// Puzzles grouped by the level of the hardest step on the hint finder's path. Singles-only
-    /// puzzles are Beginner however long; a short path through a W-Wing or finned X-Wing is
-    /// Advanced however short. Where the hint finder stalls, the calculator rates Master instead.
+    /// puzzles are Beginner however long; a path through an XY-Wing is Advanced and one through a
+    /// Two-String Kite Expert, however short. Where the hint finder stalls, the calculator rates
+    /// Grandmaster instead.
     static let byDifficulty: [String: [RatedPuzzle]] = [
         "Beginner": [veryEasy, easy, medium, mediumHard],
         "Intermediate": [hardXWing, hardSwordfish],
-        "Advanced": [hardXYWing, veryHardXYZWing, nakedQuadRegression],
+        "Advanced": [hardXYWing, nakedQuadRegression],
+        "Expert": [veryHardXYZWing],
     ]
 }

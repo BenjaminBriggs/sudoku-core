@@ -77,7 +77,7 @@ public struct PuzzleCreator {
         return try await createPuzzle(solution: solution, startingState: startingState)
     }
 
-    /// How many levels apart two levels are, Beginner to Master.
+    /// How many levels apart two levels are, Beginner to Grandmaster.
     private static func levelsApart(_ a: PuzzleDifficulty.Level, _ b: PuzzleDifficulty.Level) -> Int {
         let levels = PuzzleDifficulty.Level.allCases
         return abs(levels.firstIndex(of: a)! - levels.firstIndex(of: b)!)

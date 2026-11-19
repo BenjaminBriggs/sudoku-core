@@ -32,7 +32,7 @@ Dependencies: `swift-collections` (1.1+), `swift-numerics` (1.0+), `swift-algori
 
 - **`Puzzle`** (struct) — immutable puzzle definition: `id`, `solution: [[Int]]`, `startingState: [[Int]]`, `difficulty: PuzzleDifficulty`
 - **`Puzzle.Index`** (struct) — row/column position; `allIndices`, `houseNumber`, `houseIndices`; extensions for orientation and neighbours
-- **`PuzzleDifficulty`** (struct) — `level: Level` (easy/medium/hard/expert/professional/custom) plus quantitative fields: `hardestTechnique`, `score`, `seRating`, `hodokuRating`, `estimatedTimeSeconds`
+- **`PuzzleDifficulty`** (struct) — `level: Level` (easy/medium/hard/expert/professional/grandmaster/custom) plus quantitative fields: `hardestTechnique`, `score`, `seRating`, `hodokuRating`, `estimatedTimeSeconds`
 - **`SudokuUnit`** (enum) — `.row(Int)` / `.column(Int)` / `.house(Int)` with unit-position helpers
 - **`Board.UndoStep`** (struct) — snapshot of cells, changed indices, validity flags, timestamp
 
@@ -46,7 +46,7 @@ Dependencies: `swift-collections` (1.1+), `swift-numerics` (1.0+), `swift-algori
 
 - **`HintTechnique`** (enum, 22 cases) — from `validation` and `nakedSingle` up to `finnedJellyfish` and `wWing`; each case knows its `difficulty`, SE id/step value, and HoDoKu id/points; `orderedCases` defines solve-path ordering
 - **`HintStep`** — `actions: [HintAction]` + `technique` + `reasoning`
-- **`HintAction`** — `position` + `ActionType` (`.solveAs`, `.ruleOut`, `.pencilIn`, `.clear`)
+- **`HintAction`** — `position` + `ActionType` (`.solveAs`, `.ruleOut`, `.ruleIn`, `.pencilIn`, `.clear`)
 - **`HintReasoning`** — machine-readable record of the deduction: `focusDigits`, `units`, `components` (roles: subject/constraint/subset/pivot/wing/base/cover/fin/eliminated, each with `CellFact` snapshots), `placements`/`eliminations` (`CandidateRef`). `inconsistencies(in:)` validates the recorded premises against a live board to detect stale hints
 - **`BoardState`** (struct, Sendable) — immutable snapshot (`grid`, `pencilMarks`, `validOptions`, `solution`) used by hints and rating; produced via `Board.state`
 
@@ -92,7 +92,7 @@ Compound operations (applying a hint, loading state) set `isPerformingAtomicChan
 - **Fish:** X-Wing, Swordfish, Jellyfish + finned variants of each (`FishPatterns.swift`, parameterized by size and fin requirement)
 - **Single-digit patterns:** Skyscraper, Two-String Kite, Empty Rectangle
 - **Wings:** XY-Wing, XYZ-Wing, Y-Wing, W-Wing
-- **Validation:** conflict detection as a hint technique (points out player errors)
+- **Validation:** conflict detection as a hint technique (points out player errors: clashes, wrong numbers, ruled-out answers)
 
 ### Board features
 
